@@ -1,0 +1,135 @@
+<?xml version="1" encoding="UTF-8"?>
+<GAO_CONFIG>
+    <Version>3.0</Version>
+    <Mode>Standard</Mode>
+    <AoCore index="0" sample_clock="clk" trig_type="0" storage_depth="2048" window_num="1" capture_amount="1024" trigger_pos="0" module_name="NES_Tang20k" force_trigger_by_falling_edge="false">
+        <SignalList>
+            <Bus name="nes_ce[3:0]">
+                <Signal>nes_ce[3]</Signal>
+                <Signal>nes_ce[2]</Signal>
+                <Signal>nes_ce[1]</Signal>
+                <Signal>nes_ce[0]</Signal>
+            </Bus>
+            <Bus name="color" restorename="led[5:0]">
+                <Signal>led[5]</Signal>
+                <Signal>led[4]</Signal>
+                <Signal>led[3]</Signal>
+                <Signal>led[2]</Signal>
+                <Signal>led[1]</Signal>
+                <Signal>led[0]</Signal>
+            </Bus>
+            <Bus name="scanline_Z[8:0]">
+                <Signal>scanline_Z[8]</Signal>
+                <Signal>scanline_Z[7]</Signal>
+                <Signal>scanline_Z[6]</Signal>
+                <Signal>scanline_Z[5]</Signal>
+                <Signal>scanline_Z[4]</Signal>
+                <Signal>scanline_Z[3]</Signal>
+                <Signal>scanline_Z[2]</Signal>
+                <Signal>scanline_Z[1]</Signal>
+                <Signal>scanline_Z[0]</Signal>
+            </Bus>
+            <Bus name="cycle_Z[8:0]">
+                <Signal>cycle_Z[8]</Signal>
+                <Signal>cycle_Z[7]</Signal>
+                <Signal>cycle_Z[6]</Signal>
+                <Signal>cycle_Z[5]</Signal>
+                <Signal>cycle_Z[4]</Signal>
+                <Signal>cycle_Z[3]</Signal>
+                <Signal>cycle_Z[2]</Signal>
+                <Signal>cycle_Z[1]</Signal>
+                <Signal>cycle_Z[0]</Signal>
+            </Bus>
+            <Signal>memory/MemRD</Signal>
+            <Signal>memory/MemWR</Signal>
+            <Signal>memory/MemRefresh</Signal>
+            <Bus name="memory/cycles[2:0]">
+                <Signal>memory/cycles[2]</Signal>
+                <Signal>memory/cycles[1]</Signal>
+                <Signal>memory/cycles[0]</Signal>
+            </Bus>
+            <Bus name="memory_din_cpu" restorename="group_0[7:0]">
+                <Signal>memory/memory_din_cpu[7]</Signal>
+                <Signal>memory/memory_din_cpu[6]</Signal>
+                <Signal>memory/memory_din_cpu[4]</Signal>
+                <Signal>memory/memory_din_cpu[3]</Signal>
+                <Signal>memory/memory_din_cpu[5]</Signal>
+                <Signal>memory/memory_din_cpu[2]</Signal>
+                <Signal>memory/memory_din_cpu[1]</Signal>
+                <Signal>memory/memory_din_cpu[0]</Signal>
+            </Bus>
+            <Bus name="memory/memory_din_ppu[7:0]">
+                <Signal>memory/memory_din_ppu[7]</Signal>
+                <Signal>memory/memory_din_ppu[6]</Signal>
+                <Signal>memory/memory_din_ppu[5]</Signal>
+                <Signal>memory/memory_din_ppu[4]</Signal>
+                <Signal>memory/memory_din_ppu[3]</Signal>
+                <Signal>memory/memory_din_ppu[2]</Signal>
+                <Signal>memory/memory_din_ppu[1]</Signal>
+                <Signal>memory/memory_din_ppu[0]</Signal>
+            </Bus>
+            <Bus name="memory/MemAddr[15:0]">
+                <Signal>memory/MemAddr[15]</Signal>
+                <Signal>memory/MemAddr[14]</Signal>
+                <Signal>memory/MemAddr[13]</Signal>
+                <Signal>memory/MemAddr[12]</Signal>
+                <Signal>memory/MemAddr[11]</Signal>
+                <Signal>memory/MemAddr[10]</Signal>
+                <Signal>memory/MemAddr[9]</Signal>
+                <Signal>memory/MemAddr[8]</Signal>
+                <Signal>memory/MemAddr[7]</Signal>
+                <Signal>memory/MemAddr[6]</Signal>
+                <Signal>memory/MemAddr[5]</Signal>
+                <Signal>memory/MemAddr[4]</Signal>
+                <Signal>memory/MemAddr[3]</Signal>
+                <Signal>memory/MemAddr[2]</Signal>
+                <Signal>memory/MemAddr[1]</Signal>
+                <Signal>memory/MemAddr[0]</Signal>
+            </Bus>
+        </SignalList>
+        <Triggers>
+            <Trigger index="0">
+                <SignalList>
+                    <Signal>loader_done</Signal>
+                </SignalList>
+            </Trigger>
+            <Trigger index="1"/>
+            <Trigger index="2"/>
+            <Trigger index="3"/>
+            <Trigger index="4"/>
+            <Trigger index="5"/>
+            <Trigger index="6"/>
+            <Trigger index="7"/>
+            <Trigger index="8"/>
+            <Trigger index="9"/>
+            <Trigger index="10"/>
+            <Trigger index="11"/>
+            <Trigger index="12"/>
+            <Trigger index="13"/>
+            <Trigger index="14"/>
+            <Trigger index="15"/>
+        </Triggers>
+        <MatchUnits>
+            <MatchUnit index="0" enabled="1" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="1" value1="0" trigger="0"/>
+            <MatchUnit index="1" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="1" value0="001111" value1="000000" trigger="1"/>
+            <MatchUnit index="2" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="3" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="4" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="5" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="6" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="7" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="8" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="9" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="10" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="11" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="12" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="13" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="14" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="15" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+        </MatchUnits>
+        <Expressions type="Static">
+            <Expression>M0</Expression>
+        </Expressions>
+    </AoCore>
+    <GAO_ID>0001000110111100</GAO_ID>
+</GAO_CONFIG>
