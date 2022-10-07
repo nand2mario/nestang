@@ -10,7 +10,9 @@
         <File path="src/compat.v" type="file.verilog" enable="1"/>
         <File path="src/config.sv" type="file.verilog" enable="1"/>
         <File path="src/cpu.v" type="file.verilog" enable="1"/>
+        <File path="src/ddr3_controller.v" type="file.verilog" enable="1"/>
         <File path="src/dsp.v" type="file.verilog" enable="1"/>
+        <File path="src/game_loader.v" type="file.verilog" enable="1"/>
         <File path="src/gowin_clkdiv/gowin_clkdiv.v" type="file.verilog" enable="1"/>
         <File path="src/gowin_rpll_hdmi/gowin_rpll.v" type="file.verilog" enable="1"/>
         <File path="src/gowin_rpll_nes/gowin_rpll.v" type="file.verilog" enable="1"/>
@@ -26,6 +28,7 @@
         <File path="src/hdmi2/tmds_channel.sv" type="file.verilog" enable="1"/>
         <File path="src/hw_sound.v" type="file.verilog" enable="1"/>
         <File path="src/hw_uart.v" type="file.verilog" enable="1"/>
+        <File path="src/memory_controller.v" type="file.verilog" enable="1"/>
         <File path="src/mmu.v" type="file.verilog" enable="1"/>
         <File path="src/nes.v" type="file.verilog" enable="1"/>
         <File path="src/nes2hdmi.sv" type="file.verilog" enable="1"/>
@@ -33,8 +36,8 @@
         <File path="src/ppu.v" type="file.verilog" enable="1"/>
         <File path="src/sdram.v" type="file.verilog" enable="1"/>
         <File path="src/uart_tx_V2.v" type="file.verilog" enable="1"/>
-        <File path="src/nestang_mister.cst" type="file.cst" enable="1"/>
-        <File path="src/nestang_xmg.cst" type="file.cst" enable="0"/>
+        <File path="src/nestang.cst" type="file.cst" enable="1"/>
+        <File path="src/nestang.sdc" type="file.sdc" enable="1"/>
         <File path="src/nes.gao" type="file.gao" enable="0"/>
     </FileList>
 </Project>

@@ -10,64 +10,10 @@
                 <Signal>nes_ce[1]</Signal>
                 <Signal>nes_ce[0]</Signal>
             </Bus>
-            <Bus name="color" restorename="led[5:0]">
-                <Signal>led[5]</Signal>
-                <Signal>led[4]</Signal>
-                <Signal>led[3]</Signal>
-                <Signal>led[2]</Signal>
-                <Signal>led[1]</Signal>
-                <Signal>led[0]</Signal>
-            </Bus>
-            <Bus name="scanline_Z[8:0]">
-                <Signal>scanline_Z[8]</Signal>
-                <Signal>scanline_Z[7]</Signal>
-                <Signal>scanline_Z[6]</Signal>
-                <Signal>scanline_Z[5]</Signal>
-                <Signal>scanline_Z[4]</Signal>
-                <Signal>scanline_Z[3]</Signal>
-                <Signal>scanline_Z[2]</Signal>
-                <Signal>scanline_Z[1]</Signal>
-                <Signal>scanline_Z[0]</Signal>
-            </Bus>
-            <Bus name="cycle_Z[8:0]">
-                <Signal>cycle_Z[8]</Signal>
-                <Signal>cycle_Z[7]</Signal>
-                <Signal>cycle_Z[6]</Signal>
-                <Signal>cycle_Z[5]</Signal>
-                <Signal>cycle_Z[4]</Signal>
-                <Signal>cycle_Z[3]</Signal>
-                <Signal>cycle_Z[2]</Signal>
-                <Signal>cycle_Z[1]</Signal>
-                <Signal>cycle_Z[0]</Signal>
-            </Bus>
+            <Signal>memory/MemBusy</Signal>
             <Signal>memory/MemRD</Signal>
             <Signal>memory/MemWR</Signal>
             <Signal>memory/MemRefresh</Signal>
-            <Bus name="memory/cycles[2:0]">
-                <Signal>memory/cycles[2]</Signal>
-                <Signal>memory/cycles[1]</Signal>
-                <Signal>memory/cycles[0]</Signal>
-            </Bus>
-            <Bus name="memory_din_cpu" restorename="group_0[7:0]">
-                <Signal>memory/memory_din_cpu[7]</Signal>
-                <Signal>memory/memory_din_cpu[6]</Signal>
-                <Signal>memory/memory_din_cpu[4]</Signal>
-                <Signal>memory/memory_din_cpu[3]</Signal>
-                <Signal>memory/memory_din_cpu[5]</Signal>
-                <Signal>memory/memory_din_cpu[2]</Signal>
-                <Signal>memory/memory_din_cpu[1]</Signal>
-                <Signal>memory/memory_din_cpu[0]</Signal>
-            </Bus>
-            <Bus name="memory/memory_din_ppu[7:0]">
-                <Signal>memory/memory_din_ppu[7]</Signal>
-                <Signal>memory/memory_din_ppu[6]</Signal>
-                <Signal>memory/memory_din_ppu[5]</Signal>
-                <Signal>memory/memory_din_ppu[4]</Signal>
-                <Signal>memory/memory_din_ppu[3]</Signal>
-                <Signal>memory/memory_din_ppu[2]</Signal>
-                <Signal>memory/memory_din_ppu[1]</Signal>
-                <Signal>memory/memory_din_ppu[0]</Signal>
-            </Bus>
             <Bus name="memory/MemAddr[15:0]">
                 <Signal>memory/MemAddr[15]</Signal>
                 <Signal>memory/MemAddr[14]</Signal>
@@ -86,11 +32,64 @@
                 <Signal>memory/MemAddr[1]</Signal>
                 <Signal>memory/MemAddr[0]</Signal>
             </Bus>
+            <Signal>memory/MemDataReady</Signal>
+            <Bus name="memory/MemDout[15:0]">
+                <Signal>memory/MemDout[15]</Signal>
+                <Signal>memory/MemDout[14]</Signal>
+                <Signal>memory/MemDout[13]</Signal>
+                <Signal>memory/MemDout[12]</Signal>
+                <Signal>memory/MemDout[11]</Signal>
+                <Signal>memory/MemDout[10]</Signal>
+                <Signal>memory/MemDout[9]</Signal>
+                <Signal>memory/MemDout[8]</Signal>
+                <Signal>memory/MemDout[7]</Signal>
+                <Signal>memory/MemDout[6]</Signal>
+                <Signal>memory/MemDout[5]</Signal>
+                <Signal>memory/MemDout[4]</Signal>
+                <Signal>memory/MemDout[3]</Signal>
+                <Signal>memory/MemDout[2]</Signal>
+                <Signal>memory/MemDout[1]</Signal>
+                <Signal>memory/MemDout[0]</Signal>
+            </Bus>
+            <Bus name="memory/MemDin[15:8]">
+                <Signal>memory/MemDin[15]</Signal>
+                <Signal>memory/MemDin[14]</Signal>
+                <Signal>memory/MemDin[13]</Signal>
+                <Signal>memory/MemDin[12]</Signal>
+                <Signal>memory/MemDin[11]</Signal>
+                <Signal>memory/MemDin[10]</Signal>
+                <Signal>memory/MemDin[9]</Signal>
+                <Signal>memory/MemDin[8]</Signal>
+            </Bus>
         </SignalList>
         <Triggers>
             <Trigger index="0">
                 <SignalList>
-                    <Signal>loader_done</Signal>
+                    <Signal>memory/MemRD</Signal>
+                    <Bus restorename="memory/MemAddr[21:0]">
+                        <Signal>memory/MemAddr[21]</Signal>
+                        <Signal>memory/MemAddr[20]</Signal>
+                        <Signal>memory/MemAddr[19]</Signal>
+                        <Signal>memory/MemAddr[18]</Signal>
+                        <Signal>memory/MemAddr[17]</Signal>
+                        <Signal>memory/MemAddr[16]</Signal>
+                        <Signal>memory/MemAddr[15]</Signal>
+                        <Signal>memory/MemAddr[14]</Signal>
+                        <Signal>memory/MemAddr[13]</Signal>
+                        <Signal>memory/MemAddr[12]</Signal>
+                        <Signal>memory/MemAddr[11]</Signal>
+                        <Signal>memory/MemAddr[10]</Signal>
+                        <Signal>memory/MemAddr[9]</Signal>
+                        <Signal>memory/MemAddr[8]</Signal>
+                        <Signal>memory/MemAddr[7]</Signal>
+                        <Signal>memory/MemAddr[6]</Signal>
+                        <Signal>memory/MemAddr[5]</Signal>
+                        <Signal>memory/MemAddr[4]</Signal>
+                        <Signal>memory/MemAddr[3]</Signal>
+                        <Signal>memory/MemAddr[2]</Signal>
+                        <Signal>memory/MemAddr[1]</Signal>
+                        <Signal>memory/MemAddr[0]</Signal>
+                    </Bus>
                 </SignalList>
             </Trigger>
             <Trigger index="1"/>
@@ -110,7 +109,7 @@
             <Trigger index="15"/>
         </Triggers>
         <MatchUnits>
-            <MatchUnit index="0" enabled="1" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="1" value1="0" trigger="0"/>
+            <MatchUnit index="0" enabled="1" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="10000000000000001110000" value1="00000000000000000000000" trigger="0"/>
             <MatchUnit index="1" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="1" value0="001111" value1="000000" trigger="1"/>
             <MatchUnit index="2" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
             <MatchUnit index="3" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
@@ -131,5 +130,5 @@
             <Expression>M0</Expression>
         </Expressions>
     </AoCore>
-    <GAO_ID>0001000110111100</GAO_ID>
+    <GAO_ID>0010011011001111</GAO_ID>
 </GAO_CONFIG>

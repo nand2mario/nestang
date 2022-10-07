@@ -5,308 +5,20 @@
 
 `timescale 1ns / 100ps
 
-// Define this to use XMG SDRAM, undefine to use Mister SDRAM
-//`define SDRAM_XMG
-
 // Main clock frequency
-localparam FREQ=37_800_000;        // at least 10x baudrate
-// UART baudrate: BAUDRATE <= FREQ/10
-localparam BAUDRATE=921600;
+localparam FREQ=32_250_000;
+localparam BAUDRATE=921600;         // UART baudrate: BAUDRATE <= FREQ/10
 
 // define this to execute one NES cycle per 0.01 second and print the operation done
-// `define STEP_TRACING
+//`define STEP_TRACING
 
 `ifdef VERILATOR
 `define EMBED_GAME
 `endif
 
-// Module reads bytes and writes to proper address in ram.
-// Done is asserted when the whole game is loaded.
-// This parses iNES headers too.
-module GameLoader(input clk, input reset,
-                  input [7:0] indata, input indata_clk,
-                  output reg [21:0] mem_addr, output [7:0] mem_data, output mem_write, output reg mem_refresh,
-                  output [31:0] mapper_flags,
-                  output reg done,
-                  output error);
-
-  reg [2:0] state = 0;
-  reg [7:0] prgsize;
-  reg [3:0] ctr;
-  reg [7:0] ines[0:15]; // 16 bytes of iNES header
-  reg [21:0] bytes_left;
-  
-  assign error = (state == 5);
-  wire [7:0] prgrom = ines[4];
-  wire [7:0] chrrom = ines[5];
-  assign mem_data = indata;
-  assign mem_write = !done && (bytes_left != 0) && indata_clk;
-
-  wire [2:0] prg_size = prgrom <= 1  ? 0 :
-                        prgrom <= 2  ? 1 : 
-                        prgrom <= 4  ? 2 : 
-                        prgrom <= 8  ? 3 : 
-                        prgrom <= 16 ? 4 : 
-                        prgrom <= 32 ? 5 : 
-                        prgrom <= 64 ? 6 : 7;
-                        
-  wire [2:0] chr_size = chrrom <= 1  ? 0 : 
-                        chrrom <= 2  ? 1 : 
-                        chrrom <= 4  ? 2 : 
-                        chrrom <= 8  ? 3 : 
-                        chrrom <= 16 ? 4 : 
-                        chrrom <= 32 ? 5 : 
-                        chrrom <= 64 ? 6 : 7;
-  
-  wire [7:0] mapper = {ines[7][7:4], ines[6][7:4]};
-  wire has_chr_ram = (chrrom == 0);
-  assign mapper_flags = {16'b0, has_chr_ram, ines[6][0], chr_size, prg_size, mapper};
-  always @(posedge clk) begin
-    if (reset) begin
-      state <= 0;
-      done <= 0;
-      ctr <= 0;
-      mem_addr <= 0;  // Address for PRG
-    end else begin
-      case(state)
-      // Read 16 bytes of ines header
-      0: if (indata_clk) begin
-           ctr <= ctr + 1;
-           ines[ctr] <= indata;
-           bytes_left <= {prgrom, 14'b0};           // Each prgrom is 16KB
-           if (ctr == 4'b1111)
-             state <= (ines[0] == 8'h4E) && (ines[1] == 8'h45) && (ines[2] == 8'h53) && (ines[3] == 8'h1A) && !ines[6][2] && !ines[6][3] ? 1 : 5;
-         end
-      1, 2: begin // Read the next |bytes_left| bytes into |mem_addr|
-          if (bytes_left != 0) begin
-            if (indata_clk) begin
-              bytes_left <= bytes_left - 1;
-              mem_addr <= mem_addr + 1;
-            end
-          end else if (state == 1) begin
-            state <= 2;
-            mem_addr <= 22'b10_0000_0000_0000_0000_0000;
-            bytes_left <= {1'b0, chrrom, 13'b0};      // Each chrrom is 8KB
-          end else if (state == 2) begin
-            done <= 1;
-          end
-        end
-      endcase
-    end
-  end
-
-  // refresh logic
-  // do 6 refresh after each write, (RAM needs one per 15us)
-  // lowest baudrate=115200, 86.8us per byte
-  // highest baudrate=921600, 10.85us per byte
-  reg [7:0] cycles_since_write;
-  always @(posedge clk) begin
-    mem_refresh <= 1'b0;
-    if (!done) begin
-        cycles_since_write <= cycles_since_write == 8'd48 ? 8'd48 : cycles_since_write + 1;
-        if (mem_write) begin
-            cycles_since_write <= 0;
-        end else if (cycles_since_write[2:0] == 3'b111) begin
-            // do refresh on these cycles after a write: 7, 15, 23, 31, 39, 47
-            mem_refresh <= 1'b1;
-        end  
-    end
-    if (reset) cycles_since_write <= 8'd48;
-  end
-  
-endmodule
-
-`ifdef EMBED_GAME
-// zf: Feed INES data to Game_Loader
-module GameData (input clk, input reset, input start,
-    output reg [7:0] odata, output reg odata_clk
-    );
-
-    // 24KB+ buffer for ROM
-    reg [7:0] INES[24719:0];
-    reg [21:0] INES_SIZE = 24719; 
-    initial $readmemh("BattleCity.nes.hex", INES);
-
-    reg [1:0] state = 0;
-    reg [21:0] addr = 0;
-    reg out_clk = 0;
-
-    always @(posedge clk) begin
-        if (reset) begin
-            state <= 0;
-            addr <= 0;  // odata gets INES[0]
-            odata_clk <= 0;
-        end else if (start && state == 0) begin
-            // start loading
-            state <= 1;
-        end else if (state==1) begin
-            if (addr == INES_SIZE) begin
-                // we've just sent the last byte
-                state <= 2;     // end of data
-                odata_clk <= 0;
-            end else begin
-                // pump data to Game_Loader
-/* verilator lint_off WIDTH */
-                odata <= INES[addr];
-/* verilator lint_on WIDTH */
-                odata_clk <= 1;
-                addr <= addr + 1;
-            end
-        end
-    end
-endmodule
-`endif
-
-// memeory controller is too large for trace
-
-// Memory layout:
-// Total address space 4MB
-// $00_0000 - $0f_ffff: PRG ROM 1MB
-// $20_0000 - $2f_ffff: CHR ROM 1MB
-// $38_0000 - $38_07ff: Internal RAM (2KB), and 126KB unused
-// $3c_0000 - $3d_ffff: PRG RAM 128KB
-module MemoryController(
-    input clk,
-    input clk_sdram,
-    input resetn,
-    input read_a,             // Set to 1 to read from RAM
-    input read_b,             // Set to 1 to read from RAM
-    input write,              // Set to 1 to write to RAM
-    input refresh,            // Set to 1 to auto-refresh RAM
-    input [21:0] addr,        // Address to read / write
-    input [7:0] din,          // Data to write
-    output reg [7:0] dout_a,  // Last read data a, available 2 cycles after read_a is set
-    output reg [7:0] dout_b,  // Last read data b, available 2 cycles after read_b is set
-    output reg busy,          // 1 while an operation is in progress
-    output reg fail,          // timing mistake or sdram malfunction detected
-
-    // debug interface
-    output reg [19:0] total_written,
-
-    // Physical SDRAM interface
-	inout  [15:0] SDRAM_DQ,   // 16 bit bidirectional data bus
-	output [12:0] SDRAM_A,    // 13 bit multiplexed address bus
-	output [1:0] SDRAM_BA,   // 4 banks
-	output SDRAM_nCS,  // a single chip select
-	output SDRAM_nWE,  // write enable
-	output SDRAM_nRAS, // row address select
-	output SDRAM_nCAS, // columns address select
-	output SDRAM_CLK,
-	output SDRAM_CKE
-);
-
-reg [24:0] MemAddr;
-reg MemRD, MemWR, MemRefresh, MemInitializing;
-reg [15:0] MemDin;
-wire [15:0] MemDout;
-reg [2:0] cycles;
-reg r_read_a, r_read_b;
-wire MemBusy, MemDataReady;
-
-
-`ifndef VERILATOR
-
-// SDRAM driver
-sdram #(
-`ifdef SDRAM_XMG
-    .FREQ(FREQ), .ROW_WIDTH(12), .COL_WIDTH(9)      // total 8M words
-`else
-    .FREQ(FREQ), .ROW_WIDTH(13), .COL_WIDTH(10)     // total 32M words
-`endif
-) u_sdram (
-    .clk(clk), .clk_sdram(clk_sdram), .resetn(resetn),
-	.addr(MemAddr), .rd(MemRD), .wr(MemWR), .refresh(MemRefresh),
-	.din(MemDin), .dout(MemDout), .busy(MemBusy), .data_ready(MemDataReady),
-
-    .SDRAM_DQ(SDRAM_DQ),   // 16 bit bidirectional data bus
-    .SDRAM_A(SDRAM_A),    // 13 bit multiplexed address bus
-    .SDRAM_BA(SDRAM_BA),   // two banks
-    .SDRAM_nCS(SDRAM_nCS),  // a single chip select
-    .SDRAM_nWE(SDRAM_nWE),  // write enable
-    .SDRAM_nRAS(SDRAM_nRAS), // row address select
-    .SDRAM_nCAS(SDRAM_nCAS), // columns address select
-    .SDRAM_CLK(SDRAM_CLK),
-    .SDRAM_CKE(SDRAM_CKE)
-);
-
-always @(posedge clk) begin
-    MemWR <= 1'b0; MemRD <= 1'b0; MemRefresh <= 1'b0;
-    cycles <= cycles == 3'd7 ? 3'd7 : cycles + 3'd1;
-    
-    // Initiate read or write
-    if (!busy) begin
-        if (read_a || read_b || write || refresh) begin
-            MemAddr <= {3'b0, addr};
-            MemWR <= write;
-            MemRD <= (read_a || read_b);
-            MemRefresh <= refresh;
-            busy <= 1'b1;
-            MemDin <= {din, din};
-            cycles <= 3'd1;
-            r_read_a <= read_a;
-            r_read_b <= read_b;
-
-            if (write) total_written <= total_written + 1;
-        end 
-    end else if (MemInitializing) begin
-        if (~MemBusy) begin
-            // initialization is done
-            MemInitializing <= 1'b0;
-            busy <= 1'b0;
-        end
-    end else begin
-        // Wait for operation to finish and latch incoming data on read.
-        if (cycles == 3'd5) begin
-            busy <= 0;
-            if (r_read_a || r_read_b) begin
-                if (~MemDataReady)      // assert data ready
-                    fail <= 1'b1;
-                if (r_read_a) 
-                    dout_a <= MemDout[7:0];
-                if (r_read_b)
-                    dout_b <= MemDout[7:0];
-                r_read_a <= 1'b0;
-                r_read_b <= 1'b0;
-            end
-        end
-    end
-
-    if (~resetn) begin
-        busy <= 1'b1;
-        fail <= 1'b0;
-        total_written <= 0;
-        MemInitializing <= 1'b1;
-    end
-end
-
-`else
-
-// memory model for verilator 
-reg [7:0] SIM_MEM [0:1024*1024*4-1];
-
-// in verilator model, our memory delay is 1-cycle
-// busy is always 0
-always @(posedge clk) begin
-//    cycles <= cycles == 3'd7 ? 3'd7 : cycles + 3'd1;
-
-    if (read_a) dout_a <= SIM_MEM[addr];
-    if (read_b) dout_b <= SIM_MEM[addr];
-    if (write) SIM_MEM[addr] <= din;
-
-    if (~resetn) begin
-        busy <= 1'b0;
-    end
-end
- 
-`endif
-
-endmodule
-
 module NES_Tang20k(
     input sys_clk,
     input sys_resetn,
-
-    // Set D7 to 1 to load game data
     input d7,
 
     // UART
@@ -314,19 +26,23 @@ module NES_Tang20k(
     output UART_TXD,
 
     // 16 LEDs
-    output [7:0] led,  // down
-    output [7:0] led2,  // up
+    output [7:0] led,   // bottom right 
+    output [7:0] led2,  // top right 
 
-    // SDRAM
-	inout  [15:0] SDRAM_DQ,   // 16 bit bidirectional data bus
-	output [12:0] SDRAM_A,    // 13 bit multiplexed address bus
-	output [1:0] SDRAM_BA,   // two banks
-	output SDRAM_nCS,  // a single chip select
-	output SDRAM_nWE,  // write enable
-	output SDRAM_nRAS, // row address select
-	output SDRAM_nCAS, // columns address select
-	output SDRAM_CLK,
-	output SDRAM_CKE,
+    // onboard DDR3
+    inout  [15:0] DDR3_DQ,   // 16 bit bidirectional data bus
+    inout  [1:0] DDR3_DQS,   // DQ strobe for high and low bytes
+    output [13:0] DDR3_A,    // 14 bit multiplexed address bus
+    output [2:0] DDR3_BA,    // 3 banks
+    output DDR3_nCS,  // a single chip select
+    output DDR3_nWE,  // write enable
+    output DDR3_nRAS, // row address select
+    output DDR3_nCAS, // columns address select
+    output DDR3_CK,
+    output DDR3_nRESET,
+    output DDR3_CKE,
+    output DDR3_ODT,
+    output [1:0] DDR3_DM,
 
     // HDMI TX
     output       tmds_clk_n,
@@ -336,13 +52,24 @@ module NES_Tang20k(
 );
 
 `ifndef VERILATOR
-  // NES PPU clock 5.369 * 9 = 48.321
+  // NES domain clocks
   Gowin_rPLL_nes pll_nes(
-    .clkin(sys_clk),       // 27Mhz system clock
-    .clkout(clk),          // MHZ main clock
-    .clkoutp(clk_sdram)    // MHZ main clock phase shifted
+    .clkin(sys_clk),        // 27Mhz system clock
+    .clkout(fclk),          // 387Mhz, DDR3 memory clock
+    .clkoutd(pclk),         // 96.75Mhz, DDR3 controller clock
+    .clkoutd3(clk_d3),
+    .clkoutp(ck),           // DDR3 CK clock (90-degree phase-shifted fclk)
+    .lock(nes_lock)
   );
 
+  CLKDIV u_div (
+    .CLKOUT(clk),           // 32.25Mhz, NES clock
+    .HCLKIN(clk_d3),
+    .RESETN(sys_resetn & nes_lock)
+  );
+  defparam u_div.DIV_MODE = "4";
+
+  // HDMI domain clocks
   wire clk_p;     // 720p pixel clock: 74.25 Mhz
   wire clk_p5;    // 5x pixel clock: 371.25 Mhz
   wire pll_lock;
@@ -356,12 +83,15 @@ module NES_Tang20k(
   Gowin_CLKDIV clk_div (
     .clkout(clk_p),
     .hclkin(clk_p5),
-    .resetn(pll_lock)
+    .resetn(sys_resetn & pll_lock)
   );
 `else
-
-wire clk = sys_clk;
-wire clk_sdram = sys_clk;
+  // dummy clocks for verilator
+  wire clk = sys_clk;
+  wire pclk = sys_clk;
+  wire fclk = sys_clk;
+  wire ck = sys_clk;
+  wire nes_lock = 1'b1;
 
 `endif
 
@@ -402,7 +132,9 @@ wire clk_sdram = sys_clk;
   wire [7:0] loader_input;
   wire loader_clk;
   wire loader_reset = ~sys_resetn;
-  GameData game_data(.clk(clk), .reset(~sys_resetn), .start(1'b1), .odata(loader_input), .odata_clk(loader_clk));
+  GameData game_data(
+        .clk(clk), .reset(~sys_resetn), .start(1'b1), 
+        .odata(loader_input), .odata_clk(loader_clk));
 `else
   // Dynamic game loading from UART
   wire [7:0] loader_input = uart_data;
@@ -447,14 +179,13 @@ wire clk_sdram = sys_clk;
         .done(loader_done), .error(loader_fail));
 
   // The NES machine
-  // nes_ce  / 0 \___/ 1 \___/ 2 \___/ 3 \___/ 4 \___/ 5 \___/ 6 \___/ 0 \___
-  // MemCtrl |run_mem|mem_cmd|       |       |       |  Dout |       |run_mem|
-  // NES                                                     |run_nes|
-  //                 `-------- read delay = 4 -------'
+  // nes_ce  / 0 \___/ 1 \___/ 2 \___/ 3 \___/ 4 \___/ 5 \___/ 0 \___/
+  // MemCtrl |run_mem|mem_cmd|       |       |  Dout |       |run_mem|
+  // NES                                             |run_nes|
+  //                 `---- read delay = 3 ---'
   wire reset_nes = !loader_done;
   wire run_mem = (nes_ce == 0) && !reset_nes;       // memory runs at clock cycle #0
-  wire run_nes = (nes_ce == 6) && !reset_nes;       // nes runs at clock cycle #7
-
+  wire run_nes = (nes_ce == 5) && !reset_nes;       // nes runs at clock cycle #5
 
   // For debug
   reg [21:0] last_addr;
@@ -465,21 +196,21 @@ wire clk_sdram = sys_clk;
 
   reg tick_seen;
 
-  // NES is clocked at every 7th cycle.
+  // NES is clocked at every 6th cycle.
   always @(posedge clk) begin
 
 `ifdef VERILATOR
-    nes_ce <= nes_ce == 4'd6 ? 0 : nes_ce + 1;
+    nes_ce <= nes_ce == 4'd5 ? 0 : nes_ce + 1;
 `else
 
   `ifndef STEP_TRACING
-    nes_ce <= nes_ce == 4'd6 ? 0 : nes_ce + 1;    
+    nes_ce <= nes_ce == 4'd5 ? 0 : nes_ce + 1;    
   `else
     // single stepping every 0.01 second
-    // - when waiting for a tick, nes_ce loops between 7 and 13 and 
-    //   issues memory refresh on #7
+    // - when waiting for a tick, nes_ce loops between 6 and 13 and 
+    //   issues memory refresh on #6
     // - when a tick is seen, nes_ce goes back to 0
-    nes_ce <= nes_ce == 4'd13 ? 4'd7 : nes_ce + 1;
+    nes_ce <= nes_ce == 4'd13 ? 4'd6 : nes_ce + 1;
     if (tick) tick_seen <= 1'b1;
     if (nes_ce == 4'd13 && tick_seen) begin
         nes_ce <= 0;
@@ -488,7 +219,7 @@ wire clk_sdram = sys_clk;
   `endif
 `endif
     // log memory access result for debug
-    if (nes_ce == 4'd6 && !reset_nes) begin
+    if (nes_ce == 4'd5 && !reset_nes) begin
         if (memory_write || memory_read_cpu || memory_read_ppu) begin
             last_addr <= memory_addr;
             last_dout <= memory_read_cpu ? memory_din_cpu : memory_din_ppu;
@@ -521,24 +252,31 @@ wire clk_sdram = sys_clk;
 
 /*verilator tracing_off*/
   // Combine RAM and ROM data to a single address space for NES to access
+  reg mem_resetn = 1'b1;            // reset DDR3 after 100ms when intialization failed
   wire ram_busy, ram_fail;
   wire [19:0] ram_total_written;
-  MemoryController memory(.clk(clk), .clk_sdram(clk_sdram), .resetn(sys_resetn),
+  wire [7:0] ram_debug, wstep;
+  wire [1:0] rclkpos;
+  wire [2:0] rclksel;
+  MemoryController memory(.clk(clk), .pclk(pclk), .fclk(fclk), .ck(ck), .resetn(sys_resetn & nes_lock & mem_resetn),
         .read_a(memory_read_cpu && run_mem), 
         .read_b(memory_read_ppu && run_mem),
         .write(memory_write && run_mem || loader_write),
-        .refresh((~memory_read_cpu && ~memory_read_ppu && ~memory_write && ~loader_write) && run_mem || nes_ce == 4'd7 || loader_refresh),
+        .refresh(loader_done ? ~memory_read_cpu && ~memory_read_ppu && ~memory_write && run_mem || nes_ce == 4'd6
+                    : loader_refresh),
         .addr(loader_write ? loader_addr : memory_addr),
         .din(loader_write ? loader_write_data : memory_dout),
         .dout_a(memory_din_cpu), .dout_b(memory_din_ppu),
         .busy(ram_busy), .fail(ram_fail), .total_written(ram_total_written),
+        .debug(ram_debug), .write_level_done(write_level_done), .wstep(wstep),
+        .read_calib_done(read_calib_done), .rclkpos(rclkpos), .rclksel(rclksel),
 
-        .SDRAM_DQ(SDRAM_DQ), .SDRAM_A(SDRAM_A), .SDRAM_BA(SDRAM_BA), .SDRAM_nCS(SDRAM_nCS),	
-        .SDRAM_nWE(SDRAM_nWE), .SDRAM_nRAS(SDRAM_nRAS), .SDRAM_nCAS(SDRAM_nCAS), 
-        .SDRAM_CLK(SDRAM_CLK), .SDRAM_CKE(SDRAM_CKE)
+        .DDR3_DQ(DDR3_DQ), .DDR3_DQS(DDR3_DQS), .DDR3_A(DDR3_A), .DDR3_BA(DDR3_BA), 
+        .DDR3_nCS(DDR3_nCS), .DDR3_nWE(DDR3_nWE), .DDR3_nRAS(DDR3_nRAS), .DDR3_nCAS(DDR3_nCAS), 
+        .DDR3_CK(DDR3_CK), .DDR3_nRESET(DDR3_nRESET), .DDR3_CKE(DDR3_CKE), 
+        .DDR3_ODT(DDR3_ODT), .DDR3_DM(DDR3_DM)
 );
 /*verilator tracing_on*/
-
 
 `ifndef VERILATOR
 
@@ -562,9 +300,40 @@ nes2hdmi u_hdmi (
 	.tmds_d_p(tmds_d_p)
 );
 
+// Memory initialization control
+// After reset, every 100ms we check whether memory is successsfully intialized.
+// If not we reset the whole machine, print a message and hope it will finally succeed.
+reg [$clog2(FREQ/10+1)-1:0] meminit_cnt;
+reg meminit_check;      // pulse when memory initialization is checked
+reg write_level_done_p, read_calib_done_p;
+reg [7:0] wstep_p;
+reg [1:0] rclkpos_p;
+reg [2:0] rclksel_p;
+always @(posedge clk) begin
+    meminit_cnt <= meminit_cnt == 0 ? 0 : meminit_cnt - 1;
+    mem_resetn <= 1'b1;
+    meminit_check <= 0;
+    if (meminit_cnt == 1) begin
+        meminit_check <= 1'b1;
+        write_level_done_p <= write_level_done; read_calib_done_p <= read_calib_done;
+        wstep_p <= wstep; rclkpos_p <= rclkpos; rclksel_p <= rclksel;
+        if (~write_level_done || ~read_calib_done) begin
+            // reset DDR3 controller
+            mem_resetn <= 0;
+            meminit_cnt <= FREQ/10;         // check again in 0.1 sec
+        end
+    end
 
-//Print Controll -------------------------------------------
+    if (~sys_resetn || ~nes_lock) begin
+        meminit_cnt <= FREQ/10;
+        meminit_check <= 1'b0;
+        mem_resetn <= 1'b1;
+    end
+end
 
+//
+// Print control
+//
 `include "print.v"
 defparam tx.uart_freq=BAUDRATE;
 defparam tx.clk_freq=FREQ;
@@ -577,6 +346,7 @@ reg[3:0] state_old = 3'd7;
 wire[3:0] state_new = state_1;
 
 reg [7:0] print_counters = 0, print_counters_p;
+reg [7:0] print_mem = 0, print_mem_p;
 
 reg tick;       // pulse every 0.01 second
 reg print_stat; // pulse every 2 seconds
@@ -595,9 +365,25 @@ always@(posedge clk)begin
         state_old<=state_new;
 
         if(state_old!=state_new)begin//state changes
-            if(state_new==3'd0) `print("NES_Tang starting...\n", STR);
+            if(state_new==3'd0) `print("NES_Tang restarting...\n", STR);
             if(state_new==3'd1) `print("Game loading done.\n", STR);
         end
+    end
+
+    if (meminit_check) begin
+        print_mem <= 8'd1;
+    end
+    print_mem_p <= print_mem;
+    if (print_state == PRINT_IDLE_STATE && print_mem == print_mem_p && print_mem != 0) begin
+        case (print_mem)
+        8'd1: if (write_level_done_p && read_calib_done_p) 
+                `print("DDR3 initialization successful.\n{wstep[7:0],rclkpos[3:0],rclksel[3:0]}=", STR);
+              else
+                `print("DDR3 initialization failed. Retrying...\n{wstep[7:0],rclkpos[3:0],rclksel[3:0]}=", STR);
+        8'd2: `print({wstep_p,2'b0,rclkpos_p, 1'b0, rclksel_p}, 2);
+        8'd3: `print("\n", STR);
+        endcase
+        print_mem <= print_mem == 8'd4 ? 0 : print_mem + 1;
     end
 
 `ifdef COLOR_TRACING
@@ -619,9 +405,8 @@ always@(posedge clk)begin
     end
 `endif
 
-    // print stats every 2 seconds normally, or every 0.01 second before game data is ready
-//    if (print_stat || (~loader_done && tick))
 `ifdef STEP_TRACING
+    // print stats every 2 seconds normally, or every 0.01 second before game data is ready
     if (tick)
         print_counters <= 8'd1;
     print_counters_p <= print_counters;
@@ -651,7 +436,10 @@ always@(posedge clk)begin
     end
 `endif
 
-    if(~sys_resetn) `print("System Reset\nWelcome to NES_Tang\n",STR);
+    if(~sys_resetn) begin
+//        `print("System Reset\nWelcome to NES_Tang\n",STR);
+        `print(ram_debug, 1);
+    end
 end
 
 reg [19:0] tick_counter;
@@ -666,12 +454,56 @@ always @(posedge clk) begin
         stat_counter <= stat_counter == 0 ? 200 : stat_counter - 1;
     end
 end
-//Print Controll -------------------------------------------
 
 `endif
 
 
-  assign led = ~{loader_done, ~UART_RXD, color};
-  assign led2 = ~sample[15:8];
+  assign led = ~{loader_done, ram_busy, color};
+//  assign led2 = ~sample[15:8];
+//  assign led2 = ~{6'b0, ram_fail, ram_busy};
+  assign led2 = ~loader_addr[15:8];
 
 endmodule
+
+
+`ifdef EMBED_GAME
+// zf: Feed INES data to Game_Loader
+module GameData (input clk, input reset, input start,
+    output reg [7:0] odata, output reg odata_clk
+    );
+
+    // 24KB+ buffer for ROM
+    reg [7:0] INES[24719:0];
+    reg [21:0] INES_SIZE = 24719; 
+    initial $readmemh("BattleCity.nes.hex", INES);
+
+    reg [1:0] state = 0;
+    reg [21:0] addr = 0;
+    reg out_clk = 0;
+
+    always @(posedge clk) begin
+        if (reset) begin
+            state <= 0;
+            addr <= 0;  // odata gets INES[0]
+            odata_clk <= 0;
+        end else if (start && state == 0) begin
+            // start loading
+            state <= 1;
+        end else if (state==1) begin
+            if (addr == INES_SIZE) begin
+                // we've just sent the last byte
+                state <= 2;     // end of data
+                odata_clk <= 0;
+            end else begin
+                // pump data to Game_Loader
+/* verilator lint_off WIDTH */
+                odata <= INES[addr];
+/* verilator lint_on WIDTH */
+                odata_clk <= 1;
+                addr <= addr + 1;
+            end
+        end
+    end
+endmodule
+`endif
+
