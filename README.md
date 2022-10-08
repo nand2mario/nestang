@@ -30,6 +30,8 @@ Then it's time to enjoy some NES games，
 
 Hurrah! and enjoy.
 
+If you want to generate the bitstream from source, see [Build Instructions](doc/build.md).
+
 ## Next steps
 
 See NESTang [changes.md](CHANGES.md).
