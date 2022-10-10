@@ -1,5 +1,9 @@
 # NESTang - an NES emulator for Tang Primer 20K
 
+<p align="right">
+  <a title="Releases" href="https://github.com/nand2mario/nestang/releases"><img src="https://img.shields.io/github/commits-since/nand2mario/nestang/latest.svg?longCache=true&style=flat-square&logo=git&logoColor=fff"></a>
+</p>
+
 <img src="doc/images/setup.jpg" width=400>
 
 NESTang is a Nintendo Entertainment System emulator for the affordable [Sipeed Tang Primer 20K](https://wiki.sipeed.com/hardware/en/tang/tang-primer-20k/primer-20k.html) FPGA board. The core logic comes from [fpganes](https://github.com/strigeus/fpganes). I added DDR3 and HDMI interfaces and other things.
