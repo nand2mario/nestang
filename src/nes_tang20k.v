@@ -8,6 +8,7 @@
 // Main clock frequency
 localparam FREQ=32_250_000;
 localparam BAUDRATE=921600;         // UART baudrate: BAUDRATE <= FREQ/10
+//localparam BAUDRATE=115200;         // FIXME: for now, dock version is built with 115K baudrate
 
 // define this to execute one NES cycle per 0.01 second and print the operation done
 //`define STEP_TRACING
