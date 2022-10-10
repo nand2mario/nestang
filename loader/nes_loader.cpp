@@ -117,16 +117,26 @@ byte buf[(3 + 64) * 256];
 void WritePacket(HANDLE h, int address, const void* data, size_t data_size) {
 	size_t n = FormatPacket(buf, address, data, data_size);
 	DWORD written;
+	//  OVERLAPPED ov = { 0 };
+	//  ov.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+	//  if (!ov.hEvent) {
+	//      printf("Cannot create event\n");
+	//      return;
+	//  }
+
 	if (!WriteFile(h, buf, n, &written, NULL) || written != n) {
 		printf("WriteFile failed\n");
 		return;
 	}
+	//  GetOverlappedResult(h, &ov, &written, FALSE);
 
 	if (dump_packet) {
 		for (int i = 0; i < n; i++)
 			printf("%02x ", buf[i]);
 		printf("\n");
 	}
+
+	//  CloseHandle(ov.hEvent);
 }
 
 // https://www.nesdev.org/wiki/Standard_controller
@@ -149,9 +159,9 @@ unsigned char joyinfoToKey(JOYINFOEX& joy) {
 	return keys;
 }
 
-#define BAUDRATE 921600
 
 wchar_t com_port[256] = L"\\\\.\\COM10";
+int baudrate = 921600;
 bool readSerial = false;
 
 // Return: 
@@ -164,11 +174,14 @@ int parseArgs(int argc, char* argv[]) {
 			if (strcmp(argv[idx], "-r") == 0) {
 				readSerial = true;
 			}
+			else if (strcmp(argv[idx], "-b") == 0) {
+				baudrate = atoi(argv[++idx]);
+			}
 			else if (strcmp(argv[idx], "-v") == 0) {
 				dump_packet = true;
 			}
 			else if (strcmp(argv[idx], "-c") == 0 && idx + 1 < argc) {
-				mbstowcs(com_port, argv[++idx], sizeof(com_port));
+				mbstowcs(com_port, argv[++idx], sizeof(com_port)/sizeof(wchar_t));
 			}
 			else {
 				printf("Unknown option: %s\n", argv[idx]);
@@ -179,9 +192,11 @@ int parseArgs(int argc, char* argv[]) {
 			break;
 	}
 	if (idx >= argc) {
+		printf("NESTang Loader 0.2.1\n");
 		printf("Usage: loader [options] <game.nes>\n");
 		printf("Options:\n");
 		printf("    -c COM4    use specific COM port.\n");
+		printf("    -b <rate>  specify baudrate, e.g. 115200 (default is 921600).\n");
 		printf("    -r         display message from serial for debug.\n");
 		printf("    -v         verbose. print packets sent.\n");
 		return -1;
@@ -206,8 +221,7 @@ int main(int argc, char* argv[]) {
 	dcb.DCBlength = sizeof(DCB);
 	dcb.ByteSize = 8;
 	dcb.StopBits = ONESTOPBIT;
-	dcb.BaudRate = BAUDRATE;
-	//dcb.BaudRate = 115200;
+	dcb.BaudRate = baudrate;
 	dcb.fBinary = TRUE;
 	if (!SetCommState(h, &dcb)) {
 		printf("SetCommState failed\n");
@@ -238,7 +252,7 @@ int main(int argc, char* argv[]) {
 		pos += n;
 	}
 
-	wprintf(L"NES file transmitted over %s at baudrate %d.\n", com_port, BAUDRATE);
+	wprintf(L"NES file transmitted over %s at baudrate %d.\n", com_port, baudrate);
 
 	if (readSerial)
 		ReadFromSerial(h);
@@ -275,18 +289,6 @@ int main(int argc, char* argv[]) {
 				last_keys2 = keys2;
 			}
 		}
-
-		/*
-		if (lastButtons != joy.dwButtons) {
-			printf("%x\n", joy.dwButtons);
-			lastButtons = joy.dwButtons;
-		}
-		if (lastPOV != joy.dwPOV) {
-			printf("%d\n", joy.dwPOV);
-			lastPOV = joy.dwPOV;
-		}
-
-	*/
 		Sleep(1);
 	}
 	return 0;
