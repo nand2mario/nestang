@@ -116,6 +116,11 @@ module NES_Tang20k(
   reg [3:0] nes_ce = 0;
   wire [15:0] SW = 16'b1111_1111_1111_1111;   // every switch is on
 
+  reg osd_enable;
+  reg [11:0] osd_addr;
+  reg [7:0] osd_din;
+  reg osd_we;
+
   // UART
   wire [7:0] uart_data;
   wire [7:0] uart_addr;
@@ -124,6 +129,7 @@ module NES_Tang20k(
   UartDemux  
         #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) 
         uart_demux(clk, 1'b0, UART_RXD, uart_data, uart_addr, uart_write, uart_error);
+//        uart_demux(clk, ~sys_resetn, UART_RXD, uart_data, uart_addr, uart_write, uart_error);
 
   // ROM loader
   reg  [7:0] loader_conf;     // bit 0 is reset
@@ -151,6 +157,21 @@ module NES_Tang20k(
       loader_btn <= uart_data;
     if (uart_addr == 8'h41 && uart_write)
       loader_btn_2 <= uart_data;
+
+    // OSD update
+    osd_we <= 1'b0;                       // default value
+    if (uart_addr == 8'h80 && uart_write) // load osd address lower byte
+      osd_addr[7:0] <= uart_data;
+    if (uart_addr == 8'h81 && uart_write) // load osd address higher byte
+      osd_addr[11:8] <= uart_data[3:0];
+    if (uart_addr == 8'h82 && uart_write) begin // one byte of osd data
+      osd_din <= uart_data;
+      osd_addr <= osd_addr + 1;
+      osd_we <= 1'b1;
+    end
+    if (uart_addr == 8'h83 && uart_write) begin // turn osd on or off
+      osd_enable <= uart_data[0];
+    end
   end
 
   // Joypad handling
@@ -290,6 +311,11 @@ nes2hdmi u_hdmi (
     .cycle(cycle),
     .scanline(scanline),
     .sample(sample >> 1),
+
+  .osd_enable(osd_enable),
+  .osd_addr(osd_addr),
+  .osd_din(osd_din),
+  .osd_we(osd_we),
 
 	.clk_pixel(clk_p),
 	.clk_5x_pixel(clk_p5),
@@ -459,7 +485,8 @@ end
 `endif
 
 
-  assign led = ~{loader_done, ram_busy, color};
+//  assign led = ~{loader_done, ram_busy, uart_error, 5'b0};
+ assign led = ~{loader_done, ram_busy, uart_error, color[4:0]};
 //  assign led2 = ~sample[15:8];
 //  assign led2 = ~{6'b0, ram_fail, ram_busy};
   assign led2 = ~loader_addr[15:8];

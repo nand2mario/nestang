@@ -15,6 +15,12 @@ module nes2hdmi (
     input [8:0] scanline,
     input [15:0] sample,
 
+    // osd
+    input osd_enable,       // 1: OSD display is on
+    input [11:0] osd_addr,  // byte address into osd buffer, {Y[6:0],X[4:0]}, total 4KB
+    input [7:0] osd_din,    // data input
+    input osd_we,           // write enable
+
 	// video clocks
 	input clk_pixel,
 	input clk_5x_pixel,
@@ -70,6 +76,20 @@ module nes2hdmi (
         $readmemb("nes_fb_testpattern_palette.txt", mem);
     end
 
+    // OSD buffer, 32Kbits, 256*128 mono
+    //
+    localparam OSD_WIDTH=256;   // 32*8
+    localparam OSD_HEIGHT=128;  // 16*8
+    logic [7:0] osd [0:OSD_WIDTH*OSD_HEIGHT/8-1];       // each byte is 8-pixel on same scanline
+    wire [11:0] osd_raddr;      // port B: hdmi read
+    logic [7:0] osd_sr;         // shift register for current 8 pixels
+
+    // OSD port A write
+    always_ff @(posedge clk) begin
+        if (osd_we) begin
+            osd[osd_addr] <= osd_din;
+        end
+    end 
     // 
     // Data input
     //
@@ -114,13 +134,41 @@ module nes2hdmi (
     logic [23:0] NES_PALETTE [0:63];
     logic [23:0] rgb;
 
+    // OSD
+    localparam OX = 3;          // OSD scale
+    localparam OSD_LEFT = 640 - 128*OX;
+    localparam OSD_RIGHT = 640 + 128*OX;
+    localparam OSD_TOP = 360 - 64*OX;
+    localparam OSD_BOTTOM = 360 + 64*OX;
+    wire osd_active = osd_enable && cx >= OSD_LEFT && cx < OSD_RIGHT && cy >= OSD_TOP && cy < OSD_BOTTOM;
+    logic r_osd_active;
+    wire [7:0] ox = ONE_THIRD[cx - OSD_LEFT];
+    wire [6:0] oy = ONE_THIRD[cy - OSD_TOP];
+    assign osd_raddr = {oy[6:0], ox[7:3]};
+    reg [4:0] osd_cnt;  // 0 - 23, load new byte at 0, shifts at 3, 6, 9, 12, 15, 18, 21
+
     // calc rgb value to hdmi
     always_ff @(posedge clk_pixel) begin
-        r_active <= active;
-        if (r_active)
+        r_active <= active; r_osd_active <= osd_active;
+        if (osd_active) begin    // load or shift left osd_sr, and put on screen next cycle
+            osd_cnt <= osd_cnt == 5'd23 ? 0 : osd_cnt + 1;
+            if (osd_cnt == 5'b0)
+                osd_sr <= osd[osd_raddr];
+            if (osd_cnt == 5'd3 || osd_cnt == 5'd6 || osd_cnt == 5'd9 || osd_cnt == 5'd12
+                || osd_cnt == 5'd15 || osd_cnt == 5'd18 || osd_cnt == 5'd21)
+                osd_sr <= {1'b0, osd_sr[7:1]};
+        end
+
+        if (r_osd_active)
+            rgb <= osd_sr[0] ? 24'h808080 : 24'h260604;
+        else if (r_active)
             rgb <= NES_PALETTE[mem_portB_rdata];
         else
             rgb <= 24'b0;
+
+        if (cx == 0) begin      // reset osd_cnt at each new line
+            osd_cnt <= 0;
+        end
     end
 
     // HDMI output.

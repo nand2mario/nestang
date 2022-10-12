@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "font.h"
+
 // print serial input
 DWORD WINAPI ReadFromSerial(PVOID lpParam) {
 	char b[128];
@@ -204,6 +206,48 @@ int parseArgs(int argc, char* argv[]) {
 	return idx;
 }
 
+//const int OSD_WIDTH = 256;
+//const int OSD_HEIGHT = 128;
+char osdbuf[4096];			// 256*128 mono, every line is 32 bytes
+int osd_dirty_top = 0, osd_dirty_bottom = 16;		// in text lines
+void osd_flush(HANDLE h);
+
+// print a string to OSD
+// x: 0 - 31, y: 0 - 15
+// h: pass 0 for delayed flush
+void osd(int x, int y, const char* s, HANDLE h=0) {
+	if (x < 0 || x >= 32 || y < 0 || y >= 16)
+		return;
+
+	// 1. update in-memory buffer 
+	int c = strlen(s);
+	for (int xx = x; xx < x + c && xx < 32; xx++) {
+		char* ch = font8x8_basic[s[xx - x]];
+		for (int l = 0; l < 8; l++)		// 8 scanlines
+			osdbuf[(y * 8 + l) * 32 + xx] = ch[l];
+	}
+	if (osd_dirty_top == -1 || osd_dirty_top > y)
+		osd_dirty_top = y;
+	if (osd_dirty_bottom == -1 || osd_dirty_bottom < y+1)
+		osd_dirty_bottom = y+1;
+
+	// 2. send the corresponding lines over UART
+	if (h) osd_flush(h);
+}
+
+// send OSD updates to device
+void osd_flush(HANDLE h) {
+	if (osd_dirty_top == -1)
+		return;
+	// {Y[6:0],X[4:0]}
+	int addr = osd_dirty_top << 5;
+	unsigned char addr_lo = addr & 0xff;
+	unsigned char addr_hi = (addr >> 8) & 0xff;
+
+	WritePacket(h, 0x80, &addr_lo, 1);
+	WritePacket(h, 0x81, &addr_hi, 1);
+	WritePacket(h, 0x82, osdbuf + addr, 32 * 8 * (osd_dirty_bottom - osd_dirty_top));
+}
 
 int main(int argc, char* argv[]) {
 	int idx = parseArgs(argc, argv);
@@ -261,6 +305,7 @@ int main(int argc, char* argv[]) {
 	unsigned char last_keys2 = -1;
 	DWORD lastButtons = 0;
 	DWORD lastPOV = 0;
+	bool inOSD = false, osdPressed = false;
 
 	for (;;) {
 		JOYINFOEX joy;
@@ -273,8 +318,21 @@ int main(int argc, char* argv[]) {
 			return 1;
 		}
 		unsigned char keys1 = joyinfoToKey(joy);
+		if (joy.dwButtons & 0x10) {
+			if (!osdPressed) {
+				inOSD = !inOSD;
+				printf("OSD is %s\n", inOSD ? "on" : "off");
+				{ char v = inOSD ? 1 : 0;  WritePacket(h, 0x83, &v, 1);}
+				osd(5, 7, "Wecome to NESTang!", h);
+				osdPressed = true;
+			}
+		}
+		else {
+			osdPressed = false;
+		}
+		
 		if (keys1 != last_keys1) {
-			//        printf("Keys %.2x\n", keys);
+			// printf("Keys %.2x\n", keys1);
 			WritePacket(h, 0x40, &keys1, 1);
 			last_keys1 = keys1;
 		}
