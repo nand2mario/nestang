@@ -1,4 +1,145 @@
-#pragma once
+
+#include <windows.h>
+#include <cstdio>
+
+#include "util.h"
+
+// Serial port functions and others
+
+unsigned int swapbits(unsigned int a) {
+	a &= 0xff;
+	unsigned int b = 0;
+	for (int i = 0; i < 8; i++, a >>= 1, b <<= 1) b |= (a & 1);
+	return b >> 1;
+}
+
+#define POLY 0x8408
+unsigned int crc16(BYTE* data_p, unsigned short length, unsigned int crc)
+{
+	unsigned char i;
+	unsigned int data;
+	if (length == 0)
+		return crc;
+	do {
+		for (i = 0, data = (unsigned int)0xff & *data_p++; i < 8; i++, data <<= 1) {
+			if ((crc & 0x0001) ^ ((data >> 7) & 0x0001))
+				crc = (crc >> 1) ^ POLY;
+			else  crc >>= 1;
+		}
+	} while (--length);
+	return crc;
+}
+
+unsigned int crc16b(BYTE* data_p, unsigned short length, unsigned int crc) {
+	byte c[16], newcrc[16];
+	byte d[8];
+	for (int j = 0; j < 16; j++) c[j] = (crc >> (15 - j)) & 1;
+
+	for (int i = 0; i < length; i++) {
+		for (int j = 0; j < 8; j++) d[j] = (data_p[i] >> j) & 1;
+
+		newcrc[0] = d[4] ^ d[0] ^ c[8] ^ c[12];
+		newcrc[1] = d[5] ^ d[1] ^ c[9] ^ c[13];
+		newcrc[2] = d[6] ^ d[2] ^ c[10] ^ c[14];
+		newcrc[3] = d[7] ^ d[3] ^ c[11] ^ c[15];
+		newcrc[4] = d[4] ^ c[12];
+		newcrc[5] = d[5] ^ d[4] ^ d[0] ^ c[8] ^ c[12] ^ c[13];
+		newcrc[6] = d[6] ^ d[5] ^ d[1] ^ c[9] ^ c[13] ^ c[14];
+		newcrc[7] = d[7] ^ d[6] ^ d[2] ^ c[10] ^ c[14] ^ c[15];
+		newcrc[8] = d[7] ^ d[3] ^ c[0] ^ c[11] ^ c[15];
+		newcrc[9] = d[4] ^ c[1] ^ c[12];
+		newcrc[10] = d[5] ^ c[2] ^ c[13];
+		newcrc[11] = d[6] ^ c[3] ^ c[14];
+		newcrc[12] = d[7] ^ d[4] ^ d[0] ^ c[4] ^ c[8] ^ c[12] ^ c[15];
+		newcrc[13] = d[5] ^ d[1] ^ c[5] ^ c[9] ^ c[13];
+		newcrc[14] = d[6] ^ d[2] ^ c[6] ^ c[10] ^ c[14];
+		newcrc[15] = d[7] ^ d[3] ^ c[7] ^ c[11] ^ c[15];
+
+		memcpy(c, newcrc, 16);
+	}
+
+	unsigned int r = 0;
+	for (int j = 0; j < 16; j++) r = r * 2 + c[j];
+	return r;
+}
+
+
+// print serial input
+DWORD readFromSerial(PVOID lpParam) {
+	char b[128];
+	DWORD read;
+	HANDLE h = (HANDLE)lpParam;
+	OVERLAPPED ov = { 0 };
+	ov.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+	if (!ov.hEvent) {
+		printf("Cannot create event\n");
+		return 1;
+	}
+
+	while (1) {
+		if (!ReadFile(h, b, sizeof(b) - 1, &read, &ov)) {
+			printf("Readfile failed\n");
+			goto done;
+		}
+		if (GetOverlappedResult(h, &ov, &read, TRUE)) {
+			b[read] = '\0';
+			printf(b);
+		}
+	}
+
+done:
+	if (ov.hEvent != 0) CloseHandle(ov.hEvent);
+	return 0;
+}
+
+size_t formatPacket(byte* buf, int address, const void* data, int data_size) {
+	byte* org = buf;
+	while (data_size) {
+		int n = data_size > 256 ? 256 : data_size;
+		int cksum = address + n;
+		buf[1] = address;
+		buf[2] = n;
+		for (int i = 0; i < n; i++) {
+			int v = ((byte*)data)[i];
+			buf[i + 3] = v;
+			cksum += v;
+		}
+		buf[0] = -cksum;
+		buf += n + 3;
+		data = (char*)data + n;
+		data_size -= n;
+	}
+	return buf - org;
+}
+
+extern bool dump_packet;
+
+byte buf[(3 + 64) * 256];
+
+void writePacket(HANDLE h, int address, const void* data, size_t data_size) {
+	size_t n = formatPacket(buf, address, data, data_size);
+	DWORD written;
+	//  OVERLAPPED ov = { 0 };
+	//  ov.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+	//  if (!ov.hEvent) {
+	//      printf("Cannot create event\n");
+	//      return;
+	//  }
+
+	if (!WriteFile(h, buf, n, &written, NULL) || written != n) {
+		printf("WriteFile failed\n");
+		return;
+	}
+	//  GetOverlappedResult(h, &ov, &written, FALSE);
+
+	if (dump_packet) {
+		for (int i = 0; i < n; i++)
+			printf("%02x ", buf[i]);
+		printf("\n");
+	}
+
+	//  CloseHandle(ov.hEvent);
+}
 
 /**
  * 8x8 monochrome bitmap fonts for rendering
@@ -19,7 +160,6 @@
  *
  * Fetched from: http://dimensionalrift.homelinux.net/combuster/mos3/?p=viewsource&file=/modules/gfx/font8_8.asm
  **/
-
  // Constant: font8x8_basic
  // Contains an 8x8 font map for unicode points U+0000 - U+007F (basic latin)
 char font8x8_basic[128][8] = {
