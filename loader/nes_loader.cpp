@@ -41,12 +41,12 @@ unsigned char joyinfoToKey(JOYINFOEX& joy) {
 }
 
 void usage() {
-	printf("NESTang Loader 0.2.1\n");
+	printf("NESTang Loader 0.2\n");
 	printf("Usage: loader [options] < game.nes or - >\n");
 	printf("Options:\n");
 	printf("    -c COM4    use specific COM port.\n");
 	printf("    -b <rate>  specify baudrate, e.g. 115200 (default is 921600).\n");
-	printf("    -d <dir>   specify rom directory, default is 'games'.");
+	printf("    -d <dir>   specify rom directory, default is 'games'.\n");
 	printf("    -r         display message from serial for debug.\n");
 	printf("    -v         verbose. print packets sent.\n");
 	printf("    -h         display this help message.\n");
@@ -58,7 +58,7 @@ void usage() {
 int parseArgs(int argc, char* argv[]) {
 	int idx;
 	for (idx = 1; idx < argc; idx++) {
-		if (argv[idx][0] == '-') {
+		if (strlen(argv[idx]) > 1 && argv[idx][0] == '-') {
 			if (strcmp(argv[idx], "-r") == 0) {
 				readSerial = true;
 			}
@@ -122,6 +122,14 @@ int main(int argc, char* argv[]) {
 	if (strcmp(argv[idx], "-") != 0) {
 		if (sendNES(fs::path(argv[idx])))
 			return -1;
+	}
+	else {
+		fs::path d(gamedir);
+		if (!fs::exists(d) || !fs::is_directory(d)) {
+			wprintf(L"%s does not exist or is not a directory.\n", gamedir.c_str());
+			return -1;
+		}
+		printf("Press LB on first controller to open on screen menu.\n");
 	}
 
 	if (readSerial)
@@ -190,9 +198,10 @@ int main(int argc, char* argv[]) {
 }
 
 // return 0 if successful
+static char sendbuf[16384];
 int sendNES(fs::path p)
 {
-	ifstream f(p);
+	ifstream f(p, ios::binary);
 	if (!f.is_open()) { printf("File open fail\n"); return 1; }
 
 	{ char v = 1; writePacket(uart, 0x35, &v, 1); }
@@ -202,17 +211,21 @@ int sendNES(fs::path p)
 	size_t pos = 0;
 
 	while (pos < total_read) {
-		char buf[16384];
-		streamsize want_read = (total_read - pos) > sizeof(buf) ? sizeof(buf) : (total_read - pos);
-		if (f.read(buf, want_read).eof())
-			break;
+		streamsize want_read = (total_read - pos) > sizeof(sendbuf) ? sizeof(sendbuf) : (total_read - pos);
+		f.read(sendbuf, want_read);
 		streamsize n = f.gcount();
-		writePacket(uart, 0x37, buf, n);
+		//printf("want_read=%d, actual_read=%d\n", want_read, n);
+		if (n > 0) {
+			//printf("Write packet\n");
+			writePacket(uart, 0x37, sendbuf, n);
+		}
+		if (f.eof())
+			break;
 		pos += n;
 	}
 	f.close();
 
-	wprintf(L"NES file transmitted over %s at baudrate %d.\n", com_port, baudrate);
+	wprintf(L"%s transmitted over %s at baudrate %d.\n", p.filename().wstring().c_str(),
+		com_port, baudrate);
 	return 0;
 }
-
