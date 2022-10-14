@@ -4,11 +4,17 @@
 #include <iostream>
 namespace fs = std::filesystem;		// C++17
 #include <vector>
+#include <chrono>
 
 using namespace std;
 
 #include "OSD.h"
 #include "util.h"
+
+static const int CMD_OSD_ADDR_LOW = 0x80;
+static const int CMD_OSD_ADDR_HIGH = 0x81;
+static const int CMD_OSD_DATA = 0x82;
+static const int CMD_OSD_SHOW = 0x83;
 
 char osdbuf[4096];			// 256*128 mono, every line is 32 bytes
 int osd_dirty_top = 0, osd_dirty_bottom = 16;		// in text lines
@@ -61,16 +67,16 @@ void osd_flush(HANDLE h) {
 	if (osd_dirty_top == -1)
 		return;
 
-	printf("OSD flush: %d ~ %d\n", osd_dirty_top, osd_dirty_bottom);
+	//printf("OSD flush: %d ~ %d\n", osd_dirty_top, osd_dirty_bottom);
 
 	// {Y[6:0],X[4:0]}
 	int addr = osd_dirty_top << 5;
 	unsigned char addr_lo = addr & 0xff;
 	unsigned char addr_hi = (addr >> 8) & 0xff;
 
-	writePacket(h, 0x80, &addr_lo, 1);
-	writePacket(h, 0x81, &addr_hi, 1);
-	writePacket(h, 0x82, osdbuf + addr, 32 * 8 * (osd_dirty_bottom - osd_dirty_top));
+	writePacket(h, CMD_OSD_ADDR_LOW, &addr_lo, 1);
+	writePacket(h, CMD_OSD_ADDR_HIGH, &addr_hi, 1);
+	writePacket(h, CMD_OSD_DATA, osdbuf + addr, 32 * 8 * (osd_dirty_bottom - osd_dirty_top));
 
 	osd_dirty_top = -1;
 	osd_dirty_bottom = -1;
@@ -95,7 +101,7 @@ void osd_show(bool show) {
 	}
 	
 	char v = show ? 1 : 0;
-	writePacket(uart, 0x83, &v, 1);
+	writePacket(uart, CMD_OSD_SHOW, &v, 1);
 	osd_update(-1);
 	active = show;
 }
@@ -103,28 +109,17 @@ void osd_show(bool show) {
 extern wstring gamedir;
 
 // current dir
-static vector<fs::path> paths;		// last the current dir
-static vector<fs::path> files;
+struct fileentry {
+	string name;
+	fs::path path;
+};
+static vector<fs::path> paths;		// last is the current dir
+static vector<fileentry> files;		// a list of files in current dir
 static int filePageStart, fileCur;	// index of page start and current file
 
-void osd_setgamedir(std::wstring dir) {
+void osd_setgamedir(wstring dir) {
 	paths.clear();
 	paths.push_back(fs::path(dir));
-}
-
-static void screen_dir(unsigned char key) {
-	if (key == 1) {			// A - choose file
-	}
-	else if (key == 2) {	// B - cancel
-	}
-	osd_clear();
-	for (int i = 0; i < 16 && filePageStart + i < files.size(); i++) {
-		int pos = filePageStart + i;
-		osd_print(1, i, files[pos].filename().string().c_str());
-		if (pos == fileCur)
-			osd_invert(0, i, 32);
-	}
-	osd_flush(uart);
 }
 
 // populate `files`
@@ -134,18 +129,80 @@ void load_dir() {
 		return;
 	fs::path p = paths.back();
 	if (paths.size() > 1) {
-		files.push_back(p.parent_path());
+		fileentry e = { "..", p.parent_path() };
+		files.push_back(e);
 	}
 	for (const auto& entry : fs::directory_iterator(p)) {
-		cout << entry.path() << endl;
-		files.push_back(entry.path());
+		//cout << entry.path() << endl;
+		string suffix = entry.is_directory() ? "/" : "";
+		fileentry e = { entry.path().filename().string() + suffix, entry.path() };
+		files.push_back(e);
 	}
+}
+
+static void screen_top(unsigned char key);
+extern int sendNES(fs::path p);
+extern bool inOSD;
+
+static void screen_dir(unsigned char key) {
+	if (key == 1) {			// A - choose dir or file
+		if (files[fileCur].name == ".." || files[fileCur].name.back() == '/') {
+			// it's a dir, cd to it
+			if (files[fileCur].name == "..")
+				paths.pop_back();		// go to parent dir
+			else
+				paths.push_back(files[fileCur].path);
+			load_dir();
+			filePageStart = 0; fileCur = 0;
+		}
+		else {
+			// it's a file, send it and close OSD
+			inOSD = false;
+			osd_show(false);
+			sendNES(files[fileCur].path);
+			return;
+		}
+	}
+	else if (key == 2) {	// B - return to parent dir or top menu
+		if (paths.size() > 1) {
+			paths.pop_back();
+			load_dir();
+			filePageStart = 0; fileCur = 0;
+		} else {
+			screen = SCREEN_TOP;
+			screen_top(0);
+			return;
+		}
+	}
+	else if (key == 16) {	// up
+		if (fileCur > 0) {
+			fileCur--;
+			if (filePageStart > fileCur)
+				filePageStart = fileCur;
+		}
+	}
+	else if (key == 32) {	// down
+		if (fileCur < files.size()-1) {
+			fileCur++;
+			if (filePageStart < fileCur - 15)
+				filePageStart = fileCur - 15;
+		}
+	}
+	// update OSD
+	osd_clear();
+	for (int i = 0; i < 16 && filePageStart + i < files.size(); i++) {
+		int pos = filePageStart + i;
+		osd_print(1, i, files[pos].name.c_str());
+		if (pos == fileCur)
+			osd_invert(0, i, 32);
+	}
+	osd_flush(uart);
 }
 
 extern wstring gamedir;
 
 static void screen_top(unsigned char key) {
-	printf("screen_top\n");
+	//printf("screen_top\n");
 	if (key == 1) {			// A
 		screen = SCREEN_DIR;
 		paths.clear();
@@ -156,24 +213,38 @@ static void screen_top(unsigned char key) {
 		return;
 	}		
 
-	printf("TOP screen\n");
+	//printf("TOP screen\n");
 	osd_clear();
-	osd_print(6, 1, "Welcome to NESTang");
-
-	osd_print(0, 8, "Load .nes");
-	osd_invert(0, 8, 32);		// highlight our "menu item"
+	osd_print(7, 1, "Welcome to NESTang");
+	osd_print(1, 7, "Load .nes");
+	osd_print(1, 14, "github.com/nand2mario/nestang");
+	osd_invert(0, 7, 32);		// highlight our "menu item"
 
 	osd_flush(uart);
 }
 
+using namespace std::chrono;
+#define GET_TIME() duration_cast< milliseconds >(system_clock::now().time_since_epoch());
+
 // A keypress, key == 255 means just show the page
 static unsigned char lastKey = 0;
+static milliseconds lastTime;
+static bool keyRepeat;
+
 void osd_update(unsigned char key, bool force) {
+	milliseconds now = GET_TIME();
+	int dur = (int)(now - lastTime).count();
+
 	if (!force && key == lastKey) {
-		return;
+		if (!keyRepeat && dur < 500 || keyRepeat && dur < 50)
+			return;
+		keyRepeat = true;
 	}
-	printf("osd_update: key=%d, screen=%d\n", key, screen);
+	if (key != lastKey) keyRepeat = false;
+
+	//printf("osd_update: key=%d, screen=%d\n", key, screen);
 	lastKey = key;
+	lastTime = now;
 	switch (screen) {
 	case SCREEN_TOP:
 		screen_top(key);

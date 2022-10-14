@@ -5,12 +5,15 @@
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
+#include <iostream>
+#include <fstream>
 namespace fs = std::filesystem;		// C++17
+using namespace std;
 
 #include "osd.h"
 #include "util.h"
 
-std::wstring gamedir(L"games");
+wstring gamedir(L"games");
 wchar_t com_port[256] = L"\\\\.\\COM10";
 int baudrate = 921600;
 bool readSerial = false;
@@ -90,6 +93,8 @@ int parseArgs(int argc, char* argv[]) {
 	return idx;
 }
 
+bool inOSD = false;
+int sendNES(fs::path p);
 
 int main(int argc, char* argv[]) {
 	int idx = parseArgs(argc, argv);
@@ -115,27 +120,8 @@ int main(int argc, char* argv[]) {
 	}
 
 	if (strcmp(argv[idx], "-") != 0) {
-		FILE* f = fopen(argv[idx], "rb");
-		if (!f) { printf("File open fail\n"); return 1; }
-
-		{ char v = 1; writePacket(uart, 0x35, &v, 1); }
-		{ char v = 0; writePacket(uart, 0x35, &v, 1); }
-
-		size_t total_read = 0xffffff;//10180;
-		size_t pos = 0;
-
-		while (pos < total_read) {
-			char buf[16384];
-			size_t want_read = (total_read - pos) > sizeof(buf) ? sizeof(buf) : (total_read - pos);
-			size_t n = fread(buf, (size_t)1, want_read, f);
-			if (n <= 0) {
-				break;
-			}
-			writePacket(uart, 0x37, buf, n);
-			pos += n;
-		}
-
-		wprintf(L"NES file transmitted over %s at baudrate %d.\n", com_port, baudrate);
+		if (sendNES(fs::path(argv[idx])))
+			return -1;
 	}
 
 	if (readSerial)
@@ -145,7 +131,7 @@ int main(int argc, char* argv[]) {
 	unsigned char last_keys2 = -1;
 	DWORD lastButtons = 0;
 	DWORD lastPOV = 0;
-	bool inOSD = false, osdPressed = false;
+	bool osdPressed = false;
 
 	for (;;) {
 		JOYINFOEX joy;
@@ -200,6 +186,33 @@ int main(int argc, char* argv[]) {
 	joy_continue:
 		Sleep(1);
 	}
+	return 0;
+}
+
+// return 0 if successful
+int sendNES(fs::path p)
+{
+	ifstream f(p);
+	if (!f.is_open()) { printf("File open fail\n"); return 1; }
+
+	{ char v = 1; writePacket(uart, 0x35, &v, 1); }
+	{ char v = 0; writePacket(uart, 0x35, &v, 1); }
+
+	size_t total_read = 0xffffff;		// max size 16MB
+	size_t pos = 0;
+
+	while (pos < total_read) {
+		char buf[16384];
+		streamsize want_read = (total_read - pos) > sizeof(buf) ? sizeof(buf) : (total_read - pos);
+		if (f.read(buf, want_read).eof())
+			break;
+		streamsize n = f.gcount();
+		writePacket(uart, 0x37, buf, n);
+		pos += n;
+	}
+	f.close();
+
+	wprintf(L"NES file transmitted over %s at baudrate %d.\n", com_port, baudrate);
 	return 0;
 }
 
