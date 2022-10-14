@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#define	_CRT_SECURE_NO_WARNINGS
+//#define	_CRT_SECURE_NO_WARNINGS
 #include <windows.h>
 #include <cstdio>
 #include <cstdlib>
@@ -7,7 +7,6 @@
 #include <filesystem>
 namespace fs = std::filesystem;		// C++17
 
-#include "font.h"
 #include "osd.h"
 #include "util.h"
 
@@ -115,10 +114,6 @@ int main(int argc, char* argv[]) {
 		return 0;
 	}
 
-	// Create serial input thread
-	HANDLE t;
-	DWORD tid;
-
 	if (strcmp(argv[idx], "-") != 0) {
 		FILE* f = fopen(argv[idx], "rb");
 		if (!f) { printf("File open fail\n"); return 1; }
@@ -132,7 +127,7 @@ int main(int argc, char* argv[]) {
 		while (pos < total_read) {
 			char buf[16384];
 			size_t want_read = (total_read - pos) > sizeof(buf) ? sizeof(buf) : (total_read - pos);
-			int n = fread(buf, 1, want_read, f);
+			size_t n = fread(buf, (size_t)1, want_read, f);
 			if (n <= 0) {
 				break;
 			}

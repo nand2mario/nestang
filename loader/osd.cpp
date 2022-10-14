@@ -8,7 +8,6 @@ namespace fs = std::filesystem;		// C++17
 using namespace std;
 
 #include "OSD.h"
-#include "font.h"
 #include "util.h"
 
 char osdbuf[4096];			// 256*128 mono, every line is 32 bytes
@@ -23,7 +22,7 @@ void osd_print(int x, int y, const char* s, HANDLE h = 0) {
 		return;
 
 	// 1. update in-memory buffer 
-	int c = strlen(s);
+	size_t c = strlen(s);
 	for (int xx = x; xx < x + c && xx < 32; xx++) {
 		char* ch = font8x8_basic[s[xx - x]];
 		for (int l = 0; l < 8; l++)		// 8 scanlines
@@ -63,7 +62,6 @@ void osd_flush(HANDLE h) {
 		return;
 
 	printf("OSD flush: %d ~ %d\n", osd_dirty_top, osd_dirty_bottom);
-	osdbuf[0] = (char) 0xff;
 
 	// {Y[6:0],X[4:0]}
 	int addr = osd_dirty_top << 5;
