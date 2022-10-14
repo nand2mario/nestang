@@ -117,9 +117,9 @@ module NES_Tang20k(
   wire [15:0] SW = 16'b1111_1111_1111_1111;   // every switch is on
 
   reg osd_enable;
-  reg [11:0] osd_addr, osd_addr_next;
-  reg [7:0] osd_din;
-  reg osd_we;
+  reg [11:0] osd_addr;
+  wire [7:0] osd_din = uart_data;
+  wire osd_we = uart_write && uart_addr == 8'h82;
 
   // UART
   wire [7:0] uart_data;
@@ -159,20 +159,14 @@ module NES_Tang20k(
       loader_btn_2 <= uart_data;
 
     // OSD update
-    osd_we <= 1'b0;                       // default value
     if (uart_addr == 8'h80 && uart_write) // load osd address lower byte
-      osd_addr_next[7:0] <= uart_data;
+      osd_addr[7:0] <= uart_data;
     if (uart_addr == 8'h81 && uart_write) // load osd address higher byte
-      osd_addr_next[11:8] <= uart_data[3:0];
-    if (uart_addr == 8'h82 && uart_write) begin // one byte of osd data
-      osd_din <= uart_data;
-      osd_addr <= osd_addr_next;
-      osd_addr_next <= osd_addr_next + 1;
-      osd_we <= 1'b1;
-    end
-    if (uart_addr == 8'h83 && uart_write) begin // turn osd on or off
+      osd_addr[11:8] <= uart_data[3:0];
+    if (uart_addr == 8'h82 && uart_write) // one byte of osd data
+      osd_addr <= osd_addr + 1;
+    if (uart_addr == 8'h83 && uart_write) // turn osd on or off
       osd_enable <= uart_data[0];
-    end
   end
 
   // Joypad handling
@@ -305,27 +299,27 @@ module NES_Tang20k(
 
 // HDMI output
 nes2hdmi u_hdmi (
-	.clk(clk),
-	.resetn(sys_resetn),
+    .clk(clk),
+    .resetn(sys_resetn),
 
     .color(color),
     .cycle(cycle),
     .scanline(scanline),
     .sample(sample >> 1),
 
-  .osd_enable(osd_enable),
-  .osd_addr(osd_addr),
-  .osd_din(osd_din),
-  .osd_we(osd_we),
+    .osd_enable(osd_enable),
+    .osd_addr(osd_addr),
+    .osd_din(osd_din),
+    .osd_we(osd_we),
 
-	.clk_pixel(clk_p),
-	.clk_5x_pixel(clk_p5),
-	.locked(pll_lock),
+    .clk_pixel(clk_p),
+    .clk_5x_pixel(clk_p5),
+    .locked(pll_lock),
 
-	.tmds_clk_n(tmds_clk_n),
-	.tmds_clk_p(tmds_clk_p),
-	.tmds_d_n(tmds_d_n),
-	.tmds_d_p(tmds_d_p)
+    .tmds_clk_n(tmds_clk_n),
+    .tmds_clk_p(tmds_clk_p),
+    .tmds_d_n(tmds_d_n),
+    .tmds_d_p(tmds_d_p)
 );
 
 // Memory initialization control
