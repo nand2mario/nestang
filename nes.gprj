@@ -11,6 +11,7 @@
         <File path="src/config.sv" type="file.verilog" enable="1"/>
         <File path="src/cpu.v" type="file.verilog" enable="1"/>
         <File path="src/ddr3_controller.v" type="file.verilog" enable="1"/>
+        <File path="src/ddr3_tester.v" type="file.verilog" enable="1"/>
         <File path="src/dsp.v" type="file.verilog" enable="1"/>
         <File path="src/game_loader.v" type="file.verilog" enable="1"/>
         <File path="src/gowin_clkdiv/gowin_clkdiv.v" type="file.verilog" enable="1"/>
