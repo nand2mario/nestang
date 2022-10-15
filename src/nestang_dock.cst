@@ -126,13 +126,13 @@ IO_LOC "led[7]" L16;        // loader_done on LED5 (pmod is T11)
 IO_PORT "led[7]" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8;
 IO_LOC "led[6]" L14;        // ram_busy on LED4 (pmod is P11)
 IO_PORT "led[6]" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8;
-IO_LOC "led[5]" T12;
+IO_LOC "led[5]" N16;        // uart_error on LED3
 IO_PORT "led[5]" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8;
-IO_LOC "led[4]" R11;
+IO_LOC "led[4]" N14;        // ram_testing on LED2
 IO_PORT "led[4]" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8;
-IO_LOC "led[3]" M14;
+IO_LOC "led[3]" A13;        // fail_high on LED1
 IO_PORT "led[3]" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8;
-IO_LOC "led[2]" M15;
+IO_LOC "led[2]" C13;        // fail_low on LED0
 IO_PORT "led[2]" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8;
 IO_LOC "led[1]" J14;
 IO_PORT "led[1]" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8;
@@ -158,4 +158,7 @@ IO_PORT "led2[0]" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8;
 
 
 // Fix location of PLL as it impacts write/read leveling timing
-INS_LOC "pll_nes/rpll_inst" PLL_L[0];
+//INS_LOC "pll_nes/rpll_inst" PLL_L[0];
+//INS_LOC "pll_nes/rpll_inst" PLL_L[1];
+INS_LOC "pll_nes/rpll_inst" PLL_R[0];
+//INS_LOC "pll_nes/rpll_inst" PLL_R[1];

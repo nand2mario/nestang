@@ -147,11 +147,9 @@ always @(posedge clk) begin
                 if (~MemDataReady)      // assert data ready
                     fail <= 1'b1;
                 if (r_read_a) 
-//                    dout_a <= MemDout[15:8];
-                    dout_a <= MemDout[7:0];
+                    dout_a <= fail_low ? MemDout[15:8] : MemDout[7:0];
                 if (r_read_b)
-//                    dout_b <= MemDout[15:8];
-                    dout_b <= MemDout[7:0];
+                    dout_b <= fail_low ? MemDout[15:8] : MemDout[7:0];
                 debug <= MemDout[15:8] ^ MemDout[7:0];         // unused dout[] leads to compile errors
                 r_read_a <= 1'b0;
                 r_read_b <= 1'b0;
