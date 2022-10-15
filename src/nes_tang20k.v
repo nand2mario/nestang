@@ -275,6 +275,7 @@ module NES_Tang20k(
   wire [7:0] ram_debug, wstep;
   wire [1:0] rclkpos;
   wire [2:0] rclksel;
+  wire [3:0] test_state;
   MemoryController memory(.clk(clk), .pclk(pclk), .fclk(fclk), .ck(ck), .resetn(sys_resetn & nes_lock & mem_resetn),
         .read_a(memory_read_cpu && run_mem), 
         .read_b(memory_read_ppu && run_mem),
@@ -287,7 +288,7 @@ module NES_Tang20k(
         .busy(ram_busy), .fail(ram_fail), .total_written(ram_total_written),
         .debug(ram_debug), .write_level_done(write_level_done), .wstep(wstep),
         .read_calib_done(read_calib_done), .rclkpos(rclkpos), .rclksel(rclksel),
-        .fail_high(fail_high), .fail_low(fail_low),
+        .testing(ram_testing), .fail_high(fail_high), .fail_low(fail_low), .test_state(test_state),
 
         .DDR3_DQ(DDR3_DQ), .DDR3_DQS(DDR3_DQS), .DDR3_A(DDR3_A), .DDR3_BA(DDR3_BA), 
         .DDR3_nCS(DDR3_nCS), .DDR3_nWE(DDR3_nWE), .DDR3_nRAS(DDR3_nRAS), .DDR3_nCAS(DDR3_nCAS), 
@@ -332,7 +333,7 @@ reg write_level_done_p, read_calib_done_p;
 reg [7:0] wstep_p;
 reg [1:0] rclkpos_p;
 reg [2:0] rclksel_p;
-reg ram_busy_p, fail_high_p, fail_low_p;
+reg ram_busy_p, ram_testing_p, fail_high_p, fail_low_p;
 
 always @(posedge clk) begin
     meminit_cnt <= meminit_cnt == 0 ? 0 : meminit_cnt - 1;
@@ -343,7 +344,8 @@ always @(posedge clk) begin
         write_level_done_p <= write_level_done; read_calib_done_p <= read_calib_done;
         wstep_p <= wstep; rclkpos_p <= rclkpos; rclksel_p <= rclksel;
         ram_busy_p <= ram_busy; fail_high_p <= fail_high; fail_low_p <= fail_low;
-        if (ram_busy || ~write_level_done || ~read_calib_done) begin
+        ram_testing_p <= ram_testing;
+        if (~write_level_done || ~read_calib_done || fail_high || fail_low) begin
             // reset DDR3 controller
             mem_resetn <= 0;
             meminit_cnt <= FREQ/4;         // check again in 0.25 sec
@@ -402,7 +404,7 @@ always@(posedge clk)begin
     print_mem_p <= print_mem;
     if (print_state == PRINT_IDLE_STATE && print_mem == print_mem_p && print_mem != 0) begin
         case (print_mem)
-        8'd1: if (write_level_done_p && read_calib_done_p && ~fail_high && ~fail_low) 
+        8'd1: if (write_level_done_p && read_calib_done_p && ~fail_high_p && ~fail_low_p) 
                 `print("DDR3 initialization successful.\n{wstep[7:0],rclkpos[3:0],rclksel[3:0],fail_high[3:0],fail_low[3:0]}=", STR);
               else
                 `print("DDR3 initialization failed. Retrying...\n{wstep[7:0],rclkpos[3:0],rclksel[3:0],fail_high[3:0],fail_low[3:0]}=", STR);
@@ -485,7 +487,7 @@ end
 
 
 //  assign led = ~{loader_done, ram_busy, uart_error, 5'b0};
- assign led = ~{loader_done, ram_busy, uart_error, fail_high, fail_low, color[2:0]};
+ assign led = ~{loader_done, ram_busy, uart_error, ram_testing, test_state};
 //  assign led2 = ~sample[15:8];
 //  assign led2 = ~{6'b0, ram_fail, ram_busy};
   assign led2 = ~loader_addr[15:8];

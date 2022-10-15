@@ -34,6 +34,8 @@ module MemoryController(
     output read_calib_done,   // read calibration status, this is 2nd half of initialization
     output [1:0] rclkpos,
     output [2:0] rclksel,
+    output testing,
+    output [3:0] test_state,
     output fail_high,         // error in higher byte r/w testing. 1 if initialization succeeds but r/w testing fails
     output fail_low,         
     output reg [19:0] total_written,
@@ -104,7 +106,7 @@ ddr3_controller #(
 );
 
 ddr3_tester u_tester (
-    .clk(clk), .resetn(resetn), .start(~MemBusy), .running(testing),
+    .clk(clk), .resetn(resetn), .start(~MemBusy), .running(testing), .state(test_state),
     .fail_high(fail_high), .fail_low(fail_low),
 
     .rd(tester_rd), .wr(tester_wr), .refresh(tester_refresh),
@@ -135,10 +137,8 @@ always @(posedge clk) begin
         // initialization is done, now test memory read/write
         state <= TEST;
     end else if (state == TEST && ~testing) begin
-        if (~fail_high && ~fail_low) begin
-            state <= NORMAL;
-            busy <= 1'b0;
-        end
+        state <= NORMAL;
+        busy <= 1'b0;
     end else begin
         // Wait for operation to finish and latch incoming data on read.
         if (cycles == 3'd4) begin
