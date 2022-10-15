@@ -160,3 +160,8 @@ IO_PORT "led2[0]" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8;
 
 // Fix location of PLL as it impacts write/read leveling timing
 INS_LOC "pll_nes/rpll_inst" PLL_L[0];
+//INS_LOC "pll_nes/rpll_inst" PLL_L[1];
+//INS_LOC "pll_nes/rpll_inst" PLL_R[0];
+//INS_LOC "pll_nes/rpll_inst" PLL_R[1];     // for lite board, this works with a lot of mem init retries
+
+
