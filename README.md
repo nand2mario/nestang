@@ -29,7 +29,8 @@ Then it's time to enjoy some NES games，
 * Download a [NESTang release](https://github.com/nand2mario/nestang/releases/).
 * Start **Gowin Programmer**, and program `nestang.fs` to the board. If you see a colorful NES palette, then your setup is working. 
 * Connect your game controller/controllers to your PC. I use a pair of old Xbox 360 controllers.
-* Run `loader.exe -c COM4 game.nes` (replace COM4 with your port number) to load the game `game.nes` and run it. If it complains about missing DLLs, install [Microsoft Visual C++ Redistributable package](https://aka.ms/vs/17/release/vc_redist.x64.exe).
+* Run `loader.exe -c COM4 games\rom.nes` (replace COM4 with your port number) to load the game `rom.nes` and run it. If it complains about missing DLLs, install [Microsoft Visual C++ Redistributable package](https://aka.ms/vs/17/release/vc_redist.x64.exe).
+* Press the left button (LB) to call out the in game OSD menu. There you can load other games in the `games` directory.
 * If it didn't work, `loader.exe -r game.nes` will print messages from the core.
 
 Hurrah! and enjoy.
