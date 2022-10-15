@@ -23,7 +23,7 @@ module ddr3_tester #(
     input busy
 );
 
-localparam SIZE = 64*1024;
+localparam SIZE = 256*1024;
 localparam WIDTH = $clog2(SIZE);
 typedef logic [WIDTH-1:0] T_ADDR;
 
