@@ -1,6 +1,10 @@
 
 ## Version history for NESTang - an NES emulator for Tang Primer 20K
 
+v0.3, 10/15/2022 - Supporting the dock 
+- Support the newly released Tang Primer 20K dock. The HDMI module is no longer needed!
+- Press LB to use the in-game menu to load ROMs.
+
 v0.2.0, 10/7/2022 - The DDR3 release
 * Switch to on-board DDR3 for main memory.
 
