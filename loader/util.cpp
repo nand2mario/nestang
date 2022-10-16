@@ -1,5 +1,3 @@
-
-#include <windows.h>
 #include <cstdio>
 
 #include "util.h"
@@ -63,8 +61,67 @@ unsigned int crc16b(BYTE* data_p, unsigned short length, unsigned int crc) {
 	return r;
 }
 
+// open serial port
+#ifdef _MSC_VER
+HANDLE openSerialPort(fs::path serial, int baudrate) {
+	HANDLE uart = CreateFile(serial, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (!uart) {
+		printf("CreateFile failed\n");
+		return 0;
+	}
+	DCB dcb = { 0 };
+	dcb.DCBlength = sizeof(DCB);
+	dcb.ByteSize = 8;
+	dcb.StopBits = ONESTOPBIT;
+	dcb.BaudRate = baudrate;
+	dcb.fBinary = TRUE;
+	if (!SetCommState(uart, &dcb)) {
+		printf("SetCommState failed\n");
+		return 0;
+	}
+    return uart;
+}
+#else
+// Linux: https://www.pololu.com/docs/0J73/15.5
+#include <fcntl.h> // Contains file controls like O_RDWR
+#include <errno.h> // Error integer and strerror() function
+#include <termios.h> // Contains POSIX terminal control definitions
+#include <unistd.h> // write(), read(), close()
+HANDLE openSerialPort(fs::path serial, int baudrate) {
+    int uart = fopen(serial, O_RDWR);
+    if (uart < 0) {
+        printf("Error %i from open: %s\n", errno, strerror(errno));
+        return 0;
+    }
+
+    struct termios tty;
+    if(tcgetattr(uart, &tty) != 0) {
+        printf("Error %i from tcgetattr: %s\n", errno, strerror(errno));
+        return 0;
+    }
+    // Turn off any options that might interfere with our ability to send and
+    // receive raw binary bytes.
+    tty.c_iflag &= ~(INLCR | IGNCR | ICRNL | IXON | IXOFF);
+    tty.c_oflag &= ~(ONLCR | OCRNL);
+    tty.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+ 
+    // Set up timeouts: Calls to read() will return as soon as there is
+    // at least one byte available or when 100 ms has passed.
+    tty.c_cc[VTIME] = 1;
+    tty.c_cc[VMIN] = 0;
+
+    cfsetspeed(&tty, baudrate);
+
+    if (tcsetattr(serial_port, TCSANOW, &tty) != 0) {
+       printf("Error %i from tcsetattr: %s\n", errno, strerror(errno));
+    }
+
+    return uart;
+}
+#endif
 
 // print serial input
+#ifdef _MSC_VER
 DWORD readFromSerial(PVOID lpParam) {
 	char b[128];
 	DWORD read;
@@ -91,6 +148,7 @@ done:
 	if (ov.hEvent != 0) CloseHandle(ov.hEvent);
 	return 0;
 }
+#endif
 
 size_t formatPacket(byte* buf, int address, const void* data, size_t data_size) {
 	byte* org = buf;

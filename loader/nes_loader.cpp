@@ -1,6 +1,17 @@
+// NESTang loader
+// nand2mario, 2022.10
+//
+// This targets Visual C++ Community 2022 and modern Linux gcc (debian/Ubuntu...)
+// C++ version is C++17 as we use the filesystem library.
+//
+// Some notes about portabilty:
+// - All paths are std::filesystem::path. This allows us to portably access i18n file names.
+
+#ifdef _MSC_VER
 #include "stdafx.h"
-//#define	_CRT_SECURE_NO_WARNINGS
 #include <windows.h>
+#endif
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -13,8 +24,12 @@ using namespace std;
 #include "osd.h"
 #include "util.h"
 
-wstring gamedir(L"games");
-wchar_t com_port[256] = L"\\\\.\\COM10";
+fs::path gamedir(PATH("games"));
+#ifdef _MSC_VER
+fs::path com_port(L"\\\\.\\COM10");
+#else
+fs::path com_port("/dev/ttyUSB0");
+#endif
 int baudrate = 921600;
 bool readSerial = false;
 bool dump_packet = false;
@@ -44,7 +59,7 @@ void usage() {
 	printf("NESTang Loader 0.2\n");
 	printf("Usage: loader [options] < game.nes or - >\n");
 	printf("Options:\n");
-	printf("    -c COM4    use specific COM port.\n");
+	printf("    -c COM4    use specific serial port (for linux /dev/ttyUSB0).\n");
 	printf("    -b <rate>  specify baudrate, e.g. 115200 (default is 921600).\n");
 	printf("    -d <dir>   specify rom directory, default is 'games'.\n");
 	printf("    -r         display message from serial for debug.\n");
@@ -69,10 +84,10 @@ int parseArgs(int argc, char* argv[]) {
 				dump_packet = true;
 			}
 			else if (strcmp(argv[idx], "-c") == 0 && idx + 1 < argc) {
-				mbstowcs(com_port, argv[++idx], sizeof(com_port)/sizeof(wchar_t));
+				com_port = argv[idx];
 			}
 			else if (strcmp(argv[idx], "-d") == 0 && idx + 1 < argc) {
-				gamedir = s2ws(std::string(argv[++idx]));
+				gamedir = argv[++idx];
 			}
 			else if (strcmp(argv[idx], "-h") == 0) {
 				usage();
@@ -102,20 +117,9 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
-	uart = CreateFile(com_port, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	uart = openSerialPort(com_port, baudrate);
 	if (!uart) {
-		printf("CreateFile failed\n");
-		return 0;
-	}
-
-	DCB dcb = { 0 };
-	dcb.DCBlength = sizeof(DCB);
-	dcb.ByteSize = 8;
-	dcb.StopBits = ONESTOPBIT;
-	dcb.BaudRate = baudrate;
-	dcb.fBinary = TRUE;
-	if (!SetCommState(uart, &dcb)) {
-		printf("SetCommState failed\n");
+		printf("Cannot open serial port\n");
 		return 0;
 	}
 
@@ -124,9 +128,12 @@ int main(int argc, char* argv[]) {
 			return -1;
 	}
 	else {
-		fs::path d(gamedir);
-		if (!fs::exists(d) || !fs::is_directory(d)) {
+		if (!fs::exists(gamedir) || !fs::is_directory(gamedir)) {
+#ifdef _MSC_VER
 			wprintf(L"%s does not exist or is not a directory.\n", gamedir.c_str());
+#else
+			printf("%s does not exist or is not a directory.\n", gamedir.c_str());
+#endif
 			return -1;
 		}
 		printf("Press LB on first controller to open on screen menu.\n");

@@ -1,4 +1,3 @@
-#include <windows.h>
 #include <cstdio>
 #include <filesystem>
 #include <iostream>
