@@ -1,5 +1,10 @@
 #pragma once
 
+#include <string>
+#include <filesystem>
+#include <set>
+#include <stdint.h>
+
 #ifdef _MSC_VER
 // Windows
 #include <windows.h>
@@ -7,20 +12,17 @@
 
 #else
 // Linux definitions
-#define DWORD uint32_t
-#define HANDLE int
-#define PVOID void *
 #define PATH(x) x
+
+typedef uint32_t DWORD;
+typedef int HANDLE;
+typedef void * PVOID;
 
 #endif
 
-#include <string>
-#include <filesystem>
-namespace fs = std::filesystem;
-
-DWORD readFromSerial(PVOID lpParam);
+void readFromSerial(int h);
 void writePacket(HANDLE h, int address, const void* data, size_t data_size);
-HANDLE openSerialPort(fs::path serial, int baudrate);
+HANDLE openSerialPort(std::filesystem::path serial, int baudrate);
 
 #ifdef _MSC_VER
 static std::wstring s2ws(const std::string& str)
@@ -31,5 +33,20 @@ static std::wstring s2ws(const std::string& str)
     return wstrTo;
 }
 #endif
+
+struct gamepad {
+    unsigned char nesKeys;
+    bool osdButton;
+};
+
+// scan for gamepads on the system
+int scanGamepads();
+
+// id - 0 or 1 for two gamepads
+// keys - NES-format button status for this gamepad
+// return 0 if successful
+int updateGamepad(int id, gamepad *pad);
+
+extern std::set<std::string> GAMEPADS;
 
 extern char font8x8_basic[128][8];

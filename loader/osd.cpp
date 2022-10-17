@@ -4,10 +4,11 @@
 namespace fs = std::filesystem;		// C++17
 #include <vector>
 #include <chrono>
+#include <cstring>
 
 using namespace std;
 
-#include "OSD.h"
+#include "osd.h"
 #include "util.h"
 
 static const int CMD_OSD_ADDR_LOW = 0x80;

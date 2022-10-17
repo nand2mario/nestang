@@ -1,15 +1,15 @@
 // NESTang loader
 // nand2mario, 2022.10
 //
-// This targets Visual C++ Community 2022 and modern Linux gcc (debian/Ubuntu...)
-// C++ version is C++17 as we use the filesystem library.
-//
-// Some notes about portabilty:
+// This targets Visual C++ Community 2022 on Windows and g++ on Linux
+// - C++17 is used for the filesystem library.
 // - All paths are std::filesystem::path. This allows us to portably access i18n file names.
 
 #ifdef _MSC_VER
 #include "stdafx.h"
 #include <windows.h>
+#else
+#include <unistd.h>
 #endif
 
 #include <cstdio>
@@ -34,26 +34,6 @@ int baudrate = 921600;
 bool readSerial = false;
 bool dump_packet = false;
 HANDLE uart;		// serial port
-
-// https://www.nesdev.org/wiki/Standard_controller
-unsigned char joyinfoToKey(JOYINFOEX& joy) {
-	unsigned char keys = 0;
-	keys |= !!(joy.dwButtons & 1) * 1;          // Map A and X to A
-	keys |= !!(joy.dwButtons & 4) * 1;
-	keys |= !!(joy.dwButtons & 2) * 2;          // Map B and Y to B
-	keys |= !!(joy.dwButtons & 8) * 2;
-	keys |= !!(joy.dwButtons & 0x40) * 4;       // select
-	keys |= !!(joy.dwButtons & 0x80) * 8;       // start
-	keys |= (joy.dwYpos < 0x4000) * 16;
-	keys |= (joy.dwPOV == JOY_POVFORWARD) * 16;     // FIXME: cannot do 45 degree with d-pad, stick is ok.
-	keys |= (joy.dwYpos >= 0xC000) * 32;
-	keys |= (joy.dwPOV == JOY_POVBACKWARD) * 32;
-	keys |= (joy.dwXpos < 0x4000) * 64;
-	keys |= (joy.dwPOV == JOY_POVLEFT) * 64;
-	keys |= (joy.dwXpos >= 0xC000) * 128;
-	keys |= (joy.dwPOV == JOY_POVRIGHT) * 128;
-	return keys;
-}
 
 void usage() {
 	printf("NESTang Loader 0.2\n");
@@ -142,6 +122,8 @@ int main(int argc, char* argv[]) {
 	if (readSerial)
 		readFromSerial(uart);
 
+	scanGamepads();
+
 	unsigned char last_keys1 = -1;
 	unsigned char last_keys2 = -1;
 	DWORD lastButtons = 0;
@@ -149,21 +131,16 @@ int main(int argc, char* argv[]) {
 	bool osdPressed = false;
 
 	for (;;) {
-		JOYINFOEX joy;
-		unsigned char keys1, keys2;
-
-		joy.dwSize = sizeof(joy);
-		joy.dwFlags = JOY_RETURNALL;
+		gamepad pad1, pad2;
 
 		// Process controller #1
-		if (joyGetPosEx(JOYSTICKID1, &joy) != MMSYSERR_NOERROR) {
+		if (updateGamepad(0, &pad1)) {
 			printf("Cannot find any controller. Please connect a controller and try again.\n");
 			return 1;
 		}
-		keys1 = joyinfoToKey(joy);
 
 		// press controller #1 LB to toggle OSD
-		if (joy.dwButtons & 0x10) {
+		if (pad1.osdButton) {
 			if (!osdPressed) {
 				inOSD = !inOSD;
 				osd_show(inOSD);
@@ -178,28 +155,31 @@ int main(int argc, char* argv[]) {
 
 		if (inOSD) {
 			// pass keys to OSD module
-			osd_update(keys1);
+			osd_update(pad1.nesKeys);
 			goto joy_continue;
 		}
 		
 		// Pass key to NES
-		if (keys1 != last_keys1) {
+		if (pad1.nesKeys != last_keys1) {
 			// printf("Keys %.2x\n", keys1);
-			writePacket(uart, 0x40, &keys1, 1);
-			last_keys1 = keys1;
+			writePacket(uart, 0x40, &pad1.nesKeys, 1);
+			last_keys1 = pad1.nesKeys;
 		}
 
 		// Process controller #2
-		if (joyGetPosEx(JOYSTICKID2, &joy) == MMSYSERR_NOERROR) {
-			keys2 = joyinfoToKey(joy);
-			if (keys2 != last_keys2) {
-				writePacket(uart, 0x41, &keys2, 1);
-				last_keys2 = keys2;
+		if (updateGamepad(1, &pad2) == 0) {
+			if (pad2.nesKeys != last_keys2) {
+				writePacket(uart, 0x41, &pad2.nesKeys, 1);
+				last_keys2 = pad2.nesKeys;
 			}
 		}
 
 	joy_continue:
+#ifdef _MSC_VER
 		Sleep(1);
+#else
+		usleep(1000);
+#endif
 	}
 	return 0;
 }
