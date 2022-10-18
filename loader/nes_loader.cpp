@@ -24,10 +24,11 @@ using namespace std;
 #include "osd.h"
 #include "util.h"
 
-fs::path gamedir(PATH("games"));
 #ifdef _MSC_VER
+fs::path gamedir(L"games");
 fs::path com_port(L"\\\\.\\COM10");
 #else
+fs::path gamedir("games");
 fs::path com_port("/dev/ttyUSB0");
 #endif
 int baudrate = 921600;
@@ -124,23 +125,23 @@ int main(int argc, char* argv[]) {
 
 	scanGamepads();
 
+	unsigned char last_keys0 = -1;
 	unsigned char last_keys1 = -1;
-	unsigned char last_keys2 = -1;
 	DWORD lastButtons = 0;
 	DWORD lastPOV = 0;
 	bool osdPressed = false;
 
 	for (;;) {
-		gamepad pad1, pad2;
+		struct gamepad pad[2];
 
-		// Process controller #1
-		if (updateGamepad(0, &pad1)) {
+		// Get updates from gamepads
+		if (updateGamepads(pad) <= 0) {
 			printf("Cannot find any controller. Please connect a controller and try again.\n");
 			return 1;
 		}
 
 		// press controller #1 LB to toggle OSD
-		if (pad1.osdButton) {
+		if (pad[0].osdButton) {
 			if (!osdPressed) {
 				inOSD = !inOSD;
 				osd_show(inOSD);
@@ -155,23 +156,21 @@ int main(int argc, char* argv[]) {
 
 		if (inOSD) {
 			// pass keys to OSD module
-			osd_update(pad1.nesKeys);
+			osd_update(pad[0].nesKeys);
 			goto joy_continue;
 		}
 		
 		// Pass key to NES
-		if (pad1.nesKeys != last_keys1) {
+		if (pad[0].nesKeys != last_keys0) {
 			// printf("Keys %.2x\n", keys1);
-			writePacket(uart, 0x40, &pad1.nesKeys, 1);
-			last_keys1 = pad1.nesKeys;
+			writePacket(uart, 0x40, &pad[0].nesKeys, 1);
+			last_keys0 = pad[0].nesKeys;
 		}
 
 		// Process controller #2
-		if (updateGamepad(1, &pad2) == 0) {
-			if (pad2.nesKeys != last_keys2) {
-				writePacket(uart, 0x41, &pad2.nesKeys, 1);
-				last_keys2 = pad2.nesKeys;
-			}
+		if (pad[1].nesKeys != last_keys1) {
+			writePacket(uart, 0x41, &pad[1].nesKeys, 1);
+			last_keys1 = pad[1].nesKeys;
 		}
 
 	joy_continue:
@@ -201,7 +200,7 @@ int sendNES(fs::path p)
 		streamsize want_read = (total_read - pos) > sizeof(sendbuf) ? sizeof(sendbuf) : (total_read - pos);
 		f.read(sendbuf, want_read);
 		streamsize n = f.gcount();
-		//printf("want_read=%d, actual_read=%d\n", want_read, n);
+		printf("want_read=%d, actual_read=%d\n", (int)want_read, (int)n);
 		if (n > 0) {
 			//printf("Write packet\n");
 			writePacket(uart, 0x37, sendbuf, n);
@@ -212,7 +211,12 @@ int sendNES(fs::path p)
 	}
 	f.close();
 
+#ifdef _MSC_VER
 	wprintf(L"%s transmitted over %s at baudrate %d.\n", p.filename().wstring().c_str(),
-		com_port, baudrate);
+		com_port.wstring().c_str(), baudrate);
+#else
+	printf("%s transmitted over %s at baudrate %d.\n", p.filename().string().c_str(),
+		com_port.string().c_str(), baudrate);
+#endif
 	return 0;
 }

@@ -6,10 +6,10 @@ namespace fs = std::filesystem;		// C++17
 #include <chrono>
 #include <cstring>
 
-using namespace std;
-
 #include "osd.h"
 #include "util.h"
+
+using namespace std;
 
 static const int CMD_OSD_ADDR_LOW = 0x80;
 static const int CMD_OSD_ADDR_HIGH = 0x81;
@@ -106,7 +106,7 @@ void osd_show(bool show) {
 	active = show;
 }
 
-extern wstring gamedir;
+extern fs::path gamedir;
 
 // current dir
 struct fileentry {
@@ -199,14 +199,12 @@ static void screen_dir(unsigned char key) {
 	osd_flush(uart);
 }
 
-extern wstring gamedir;
-
 static void screen_top(unsigned char key) {
 	//printf("screen_top\n");
 	if (key == 1) {			// A
 		screen = SCREEN_DIR;
 		paths.clear();
-		paths.push_back(fs::path(gamedir));
+		paths.push_back(gamedir);
 		load_dir();
 		filePageStart = 0; fileCur = 0;
 		screen_dir(0);

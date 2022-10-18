@@ -68,7 +68,7 @@ unsigned int crc16b(uint8_t* data_p, uint16_t length, uint32_t crc) {
 // open serial port
 #ifdef _MSC_VER
 HANDLE openSerialPort(fs::path serial, int baudrate) {
-	HANDLE uart = CreateFile(serial, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE uart = CreateFile(serial.wstring().c_str(), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (!uart) {
 		printf("CreateFile failed\n");
 		return 0;
@@ -183,7 +183,7 @@ void readFromSerial(HANDLE h) {
 	ov.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 	if (!ov.hEvent) {
 		printf("Cannot create event\n");
-		return 1;
+		return;
 	}
 
 	while (1) {
@@ -199,7 +199,6 @@ void readFromSerial(HANDLE h) {
 
 done:
 	if (ov.hEvent != 0) CloseHandle(ov.hEvent);
-	return 0;
 }
 #else
 void readFromSerial(HANDLE h) {
@@ -212,10 +211,10 @@ void readFromSerial(HANDLE h) {
             perror("failed to read from port");
             return;
         }
-        if (r == 0) {
-            // Timeout
-            break;
-        }
+        // if (r == 0) {
+        //     // Timeout
+        //     break;
+        // }
         b[r] = '\0';
         printf("%s", b);
     }    
@@ -250,15 +249,22 @@ int scanGamepads() {
     return 0;       // return value is not used
 }
 
-int updateGamepad(int id, gamepad *pad) {
+int updateGamepads(gamepad *pad) {
 	JOYINFOEX joy;
     joy.dwSize = sizeof(joy);
     joy.dwFlags = JOY_RETURNALL;
-    if (joyGetPosEx(id == 0 ? JOYSTICKID0 : JOYSTICKID2, &joy) == MMSYSERR_NOERROR)
+
+    if (joyGetPosEx(JOYSTICKID1, &joy) == MMSYSERR_NOERROR)
+        return 0;
+    pad[0].nesKeys = joyinfoToKey(joy);
+    pad[0].osdButton = joy.dwButtons & 0x10;
+
+    if (joyGetPosEx(JOYSTICKID2, &joy) == MMSYSERR_NOERROR)
         return 1;
-    pad->nesKeys = joyinfoToKey(joy);
-    pad->osdButton = joy.dwButtons & 0x10;
-    return 0;
+    pad[1].nesKeys = joyinfoToKey(joy);
+    pad[1].osdButton = joy.dwButtons & 0x10;
+
+    return 2;
 }
 
 #else
@@ -302,11 +308,14 @@ static int is_event_device(const struct dirent *dir) {
 	return strncmp("event", dir->d_name, 5) == 0;
 }
 
+// compare names to already open gamepads, if same do nothing
+// if different, then close open ones and open new gamepads
 static void openPads(vector<string> names) {
     for (int i = 0; i < 2; i++) {
         if (i >= names.size() && padName[i] != "") {
             // some pad disconnected
             close(pad[i]);
+            pad[i] = 0;
             padName[i] = "";
             continue;
         }
@@ -340,7 +349,7 @@ int scanGamepads() {
 	vector<string> names;
     for (int i = 0; i < ndev; i++) {
         struct dirent *e = namelist[i];
-        char fname[256];
+        char fname[267];
 		snprintf(fname, sizeof(fname), "%s/%s", "/dev/input", e->d_name);
         int fd = open(fname, O_RDONLY);
         if (fd >= 0) {
@@ -356,12 +365,89 @@ int scanGamepads() {
     return names.size();
 }
 
+#include <sys/select.h>
 
+void readGamepad(int fd, struct gamepad *p) {
+    unsigned int size;
+    struct input_event ev;
 
-int updateGamepad(int id, gamepad *pad) {
+    while (1) {
+        size = read(fd, &ev, sizeof(struct input_event));
 
+        if (size < sizeof(struct input_event)) {
+            printf("expected %lu bytes, got %u\n", sizeof(struct input_event), size);
+            perror("\nerror reading");
+            return;
+        }
+        if (ev.type == 0 && ev.code == 0) {
+            // end of current batch of events
+            return;
+        }
+        uint16_t t = ev.type;
+        uint16_t c = ev.code;
+        uint32_t v = ev.value;
+        printf("Event: time %ld.%06ld, ", ev.time.tv_sec, ev.time.tv_usec);
+        printf("type: %hu, code: %hu, value: %u\n", t, c, v);
 
-    return 0;
+        if (t == 1) {
+            if (c == 304 || c == 307)   // map A and X to button A
+                p->nesKeys = p->nesKeys & ~1 | v;
+            else if (c == 305 || c == 308)  // B and y to button B
+                p->nesKeys = p->nesKeys & ~2 | (v << 1);
+            else if (c == 314)          // Select
+                p->nesKeys = p->nesKeys & ~4 | (v << 2);
+            else if (c == 315)          // Start
+                p->nesKeys = p->nesKeys & ~8 | (v << 3);
+            else if (c == 704)          // D-Pad left
+                p->nesKeys = p->nesKeys & ~16 | (v << 4);
+            else if (c == 705)          // D-Pad right
+                p->nesKeys = p->nesKeys & ~32 | (v << 5);
+            else if (c == 706)          // D-Pad up
+                p->nesKeys = p->nesKeys & ~64 | (v << 6);
+            else if (c == 707)          // D-Pad down
+                p->nesKeys = p->nesKeys & ~128 | (v << 7);
+            else if (c == 310)          // LB
+                p->osdButton = (v == 1);
+        } else if (t == 3) {
+            if (c == 0)  {
+                p->nesKeys = p->nesKeys & ~16 | ((v < 0x4000) << 4);     // stick left
+                p->nesKeys = p->nesKeys & ~32 | ((v > 0xc000) << 5);     // stick right
+            }
+            if (c == 1) {
+                p->nesKeys = p->nesKeys & ~64 | ((v < 0x4000) << 6);     // stick up
+                p->nesKeys = p->nesKeys & ~128 | ((v > 0xc000) << 7);    // stick down
+            }
+        }
+    }
+}
+
+int updateGamepads(gamepad *p) {
+    fd_set fdset;
+    FD_ZERO(&fdset);
+    int cnt = 0;
+    if (pad[0] > 0) {
+        FD_SET(pad[0], &fdset);
+        cnt++;
+    }
+    if (pad[1] > 0) {
+        FD_SET(pad[1], &fdset);
+        cnt++;
+    }
+    int maxfd = max(pad[0], pad[1]) + 1;
+    int err = select(maxfd, &fdset, NULL, NULL, NULL);
+    if (err == 0) {
+        printf("select() timeout\n");
+        return cnt;
+    } else if (err < -1) {
+        perror("select() error\n");
+        return 0;
+    }
+    if (pad[0] > 0 && FD_ISSET(pad[0], &fdset))
+        readGamepad(pad[0], p);
+    if (pad[1] > 0 && FD_ISSET(pad[1], &fdset))
+        readGamepad(pad[1], p+1);
+
+    return cnt;
 }
 
 // https://gist.github.com/nondebug/aec93dff7f0f1969f4cc2291b24a3171

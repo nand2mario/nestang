@@ -20,7 +20,7 @@ typedef void * PVOID;
 
 #endif
 
-void readFromSerial(int h);
+void readFromSerial(HANDLE h);
 void writePacket(HANDLE h, int address, const void* data, size_t data_size);
 HANDLE openSerialPort(std::filesystem::path serial, int baudrate);
 
@@ -40,12 +40,13 @@ struct gamepad {
 };
 
 // scan for gamepads on the system
+// return number of gamepads found
 int scanGamepads();
 
-// id - 0 or 1 for two gamepads
-// keys - NES-format button status for this gamepad
-// return 0 if successful
-int updateGamepad(int id, gamepad *pad);
+// read latest status of up to two gamepads
+// pad - pad[0], pad[1] are the two gamepad struct to be filled
+// return number of gamepads found
+int updateGamepads(gamepad *pad);
 
 extern std::set<std::string> GAMEPADS;
 
