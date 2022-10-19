@@ -124,6 +124,8 @@ int main(int argc, char* argv[]) {
 		readFromSerial(uart);
 
 	scanGamepads();
+	struct gamepad pad[2];
+	memset(pad, 0, sizeof(pad));
 
 	unsigned char last_keys0 = -1;
 	unsigned char last_keys1 = -1;
@@ -132,7 +134,6 @@ int main(int argc, char* argv[]) {
 	bool osdPressed = false;
 
 	for (;;) {
-		struct gamepad pad[2];
 
 		// Get updates from gamepads
 		if (updateGamepads(pad) <= 0) {

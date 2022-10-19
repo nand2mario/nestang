@@ -385,9 +385,9 @@ void readGamepad(int fd, struct gamepad *p) {
         }
         uint16_t t = ev.type;
         uint16_t c = ev.code;
-        uint32_t v = ev.value;
-        printf("Event: time %ld.%06ld, ", ev.time.tv_sec, ev.time.tv_usec);
-        printf("type: %hu, code: %hu, value: %u\n", t, c, v);
+        int v = ev.value;
+        // printf("Event: time %ld.%06ld, ", ev.time.tv_sec, ev.time.tv_usec);
+        // printf("type: %hu, code: %hu, value: %d\n", t, c, v);
 
         if (t == 1) {
             if (c == 304 || c == 307)   // map A and X to button A
@@ -398,24 +398,25 @@ void readGamepad(int fd, struct gamepad *p) {
                 p->nesKeys = p->nesKeys & ~4 | (v << 2);
             else if (c == 315)          // Start
                 p->nesKeys = p->nesKeys & ~8 | (v << 3);
-            else if (c == 704)          // D-Pad left
-                p->nesKeys = p->nesKeys & ~16 | (v << 4);
-            else if (c == 705)          // D-Pad right
-                p->nesKeys = p->nesKeys & ~32 | (v << 5);
             else if (c == 706)          // D-Pad up
-                p->nesKeys = p->nesKeys & ~64 | (v << 6);
+                p->nesKeys = p->nesKeys & ~16 | (v << 4);
             else if (c == 707)          // D-Pad down
+                p->nesKeys = p->nesKeys & ~32 | (v << 5);
+            else if (c == 704)          // D-Pad left
+                p->nesKeys = p->nesKeys & ~64 | (v << 6);
+            else if (c == 705)          // D-Pad right
                 p->nesKeys = p->nesKeys & ~128 | (v << 7);
             else if (c == 310)          // LB
                 p->osdButton = (v == 1);
         } else if (t == 3) {
-            if (c == 0)  {
-                p->nesKeys = p->nesKeys & ~16 | ((v < 0x4000) << 4);     // stick left
-                p->nesKeys = p->nesKeys & ~32 | ((v > 0xc000) << 5);     // stick right
-            }
+            const int HALF = 32768/2;
             if (c == 1) {
-                p->nesKeys = p->nesKeys & ~64 | ((v < 0x4000) << 6);     // stick up
-                p->nesKeys = p->nesKeys & ~128 | ((v > 0xc000) << 7);    // stick down
+                p->nesKeys = p->nesKeys & ~16 | ((v < -HALF) << 4);     // stick up
+                p->nesKeys = p->nesKeys & ~32 | ((v > HALF) << 5);    // stick down
+            }
+            if (c == 0)  {
+                p->nesKeys = p->nesKeys & ~64 | ((v < -HALF) << 6);     // stick left
+                p->nesKeys = p->nesKeys & ~128 | ((v > HALF) << 7);     // stick right
             }
         }
     }
