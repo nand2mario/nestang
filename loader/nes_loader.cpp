@@ -29,7 +29,7 @@ fs::path gamedir(L"games");
 fs::path com_port(L"\\\\.\\COM10");
 #else
 fs::path gamedir("games");
-fs::path com_port("/dev/ttyUSB0");
+fs::path com_port("/dev/ttyUSB1");
 #endif
 int baudrate = 921600;
 bool readSerial = false;
@@ -40,7 +40,7 @@ void usage() {
 	printf("NESTang Loader 0.2\n");
 	printf("Usage: loader [options] < game.nes or - >\n");
 	printf("Options:\n");
-	printf("    -c COM4    use specific serial port (for linux /dev/ttyUSB0).\n");
+	printf("    -c <port>  use specific serial port (\\\\.\\COM4, /dev/ttyUSB0...).\n");
 	printf("    -b <rate>  specify baudrate, e.g. 115200 (default is 921600).\n");
 	printf("    -d <dir>   specify rom directory, default is 'games'.\n");
 	printf("    -r         display message from serial for debug.\n");
@@ -65,7 +65,7 @@ int parseArgs(int argc, char* argv[]) {
 				dump_packet = true;
 			}
 			else if (strcmp(argv[idx], "-c") == 0 && idx + 1 < argc) {
-				com_port = argv[idx];
+				com_port = argv[++idx];
 			}
 			else if (strcmp(argv[idx], "-d") == 0 && idx + 1 < argc) {
 				gamedir = argv[++idx];
@@ -100,7 +100,7 @@ int main(int argc, char* argv[]) {
 
 	uart = openSerialPort(com_port, baudrate);
 	if (!uart) {
-		printf("Cannot open serial port\n");
+		printf("Cannot open serial port: %s\n", com_port.string().c_str());
 		return 0;
 	}
 
