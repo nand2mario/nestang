@@ -132,7 +132,8 @@ module NES_Tang20k(
 //        uart_demux(clk, ~sys_resetn, UART_RXD, uart_data, uart_addr, uart_write, uart_error);
 
   // ROM loader
-  reg  [7:0] loader_conf;     // bit 0 is reset
+  reg  [7:0] loader_conf;       // bit 0 is reset
+  reg  [7:0] nes_config;        // 8-bit configuration. config[0] is aspect_8x7
 
 `ifdef EMBED_GAME
   // Static compiled-in game data 
@@ -153,6 +154,11 @@ module NES_Tang20k(
   always @(posedge clk) begin
     if (uart_addr == 8'h35 && uart_write)
       loader_conf <= uart_data;
+
+    // Set config
+    if (uart_addr == 8'h36 && uart_write)
+      nes_config <= uart_data;
+
     if (uart_addr == 8'h40 && uart_write)
       loader_btn <= uart_data;
     if (uart_addr == 8'h41 && uart_write)
@@ -167,6 +173,7 @@ module NES_Tang20k(
       osd_addr <= osd_addr + 1;
     if (uart_addr == 8'h83 && uart_write) // turn osd on or off
       osd_enable <= uart_data[0];
+
   end
 
   // Joypad handling
@@ -308,6 +315,7 @@ nes2hdmi u_hdmi (
     .cycle(cycle),
     .scanline(scanline),
     .sample(sample >> 1),
+    .aspect_8x7(nes_config[0]),
 
     .osd_enable(osd_enable),
     .osd_addr(osd_addr),
