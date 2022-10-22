@@ -21,4 +21,6 @@ If you want to modify and/or build the project from source, you will need:
 * Click `Apply` and then `OK` to exit the Project Configurations.
 * The project is ready to be successfully Synthesized, Placed and Routed to a bitstream
 
+Note: the master branch targets the Tang Primer 20K Lite board. Use the [dock branch](https://github.com/nand2mario/nestang/tree/dock) if you want to build for the Tang Primer 20K Dock.
+
 Enjoy!!

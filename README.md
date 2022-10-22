@@ -12,7 +12,7 @@ This is still a work in progress. Here's what works.
 
 * Majority of games I tested work.
 * 720p HDMI video and sound output.
-* PC-side loader program for game loading and controller input.
+* Windows/Linux loader program for game loading and controller input.
 * Cycle accurate emulation quality as we nearly recreated the NES circuits.
 * ~~Needs a MiSTer SDRAM module. Similar to [MiSTer](https://misterfpga.org/), SDRAM is needed for its low access latency required by emulation.~~ (since v0.2 the SDRAM is no longer needed! :smiley:)
 
@@ -25,13 +25,15 @@ Interested? Here's what you need:
 
 Then it's time to enjoy some NES games，
 * Download the latest [NESTang release](https://github.com/nand2mario/nestang/releases/).
-* Start **Gowin Programmer**, and program `nestang-lite.fs` or `nestang-doc.fs` depending which board you have. If you see a colorful NES palette, then your setup is working. 
+* Start **Gowin Programmer**, and program `nestang-lite.fs` or `nestang-dock.fs` depending which board you have. If you see a colorful NES palette, then your setup is working. 
 * Connect your game controller/controllers to your PC. I use a pair of old Xbox 360 controllers.
 * Run `loader.exe -c COM4 games\rom.nes` (replace COM4 with your port number) to load the game `rom.nes` and run it. If it complains about missing DLLs, install [Microsoft Visual C++ Redistributable package](https://aka.ms/vs/17/release/vc_redist.x64.exe).
-* Press the left button (LB) to call out the in game OSD menu. There you can load other games in the `games` directory.
+* Press the left button (LB) to call out the in-game OSD menu. There you can load other games in the `games` directory.
 * If it didn't work, `loader.exe -r game.nes` will print messages from the core.
 
 Hurrah! and enjoy.
+
+Since 0.4, there's new support for loading games through Linux single-board computers. See [Linux loader](doc/linux.md)
 
 If you want to generate the bitstream from source, see [Build Instructions](doc/build.md).
 
@@ -40,16 +42,17 @@ If you want to generate the bitstream from source, see [Build Instructions](doc/
 See NESTang [changes.md](CHANGES.md).
 
 Here are what I may work on when I get time. No promise though. Suggestions and pull requests are welcome!
-* A way to work without a PC.
+* Sipeed is [working on](https://twitter.com/SipeedIO/status/1582337787574951938) a Tang Nano 20K with better emulation support (like on-board SDRAM). Add support when it comes out (hopefully before end of 2022).
 * Support more games.
 * An enclosure?
 * Cheats support.
 * Saves and loads.
+* ~~A way to work without a PC.~~ (done in 0.4)
 
 ## Special Thanks
 
 * [fpganes](https://github.com/strigeus/fpganes) by Ludvig Strigeus.
 * [hdl-util/hdmi](https://github.com/hdl-util/hdmi) by Sameer Puri.
 
-nand2mario
+nand2mario (`nand2mario at outlook.com`)
 2022.9
