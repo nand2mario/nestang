@@ -35,6 +35,7 @@ int baudrate = 921600;
 bool readSerial = false;
 bool dump_packet = false;
 HANDLE uart;		// serial port
+int config;
 
 void usage() {
 	printf("NESTang Loader 0.2\n");
@@ -43,6 +44,7 @@ void usage() {
 	printf("    -c <port>  use specific serial port (\\\\.\\COM4, /dev/ttyUSB0...).\n");
 	printf("    -b <rate>  specify baudrate, e.g. 115200 (default is 921600).\n");
 	printf("    -d <dir>   specify rom directory, default is 'games'.\n");
+	printf("    -n <config>  set config word (0-255)\n");
 	printf("    -r         display message from serial for debug.\n");
 	printf("    -v         verbose. print packets sent.\n");
 	printf("    -h         display this help message.\n");
@@ -69,6 +71,9 @@ int parseArgs(int argc, char* argv[]) {
 			}
 			else if (strcmp(argv[idx], "-d") == 0 && idx + 1 < argc) {
 				gamedir = argv[++idx];
+			}
+			else if (strcmp(argv[idx], "-n") == 0 && idx + 1 < argc) {
+				config = atoi(argv[++idx]);
 			}
 			else if (strcmp(argv[idx], "-h") == 0) {
 				usage();
@@ -102,6 +107,12 @@ int main(int argc, char* argv[]) {
 	if (!uart) {
 		printf("Cannot open serial port: %s\n", com_port.string().c_str());
 		return 0;
+	}
+
+	if (config != 0) {
+		uint8_t config_byte = (uint8_t)config;
+		writePacket(uart, 0x36, &config_byte, 1);
+		printf("Sent config word: %d\n", config);
 	}
 
 	if (strcmp(argv[idx], "-") != 0) {
@@ -201,7 +212,7 @@ int sendNES(fs::path p)
 		streamsize want_read = (total_read - pos) > sizeof(sendbuf) ? sizeof(sendbuf) : (total_read - pos);
 		f.read(sendbuf, want_read);
 		streamsize n = f.gcount();
-		printf("want_read=%d, actual_read=%d\n", (int)want_read, (int)n);
+		// printf("want_read=%d, actual_read=%d\n", (int)want_read, (int)n);
 		if (n > 0) {
 			//printf("Write packet\n");
 			writePacket(uart, 0x37, sendbuf, n);

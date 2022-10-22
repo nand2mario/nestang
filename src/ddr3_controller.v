@@ -224,7 +224,7 @@ localparam WLEVEL_COUNT=2;
 localparam RCALIB_COUNT=2;
 `else
 localparam WLEVEL_COUNT=1;          // test this many times before a wstep passes write leveling
-localparam RCALIB_COUNT=8;          // test this many times before rclkpos/rclksel passes read calib
+localparam RCALIB_COUNT=16;          // test this many times before rclkpos/rclksel passes read calib
 //localparam RCALIB_COUNT=3;          // somehow 3 works for the dock
 `endif
 

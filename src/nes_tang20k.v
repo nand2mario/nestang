@@ -315,7 +315,8 @@ nes2hdmi u_hdmi (
     .cycle(cycle),
     .scanline(scanline),
     .sample(sample >> 1),
-    .aspect_8x7(nes_config[0]),
+//    .aspect_8x7(nes_config[0]),
+    .aspect_8x7(1'b1),
 
     .osd_enable(osd_enable),
     .osd_addr(osd_addr),

@@ -254,12 +254,12 @@ int updateGamepads(gamepad *pad) {
     joy.dwSize = sizeof(joy);
     joy.dwFlags = JOY_RETURNALL;
 
-    if (joyGetPosEx(JOYSTICKID1, &joy) == MMSYSERR_NOERROR)
+    if (joyGetPosEx(JOYSTICKID1, &joy) != MMSYSERR_NOERROR)
         return 0;
     pad[0].nesKeys = joyinfoToKey(joy);
     pad[0].osdButton = joy.dwButtons & 0x10;
 
-    if (joyGetPosEx(JOYSTICKID2, &joy) == MMSYSERR_NOERROR)
+    if (joyGetPosEx(JOYSTICKID2, &joy) != MMSYSERR_NOERROR)
         return 1;
     pad[1].nesKeys = joyinfoToKey(joy);
     pad[1].osdButton = joy.dwButtons & 0x10;
