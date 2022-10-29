@@ -11,21 +11,22 @@ fi
 DIR=$1
 
 mkdir -p hdl
-ln -s $DIR/src/apu.v hdl
-ln -s $DIR/src/compat.v hdl
-ln -s $DIR/src/cpu.v hdl
-ln -s $DIR/src/hw_sound.v hdl
-ln -s $DIR/src/hw_uart.v hdl
-ln -s $DIR/src/MicroCode.v hdl
-ln -s $DIR/src/mmu.v hdl
-ln -s $DIR/src/nes_tang20k.v hdl
-ln -s $DIR/src/nes.v hdl
-ln -s $DIR/src/ppu.v hdl
-ln -s $DIR/src/sdram.v hdl
+ln -sf $DIR/src/apu.v hdl
+ln -sf $DIR/src/compat.v hdl
+ln -sf $DIR/src/cpu.v hdl
+ln -sf $DIR/src/hw_sound.v hdl
+ln -sf $DIR/src/MicroCode.v hdl
+ln -sf $DIR/src/mmu.v hdl
+ln -sf $DIR/src/nes_tang20k.v hdl
+ln -sf $DIR/src/nes.v hdl
+ln -sf $DIR/src/ppu.v hdl
+ln -sf $DIR/src/memory_controller.v hdl
+ln -sf $DIR/src/game_loader.v hdl
+ln -sf $DIR/src hdl/src
 
-mkdir -p obj_dir
-ln -s $DIR/src/oam_palette.txt obj_dir
-ln -s $DIR/src/*.hex obj_dir
+echo "hdl/ directory setup done."
 
-
-echo "Setup done."
+if [ ! -f game.nes.hex ]; then
+    echo "You need game.nes.hex ROM file to do simulation. To generate from .nes files: "
+    echo '  hexdump -ve '"'"'1/1 "%02x\\n'"'"' game.nes > game.nes.hex'
+fi

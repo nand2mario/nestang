@@ -242,9 +242,9 @@ end
 // Program counter
 ProgramCounter pc(clk, ce, LoadPC, GotInterrupt, DIN, T, PC, JumpNoOverflow);
 
-always @(posedge clk) if (!reset && ce && (PC == 'hc071 || PC == 'hc072)) begin
-    $write("pc=c071/c072");
-end
+// always @(posedge clk) if (!reset && ce && (PC == 'hc071 || PC == 'hc072)) begin
+//     $write("pc=c071/c072");
+// end
 
 reg IsNMIInterrupt = 0;
 reg LastNMI = 0;

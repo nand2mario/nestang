@@ -3,7 +3,7 @@
 // nand2mario, 2022.9
 //
 
-`timescale 1ns / 100ps
+// `timescale 1ns / 100ps
 
 // Main clock frequency
 localparam FREQ=32_250_000;
@@ -126,10 +126,12 @@ module NES_Tang20k(
   wire [7:0] uart_addr;
   wire       uart_write;
   wire       uart_error;
+`ifndef VERILATOR
   UartDemux  
         #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) 
         uart_demux(clk, 1'b0, UART_RXD, uart_data, uart_addr, uart_write, uart_error);
 //        uart_demux(clk, ~sys_resetn, UART_RXD, uart_data, uart_addr, uart_write, uart_error);
+`endif
 
   // ROM loader
   reg  [7:0] loader_conf;       // bit 0 is reset
@@ -200,7 +202,7 @@ module NES_Tang20k(
         .clk(clk), .reset(loader_reset), .indata(loader_input), .indata_clk(loader_clk),
         .mem_addr(loader_addr), .mem_data(loader_write_data), .mem_write(loader_write),
         .mem_refresh(loader_refresh), .mapper_flags(mapper_flags), 
-        .done(loader_done), .error(loader_fail));
+        .done(loader_done), .error(loader_fail), .loader_state(), .loader_bytes_left());
 
   // The NES machine
   // nes_ce  / 0 \___/ 1 \___/ 2 \___/ 3 \___/ 4 \___/ 5 \___/ 0 \___/
@@ -283,6 +285,7 @@ module NES_Tang20k(
   wire [1:0] rclkpos;
   wire [2:0] rclksel;
   wire [3:0] test_state;
+  wire write_level_done, read_calib_done, ram_testing, fail_high, fail_low;
   MemoryController memory(.clk(clk), .pclk(pclk), .fclk(fclk), .ck(ck), .resetn(sys_resetn & nes_lock & mem_resetn),
         .read_a(memory_read_cpu && run_mem), 
         .read_b(memory_read_ppu && run_mem),
@@ -506,15 +509,23 @@ endmodule
 
 
 `ifdef EMBED_GAME
-// zf: Feed INES data to Game_Loader
+// Feed INES data to Game_Loader
 module GameData (input clk, input reset, input start,
     output reg [7:0] odata, output reg odata_clk
     );
 
-    // 24KB+ buffer for ROM
-    reg [7:0] INES[24719:0];
-    reg [21:0] INES_SIZE = 24719; 
-    initial $readmemh("BattleCity.nes.hex", INES);
+    // localparam [21:0] INES_SIZE = 24719; 
+    // localparam string INES_FILE="../BattleCity.nes.hex";
+
+    // localparam [21:0] INES_SIZE = 131088; 
+    // localparam string INES_FILE="../Contra.nes.hex";
+
+    localparam [21:0] INES_SIZE = 262160; 
+    localparam string INES_FILE="../SuperC.nes.hex";
+
+    // Buffer for ROM file
+    reg [7:0] INES[INES_SIZE:0];
+    initial $readmemh(INES_FILE, INES);
 
     reg [1:0] state = 0;
     reg [21:0] addr = 0;
@@ -525,13 +536,13 @@ module GameData (input clk, input reset, input start,
             state <= 0;
             addr <= 0;  // odata gets INES[0]
             odata_clk <= 0;
-        end else if (start && state == 0) begin
+        end else if (start && state == 2'd0) begin
             // start loading
             state <= 1;
-        end else if (state==1) begin
+        end else if (state == 2'd1) begin
             if (addr == INES_SIZE) begin
                 // we've just sent the last byte
-                state <= 2;     // end of data
+                state <= 2'd3;     // end of data
                 odata_clk <= 0;
             end else begin
                 // pump data to Game_Loader
@@ -539,8 +550,13 @@ module GameData (input clk, input reset, input start,
                 odata <= INES[addr];
 /* verilator lint_on WIDTH */
                 odata_clk <= 1;
-                addr <= addr + 1;
+                state <= 2;   
             end
+        end else if (state == 2'd2) begin
+          // wait one clock cycle, then send next byte
+          odata_clk <= 0;
+          addr <= addr + 1;
+          state <= 1;
         end
     end
 endmodule

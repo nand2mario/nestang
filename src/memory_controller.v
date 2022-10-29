@@ -72,7 +72,7 @@ wire [15:0] MemDout;
 reg [2:0] cycles;
 reg r_read_a, r_read_b;
 wire MemBusy, MemDataReady;
-wire fail_high, fail_low, tester_rd, tester_wr, tester_refresh, testing;
+wire tester_rd, tester_wr, tester_refresh;
 wire [25:0] tester_addr;
 wire [15:0] tester_din;
 

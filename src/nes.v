@@ -123,7 +123,7 @@ endmodule
 module NES(input clk, input reset, input ce,
            input [31:0] mapper_flags,
            output [15:0] sample, // sample generated from APU
-           output [5:0] color,  // pixel generated from PPU
+           output [5:0] color /*verilator public*/,  // pixel generated from PPU
            output joypad_strobe,// Set to 1 to strobe joypads. Then set to zero to keep the value.
            output [1:0] joypad_clock, // Set to 1 for each joypad to clock it.
            input [1:0] joypad_data, // Data for each joypad.
@@ -139,8 +139,8 @@ module NES(input clk, input reset, input ce,
            output memory_write,         // is a write operation
            output [7:0] memory_dout,
            
-           output [8:0] cycle,
-           output [8:0] scanline
+           output [8:0] cycle /*verilator public*/,
+           output [8:0] scanline /*verilator public*/
            
 //           output reg [31:0] dbgadr,
 //           output [1:0] dbgctr

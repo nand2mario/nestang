@@ -447,8 +447,8 @@ module MMC5(input clk, input ce, input reset,
   always @(posedge clk) begin
     if (ce) begin
       if (prg_write && prg_ain[15:10] == 6'b010100) begin // $5000-$53FF
-        if (prg_ain <= 16'h5113)
-          $write("%X <= %X (%d)\n", prg_ain, prg_din, ppu_scanline);
+        // if (prg_ain <= 16'h5113)
+        //   $write("%X <= %X (%d)\n", prg_ain, prg_din, ppu_scanline);
         casez(prg_ain[9:0])
         10'h100: prg_mode <= prg_din[1:0];
         10'h101: chr_mode <= prg_din[1:0];
@@ -1329,7 +1329,7 @@ module Mapper71(input clk, input ce, input reset,
     ciram_select <= 0;
   end else if (ce) begin
     if (prg_ain[15] && prg_write) begin
-      $write("%X <= %X (bank = %x)\n", prg_ain, prg_din, prg_bank);
+      // $write("%X <= %X (bank = %x)\n", prg_ain, prg_din, prg_bank);
       if (!prg_ain[14] && mapper232) // $8000-$BFFF Outer bank select (only on iNES 232)
         prg_bank[3:2] <= prg_din[4:3];
       if (prg_ain[14:13] == 0)       // $8000-$9FFF Fire Hawk Mirroring
