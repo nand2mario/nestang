@@ -202,24 +202,35 @@ int sendNES(fs::path p)
 	ifstream f(p, ios::binary);
 	if (!f.is_open()) { printf("File open fail\n"); return 1; }
 
+	// Reset NES machine
 	{ char v = 1; writePacket(uart, 0x35, &v, 1); }
 	{ char v = 0; writePacket(uart, 0x35, &v, 1); }
 
 	size_t total_read = 0xffffff;		// max size 16MB
 	size_t pos = 0;
 
+	bool first = true;
 	while (pos < total_read) {
 		streamsize want_read = (total_read - pos) > sizeof(sendbuf) ? sizeof(sendbuf) : (total_read - pos);
 		f.read(sendbuf, want_read);
 		streamsize n = f.gcount();
 		// printf("want_read=%d, actual_read=%d\n", (int)want_read, (int)n);
 		if (n > 0) {
+			if (first && n > 16 && strncmp(&sendbuf[7], "DiskDude!", 9) == 0) {
+				// "DiskDude!" work-around. See https://www.nesdev.org/wiki/INES
+				// Older versions of the iNES emulator ignored bytes 7-15 and writes "DiskDude!" there, 
+				// corrupting byte 7 and results in 64 being added to the mapper number.
+				printf("Old rom file detected with 'DiskDude!' string. Applying fix on-the-fly.\n");
+				sendbuf[7] = 0;		// simply setting byte 7 to 0 should fix it
+			}
+
 			//printf("Write packet\n");
 			writePacket(uart, 0x37, sendbuf, n);
 		}
 		if (f.eof())
 			break;
 		pos += n;
+		first = false;
 	}
 	f.close();
 
