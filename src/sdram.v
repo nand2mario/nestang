@@ -1,15 +1,17 @@
-// Simple SDRAM controller for Tang Primer 20k
-// nand2mario, 2022.9
+// Simple SDRAM controller for Tang 20k
+// nand2mario
+// 
+// 2023.3: ported to use GW2AR-18's embedded 64Mbit SDRAM.
+//         changed to byte-based access.
+// 2022.9: iniital version.
 //
-// This is a word-based, low-latency and non-bursting controller for SDRAM modules
-// on Tang Primer 20k fpga board. The SDRAM chip tested is Winbond W9812G6KH-6 
-// (2M x 4 banks x 16 bits), in total 128 Mbits.
+// This is a byte-based, low-latency and non-bursting controller for the embedded SDRAM
+// on Tang Nano 20K. The SDRAM module is 64Mbit 32bit. (2K rows x 256 columns x 4 banks x 32 bits).
 //
 // Under default settings (max 66.7Mhz):
 // - Data read latency is 4 cycles. 
 // - Read/write operations take 5 cycles to complete. There's no overlap between
 //   reads/writes.
-// - Max bandwidth is 26.7 MB/s (66.7/5*2).
 // - All reads/writes are done with auto-precharge. So user does not need to deal with
 //   row activations and precharges.
 // - SDRAMs need periodic refreshes or they lose data. So they provide an "auto-refresh"
@@ -18,17 +20,6 @@
 //   to not lose data. So the main circuit should invoke auto-refresh at least once 
 //   **every ~15us**.
 //
-// SDRAM Wiring:
-// - 12 address pins: row address A[11:0] (4096 rows), column address A[8:0] (512 words
-//   per row)
-// - 2 bank address pins.
-// - 16 DQ pins.
-// - CLK, CKE, nCS, nRAS, nCAS, nWE
-// - VCC and GND.
-// - Tie DQM pins to ground if your module have them.
-//
-// In total 38 pins (without DQM).
-//
 // Finally you need a 180-degree phase-shifted clock signal (clk_sdram) for SDRAM. 
 // This can be generated with PLL's clkoutp output.
 //
@@ -36,12 +27,14 @@
 module sdram
 #(
     // Clock frequency, max 66.7Mhz with current set of T_xx/CAS parameters.
-    parameter         FREQ = 54_000_000,      
-    parameter         ROW_WIDTH = 12,
-    parameter         COL_WIDTH = 9,
-    parameter         BANK_WIDTH = 2,
+    parameter         FREQ = 54_000_000,  
+    parameter         DATA_WIDTH = 32,
+    parameter         ROW_WIDTH = 11,  // 2K rows
+    parameter         COL_WIDTH = 8,   // 256 words per row (1Kbytes)
+    parameter         BANK_WIDTH = 2,  // 4 banks
 
-    // Time delays. The defaults work for W9812G6H-6 at 66.7Mhz max (min clock cycle 15ns)
+    // Time delays for 66.7Mhz max clock (min clock cycle 15ns)
+    // The SDRAM supports max 166.7Mhz (RP/RCD/RC need changes)
     parameter [3:0]   CAS  = 4'd2,     // 2/3 cycles, set in mode register
     parameter [3:0]   T_WR = 4'd2,     // 2 cycles, write recovery
     parameter [3:0]   T_MRD= 4'd2,     // 2 cycles, mode register set
@@ -51,7 +44,7 @@ module sdram
 )
 (
     // SDRAM side interface
-    inout [15:0]      SDRAM_DQ,
+    inout [DATA_WIDTH-1:0]      SDRAM_DQ,
     output reg [ROW_WIDTH-1:0]  SDRAM_A,
     output reg [BANK_WIDTH-1:0] SDRAM_BA,
     output            SDRAM_nCS,    // not strictly necessary, always 0
@@ -60,7 +53,7 @@ module sdram
     output reg        SDRAM_nCAS,
     output            SDRAM_CLK,
     output            SDRAM_CKE,    // not strictly necessary, always 1
-    // our module has no DQM pins. Both are tied to GND.
+    output reg  [3:0] SDRAM_DQM,
     
     // Logic side interface
     input             clk,
@@ -69,20 +62,25 @@ module sdram
     input             rd,           // command: read
     input             wr,           // command: write
     input             refresh,      // command: auto refresh. 4096 refresh cycles in 64ms. Once per 15us.
-    input      [24:0] addr,         // word address
-    input      [15:0] din,          // 16-bit data input
-    output     [15:0] dout,         // 16-bit data output
+    input      [22:0] addr,         // byte address
+    input       [7:0] din,          // data input
+    output      [7:0] dout,         // data output
+    output [DATA_WIDTH-1:0] dout32, // 32-bit data output
     output reg        data_ready,   // available 6 cycles after wr is set
     output reg        busy          // 0: ready for next command
 );
 
 // Tri-state DQ input/output
 reg dq_oen;         // 0 means output
-reg [15:0] dq_out;
-wire [15:0] dq_in;
-assign SDRAM_DQ = dq_oen ? 16'bzzzz_zzzz_zzzz_zzzz : dq_out;
+reg [DATA_WIDTH-1:0] dq_out;
+assign SDRAM_DQ = dq_oen ? 32'bzzzz_zzzz_zzzz_zzzz_zzzz_zzzz_zzzz_zzzz : dq_out;
+wire [DATA_WIDTH-1:0] dq_in = SDRAM_DQ;     // DQ input
 
-assign dout = SDRAM_DQ;
+reg [1:0] off;          // byte offset
+assign dout = off == 0 ? dq_in[7:0] :
+              off == 1 ? dq_in[15:8] :
+              off == 2 ? dq_in[23:16] : dq_in[31:24];
+assign dout32 = dq_in;
 assign SDRAM_CLK = clk_sdram;
 assign SDRAM_CKE = 1'b1;
 assign SDRAM_nCS = 1'b0;
@@ -156,8 +154,8 @@ always @(posedge clk) begin
         {IDLE, 4'bxxxx}: if (rd | wr) begin
             // bank activate
             {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_BankActivate;
-            SDRAM_BA <= addr[ROW_WIDTH+COL_WIDTH+BANK_WIDTH-1 : ROW_WIDTH+COL_WIDTH];    // bank id
-            SDRAM_A <= addr[ROW_WIDTH+COL_WIDTH-1:COL_WIDTH];      // 12-bit row address
+            SDRAM_BA <= addr[ROW_WIDTH+COL_WIDTH+BANK_WIDTH-1+2 : ROW_WIDTH+COL_WIDTH+2];    // bank id
+            SDRAM_A <= addr[ROW_WIDTH+COL_WIDTH-1+2:COL_WIDTH+2];      // 12-bit row address
             state <= rd ? READ : WRITE;
             cycle <= 4'd1;
             busy <= 1'b1;
@@ -181,8 +179,9 @@ always @(posedge clk) begin
         {READ, T_RCD}: begin
             {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_Read;
             SDRAM_A[10] <= 1'b1;        // set auto precharge
-            SDRAM_A[9:0] <= {1'b0, addr[COL_WIDTH-1:0]};  // column address
-            SDRAM_A[12:11] <= 2'b0;     // DQM
+            SDRAM_A[9:0] <= {1'b0, addr[COL_WIDTH-1+2:2]};  // column address
+            SDRAM_DQM <= 4'b0;
+            off <= addr[1:0];
         end
         {READ, T_RCD+CAS}: begin
             data_ready <= 1'b1;
@@ -203,9 +202,12 @@ always @(posedge clk) begin
         {WRITE, T_RCD}: begin
             {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_Write;
             SDRAM_A[10] <= 1'b1;        // set auto precharge
-            SDRAM_A[9:0] <= {1'b0, addr[COL_WIDTH-1:0]};  // column address
-            SDRAM_A[12:11] <= 2'b0;     // DQM
-            dq_out <= din;
+            SDRAM_A[9:0] <= {1'b0, addr[COL_WIDTH-1+2:2]};  // column address
+            SDRAM_DQM <= addr[1:0] == 2'd0 ? 4'b1110 :
+                         addr[1:0] == 2'd1 ? 4'b1101 :
+                         addr[1:0] == 2'd2 ? 4'b1011 : 4'b0111;     // only write the correct byte
+            off <= addr[1:0];
+            dq_out <= {din,din,din,din};
             dq_oen <= 1'b0;                 // DQ output on
         end
         {WRITE, T_RCD+4'd1}: begin
@@ -231,6 +233,7 @@ always @(posedge clk) begin
     if (~resetn) begin
         busy <= 1'b1;
         dq_oen <= 1'b1;         // turn off DQ output
+        SDRAM_DQM <= 4'b0;
         state <= INIT;
     end
 end

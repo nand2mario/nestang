@@ -1,49 +1,49 @@
 //
-// NES top level for Sipeed Tang Primer 20K
-// nand2mario, 2022.9
+// NES top level for Sipeed Tang Nano 20K
+// nand2mario
 //
 
 // `timescale 1ns / 100ps
 
-// Main clock frequency
-localparam FREQ=32_250_000;
-localparam BAUDRATE=921600;         // UART baudrate: BAUDRATE <= FREQ/10
-//localparam BAUDRATE=115200;         // FIXME: for now, dock version is built with 115K baudrate
-
-// define this to execute one NES cycle per 0.01 second and print the operation done
-//`define STEP_TRACING
-
-`ifdef VERILATOR
-`define EMBED_GAME
-`endif
-
 module NES_Tang20k(
     input sys_clk,
-    input sys_resetn,
-    input d7,
+    // input sys_resetn,
+    // input d7,
+    // Button S1
+    input s1,
 
     // UART
     input UART_RXD,
     output UART_TXD,
 
-    // 16 LEDs
-    output [7:0] led,   // bottom right 
-    output [7:0] led2,  // top right 
+    // LEDs
+    output [1:0] led,
 
-    // onboard DDR3
-    inout  [15:0] DDR3_DQ,   // 16 bit bidirectional data bus
-    inout  [1:0] DDR3_DQS,   // DQ strobe for high and low bytes
-    output [13:0] DDR3_A,    // 14 bit multiplexed address bus
-    output [2:0] DDR3_BA,    // 3 banks
-    output DDR3_nCS,  // a single chip select
-    output DDR3_nWE,  // write enable
-    output DDR3_nRAS, // row address select
-    output DDR3_nCAS, // columns address select
-    output DDR3_CK,
-    output DDR3_nRESET,
-    output DDR3_CKE,
-    output DDR3_ODT,
-    output [1:0] DDR3_DM,
+    // SDRAM
+    output O_sdram_clk,
+    output O_sdram_cke,
+    output O_sdram_cs_n,            // chip select
+    output O_sdram_cas_n,           // columns address select
+    output O_sdram_ras_n,           // row address select
+    output O_sdram_wen_n,           // write enable
+    inout [31:0] IO_sdram_dq,       // 32 bit bidirectional data bus
+    output [10:0] O_sdram_addr,     // 11 bit multiplexed address bus
+    output [1:0] O_sdram_ba,        // two banks
+    output [3:0] O_sdram_dqm,       // 32/4
+
+    // MicroSD
+    output sd_clk,
+    inout sd_cmd,      // MOSI
+    input  sd_dat0,     // MISO
+    output sd_dat1,     // 1
+    output sd_dat2,     // 1
+    output sd_dat3,     // 1
+
+    // Dualshock game controller
+    output joystick_clk,
+    output joystick_mosi,
+    input joystick_miso,
+    output reg joystick_cs,
 
     // HDMI TX
     output       tmds_clk_n,
@@ -52,23 +52,20 @@ module NES_Tang20k(
     output [2:0] tmds_d_p
 );
 
-`ifndef VERILATOR
-  // NES domain clocks
-  Gowin_rPLL_nes pll_nes(
-    .clkin(sys_clk),        // 27Mhz system clock
-    .clkout(fclk),          // 387Mhz, DDR3 memory clock
-    .clkoutd(pclk),         // 96.75Mhz, DDR3 controller clock
-    .clkoutd3(clk_d3),
-    .clkoutp(ck),           // DDR3 CK clock (90-degree phase-shifted fclk)
-    .lock(nes_lock)
-  );
+`include "nes_tang20k.vh"
 
-  CLKDIV u_div (
-    .CLKOUT(clk),           // 32.25Mhz, NES clock
-    .HCLKIN(clk_d3),
-    .RESETN(sys_resetn & nes_lock)
-  );
-  defparam u_div.DIV_MODE = "4";
+reg sys_resetn = 0;
+always @(posedge clk) begin
+    sys_resetn <= ~s1;
+end
+
+`ifndef VERILATOR
+// NES PPU clock 5.369 * 7 = 37.6
+Gowin_rPLL_nes pll_nes(
+    .clkin(sys_clk),
+    .clkout(clk),          // FREQ main clock
+    .clkoutp(clk_sdram)    // FREQ main clock phase shifted
+);
 
   // HDMI domain clocks
   wire clk_p;     // 720p pixel clock: 74.25 Mhz
@@ -86,14 +83,10 @@ module NES_Tang20k(
     .hclkin(clk_p5),
     .resetn(sys_resetn & pll_lock)
   );
-`else
+`else   // VERILATOR
   // dummy clocks for verilator
   wire clk = sys_clk;
-  wire pclk = sys_clk;
-  wire fclk = sys_clk;
-  wire ck = sys_clk;
-  wire nes_lock = 1'b1;
-
+  wire clk_sdram = sys_clk;
 `endif
 
   wire [5:0] color;
@@ -116,10 +109,17 @@ module NES_Tang20k(
   reg [3:0] nes_ce = 0;
   wire [15:0] SW = 16'b1111_1111_1111_1111;   // every switch is on
 
-  reg osd_enable;
-  reg [11:0] osd_addr;
-  wire [7:0] osd_din = uart_data;
-  wire osd_we = uart_write && uart_addr == 8'h82;
+  // MicroSD state and wires
+  reg sd_rstart = 0;
+  reg [31:0] sd_rsector;
+  wire sd_rdone, sd_outen;
+  wire [7:0] sd_outbyte;
+  reg [23:0] sd_romlen;     // max 32K sectors (16MB)
+  reg [8:0] sd_off;         // in-sector offset
+  reg sd_loading, sd_last_sector;
+  wire sd_nes_valid = sd_loading & sd_outen & 
+                  (~sd_last_sector | (sd_off < sd_romlen[8:0]));
+                          // whether current sd_outbyte is valid NES data
 
   // UART
   wire [7:0] uart_data;
@@ -127,15 +127,13 @@ module NES_Tang20k(
   wire       uart_write;
   wire       uart_error;
 `ifndef VERILATOR
-  UartDemux  
-        #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) 
-        uart_demux(clk, 1'b0, UART_RXD, uart_data, uart_addr, uart_write, uart_error);
-//        uart_demux(clk, ~sys_resetn, UART_RXD, uart_data, uart_addr, uart_write, uart_error);
+UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
+    clk, 1'b0, UART_RXD, uart_data, uart_addr, uart_write, uart_error
+);
 `endif
 
   // ROM loader
-  reg  [7:0] loader_conf;       // bit 0 is reset
-  reg  [7:0] nes_config;        // 8-bit configuration. config[0] is aspect_8x7
+  reg  [7:0] loader_conf;     // bit 0 is reset
 
 `ifdef EMBED_GAME
   // Static compiled-in game data 
@@ -147,42 +145,36 @@ module NES_Tang20k(
         .odata(loader_input), .odata_clk(loader_clk));
 `else
   // Dynamic game loading from UART
-  wire [7:0] loader_input = uart_data;
-  wire       loader_clk   = (uart_addr == 8'h37) && uart_write;
-  wire loader_reset = loader_conf[0];
+  wire [7:0] loader_input = sd_nes_valid ? sd_outbyte : uart_data;
+  wire       loader_clk   = (uart_addr == 8'h37) && uart_write || sd_nes_valid;
+  wire loader_reset = ~sys_resetn | loader_conf[0];
 `endif
 
   reg  [7:0] loader_btn, loader_btn_2;
   always @(posedge clk) begin
     if (uart_addr == 8'h35 && uart_write)
       loader_conf <= uart_data;
-
-    // Set config
-    if (uart_addr == 8'h36 && uart_write)
-      nes_config <= uart_data;
-
     if (uart_addr == 8'h40 && uart_write)
       loader_btn <= uart_data;
     if (uart_addr == 8'h41 && uart_write)
       loader_btn_2 <= uart_data;
-
-    // OSD update
-    if (uart_addr == 8'h80 && uart_write) // load osd address lower byte
-      osd_addr[7:0] <= uart_data;
-    if (uart_addr == 8'h81 && uart_write) // load osd address higher byte
-      osd_addr[11:8] <= uart_data[3:0];
-    if (uart_addr == 8'h82 && uart_write) // one byte of osd data
-      osd_addr <= osd_addr + 1;
-    if (uart_addr == 8'h83 && uart_write) // turn osd on or off
-      osd_enable <= uart_data[0];
-
   end
 
+  /*
+  joy_rx[0:1] dualshock buttons: (L D R U St R3 L3 Se)  (□ X O △ R1 L1 R2 L2)
+  nes_btn[0:1] NES buttons:      (A B	Select Start U D L R)
+  O is A, X is B
+  */
+  wire [7:0] joy_rx[0:5];     // 6 RX bytes for all button/axis state
+  wire [7:0] nes_btn = ~{joy_rx[0][5], joy_rx[0][7], joy_rx[0][6], joy_rx[0][4], 
+                         joy_rx[0][3], joy_rx[0][0], joy_rx[1][6], joy_rx[1][5] };
+  wire [7:0] nes_btn2 = 0;
+  
   // Joypad handling
   always @(posedge clk) begin
     if (joypad_strobe) begin
-      joypad_bits <= loader_btn;
-      joypad_bits2 <= loader_btn_2;
+      joypad_bits <= loader_btn | nes_btn;
+      joypad_bits2 <= loader_btn_2 | nes_btn2;
     end
     if (!joypad_clock[0] && last_joypad_clock[0])
       joypad_bits <= {1'b0, joypad_bits[7:1]};
@@ -202,16 +194,16 @@ module NES_Tang20k(
         .clk(clk), .reset(loader_reset), .indata(loader_input), .indata_clk(loader_clk),
         .mem_addr(loader_addr), .mem_data(loader_write_data), .mem_write(loader_write),
         .mem_refresh(loader_refresh), .mapper_flags(mapper_flags), 
-        .done(loader_done), .error(loader_fail), .loader_state(), .loader_bytes_left());
+        .done(loader_done), .error(loader_fail));
 
   // The NES machine
-  // nes_ce  / 0 \___/ 1 \___/ 2 \___/ 3 \___/ 4 \___/ 5 \___/ 0 \___/
-  // MemCtrl |run_mem|mem_cmd|       |       |  Dout |       |run_mem|
-  // NES                                             |run_nes|
-  //                 `---- read delay = 3 ---'
+  // nes_ce  / 0 \___/ 1 \___/ 2 \___/ 3 \___/ 4 \___/ 5 \___/ 6 \___/ 0 \___
+  // MemCtrl |run_mem|mem_cmd|       |       |       |  Dout |       |run_mem|
+  // NES                                                     |run_nes|
+  //                 `-------- read delay = 4 -------'
   wire reset_nes = !loader_done;
   wire run_mem = (nes_ce == 0) && !reset_nes;       // memory runs at clock cycle #0
-  wire run_nes = (nes_ce == 5) && !reset_nes;       // nes runs at clock cycle #5
+  wire run_nes = (nes_ce == 6) && !reset_nes;       // nes runs at clock cycle #7
 
   // For debug
   reg [21:0] last_addr;
@@ -222,21 +214,19 @@ module NES_Tang20k(
 
   reg tick_seen;
 
-  // NES is clocked at every 6th cycle.
+  // NES is clocked at every 7th cycle.
   always @(posedge clk) begin
-
 `ifdef VERILATOR
-    nes_ce <= nes_ce == 4'd5 ? 0 : nes_ce + 1;
+    nes_ce <= nes_ce == 4'd6 ? 0 : nes_ce + 1;
 `else
-
   `ifndef STEP_TRACING
-    nes_ce <= nes_ce == 4'd5 ? 0 : nes_ce + 1;    
+    nes_ce <= nes_ce == 4'd6 ? 0 : nes_ce + 1;    
   `else
     // single stepping every 0.01 second
-    // - when waiting for a tick, nes_ce loops between 6 and 13 and 
-    //   issues memory refresh on #6
+    // - when waiting for a tick, nes_ce loops between 7 and 13 and 
+    //   issues memory refresh on #7
     // - when a tick is seen, nes_ce goes back to 0
-    nes_ce <= nes_ce == 4'd13 ? 4'd6 : nes_ce + 1;
+    nes_ce <= nes_ce == 4'd13 ? 4'd7 : nes_ce + 1;
     if (tick) tick_seen <= 1'b1;
     if (nes_ce == 4'd13 && tick_seen) begin
         nes_ce <= 0;
@@ -245,7 +235,7 @@ module NES_Tang20k(
   `endif
 `endif
     // log memory access result for debug
-    if (nes_ce == 4'd5 && !reset_nes) begin
+    if (nes_ce == 4'd6 && !reset_nes) begin
         if (memory_write || memory_read_cpu || memory_read_ppu) begin
             last_addr <= memory_addr;
             last_dout <= memory_read_cpu ? memory_din_cpu : memory_din_ppu;
@@ -278,32 +268,21 @@ module NES_Tang20k(
 
 /*verilator tracing_off*/
   // Combine RAM and ROM data to a single address space for NES to access
-  reg mem_resetn = 1'b1;            // reset DDR3 after 100ms when intialization failed
   wire ram_busy, ram_fail;
   wire [19:0] ram_total_written;
-  wire [7:0] ram_debug, wstep;
-  wire [1:0] rclkpos;
-  wire [2:0] rclksel;
-  wire [3:0] test_state;
-  wire write_level_done, read_calib_done, ram_testing, fail_high, fail_low;
-  MemoryController memory(.clk(clk), .pclk(pclk), .fclk(fclk), .ck(ck), .resetn(sys_resetn & nes_lock & mem_resetn),
+  MemoryController memory(.clk(clk), .clk_sdram(clk_sdram), .resetn(sys_resetn),
         .read_a(memory_read_cpu && run_mem), 
         .read_b(memory_read_ppu && run_mem),
         .write(memory_write && run_mem || loader_write),
-        .refresh(loader_done ? ~memory_read_cpu && ~memory_read_ppu && ~memory_write && run_mem || nes_ce == 4'd6
-                    : loader_refresh),
+        .refresh((~memory_read_cpu && ~memory_read_ppu && ~memory_write && ~loader_write) && run_mem || nes_ce == 4'd7 || (loader_refresh && ~loader_write)),
         .addr(loader_write ? loader_addr : memory_addr),
         .din(loader_write ? loader_write_data : memory_dout),
         .dout_a(memory_din_cpu), .dout_b(memory_din_ppu),
         .busy(ram_busy), .fail(ram_fail), .total_written(ram_total_written),
-        .debug(ram_debug), .write_level_done(write_level_done), .wstep(wstep),
-        .read_calib_done(read_calib_done), .rclkpos(rclkpos), .rclksel(rclksel),
-        .testing(ram_testing), .fail_high(fail_high), .fail_low(fail_low), .test_state(test_state),
 
-        .DDR3_DQ(DDR3_DQ), .DDR3_DQS(DDR3_DQS), .DDR3_A(DDR3_A), .DDR3_BA(DDR3_BA), 
-        .DDR3_nCS(DDR3_nCS), .DDR3_nWE(DDR3_nWE), .DDR3_nRAS(DDR3_nRAS), .DDR3_nCAS(DDR3_nCAS), 
-        .DDR3_CK(DDR3_CK), .DDR3_nRESET(DDR3_nRESET), .DDR3_CKE(DDR3_CKE), 
-        .DDR3_ODT(DDR3_ODT), .DDR3_DM(DDR3_DM)
+        .SDRAM_DQ(IO_sdram_dq), .SDRAM_A(O_sdram_addr), .SDRAM_BA(O_sdram_ba), .SDRAM_nCS(O_sdram_cs_n),
+        .SDRAM_nWE(O_sdram_wen_n), .SDRAM_nRAS(O_sdram_ras_n), .SDRAM_nCAS(O_sdram_cas_n), 
+        .SDRAM_CLK(O_sdram_clk), .SDRAM_CKE(O_sdram_cke), .SDRAM_DQM(O_sdram_dqm)
 );
 /*verilator tracing_on*/
 
@@ -311,66 +290,104 @@ module NES_Tang20k(
 
 // HDMI output
 nes2hdmi u_hdmi (
-    .clk(clk),
-    .resetn(sys_resetn),
-
-    .color(color),
-    .cycle(cycle),
-    .scanline(scanline),
-    .sample(sample >> 1),
-//    .aspect_8x7(nes_config[0]),
-    .aspect_8x7(1'b1),
-
-    .osd_enable(osd_enable),
-    .osd_addr(osd_addr),
-    .osd_din(osd_din),
-    .osd_we(osd_we),
-
-    .clk_pixel(clk_p),
-    .clk_5x_pixel(clk_p5),
-    .locked(pll_lock),
-
-    .tmds_clk_n(tmds_clk_n),
-    .tmds_clk_p(tmds_clk_p),
-    .tmds_d_n(tmds_d_n),
-    .tmds_d_p(tmds_d_p)
+    .clk(clk), .resetn(sys_resetn),
+    .color(color), .cycle(cycle), .scanline(scanline), .sample(sample >> 1),
+    .clk_pixel(clk_p), .clk_5x_pixel(clk_p5), .locked(pll_lock),
+    .tmds_clk_n(tmds_clk_n), .tmds_clk_p(tmds_clk_p),
+    .tmds_d_n(tmds_d_n), .tmds_d_p(tmds_d_p)
 );
 
-// Memory initialization control
-// After reset, every 250ms we check whether memory is successsfully intialized and tested.
-// If not we reset the whole machine, print a message and hope it will finally succeed.
-reg [$clog2(FREQ/5+1)-1:0] meminit_cnt;
-reg meminit_check;      // pulse when memory initialization is checked
-reg write_level_done_p, read_calib_done_p;
-reg [7:0] wstep_p;
-reg [1:0] rclkpos_p;
-reg [2:0] rclksel_p;
-reg ram_busy_p, ram_testing_p, fail_high_p, fail_low_p;
-reg [3:0] test_state_p;
+// MicroSD
+assign sd_dat1 = 1;
+assign sd_dat2 = 1;
+assign sd_dat3 = 1; // Must set sddat1~3 to 1 to avoid SD card from entering SPI mode
 
+sd_reader #(
+    .CLK_DIV(3'd1),.SIMULATE(0)
+) sd_reader_i (
+    .rstn(sys_resetn), .clk(clk),
+    .sdclk(sd_clk), .sdcmd(sd_cmd), .sddat0(sd_dat0),
+    .card_stat(),.card_type(),
+    .rstart(sd_rstart), .rbusy(), .rdone(sd_rdone), .outen(sd_outen),
+    .rsector(sd_rsector),
+    .outaddr(), .outbyte(sd_outbyte)
+);
+
+// SD card loading process
+reg [3:0] sd_state;
+localparam [3:0] SD_READ_META = 4'd1;     // getting meta-data from sector 0
+localparam [3:0] SD_START_SECTOR = 4'd2;
+localparam [3:0] SD_READ_NES = 4'd3;
+localparam [3:0] SD_DONE = 4'd15;
 always @(posedge clk) begin
-    meminit_cnt <= meminit_cnt == 0 ? 0 : meminit_cnt - 1;
-    mem_resetn <= 1'b1;
-    meminit_check <= 0;
-    if (meminit_cnt == 1) begin
-        meminit_check <= 1'b1;
-        write_level_done_p <= write_level_done; read_calib_done_p <= read_calib_done;
-        wstep_p <= wstep; rclkpos_p <= rclkpos; rclksel_p <= rclksel;
-        ram_busy_p <= ram_busy; fail_high_p <= fail_high; fail_low_p <= fail_low;
-        ram_testing_p <= ram_testing; test_state_p <= test_state;
-        if (~write_level_done || ~read_calib_done || (fail_high && fail_low)) begin
-            // reset DDR3 controller
-            mem_resetn <= 0;
-            meminit_cnt <= FREQ/5;         // check again in 0.2 sec
+    if (~sys_resetn) begin
+        sd_rstart <= 1;
+        sd_rsector <= 0;
+        sd_state <= SD_READ_META;
+        sd_off <= 0;
+        sd_loading <= 0;
+    end else case (sd_state)
+    SD_READ_META: begin
+        if (sd_outen) begin
+            sd_off <= sd_off + 1;
+            if (sd_off == 8'd0) sd_romlen[7:0] <= sd_outbyte;
+            if (sd_off == 8'd1) sd_romlen[15:8] <= sd_outbyte;
+            if (sd_off == 8'd2) sd_romlen[23:16] <= sd_outbyte;
+        end
+        if (sd_rdone) begin
+            sd_rstart <= 0;     // turn off reading
+            sd_off <= 0;
+            sd_state <= SD_START_SECTOR;
         end
     end
+    SD_START_SECTOR: begin 
+        if (sd_rsector[14:0] > sd_romlen[23:9]) begin // sd_rsector is # of sectors finished
+            sd_loading <= 0;
+            sd_state = SD_DONE;
+        end else begin      // start reading next sector
+            sd_rsector[14:0] <= sd_rsector[14:0] + 1;
+            sd_off <= 0;
+            sd_rstart <= 1'b1;
+            sd_loading <= 1;
+            sd_last_sector <= (sd_rsector[14:0] == sd_romlen[23:9]);
+            sd_state = SD_READ_NES;
+        end
+    end
+    SD_READ_NES: begin
+        if (sd_outen) begin
+            // data handled by sd_nes_valid, loader_input above
+        end
+        if (sd_rdone) begin
+            sd_rstart <= 0;
+            sd_state <= SD_START_SECTOR;
+        end
+    end
+    endcase
+end
 
-    if (~sys_resetn || ~nes_lock) begin
-        meminit_cnt <= FREQ/5;
-        meminit_check <= 1'b0;
-        mem_resetn <= 1'b1;
+// Dualshock controller
+reg sclk;                   // controller main clock at 250Khz
+reg [6:0] sclk_cnt;         // FREQ / 250K / 2 = 75
+
+// Generate sclk
+always @(posedge clk) begin
+    sclk_cnt <= sclk_cnt + 1;
+    if (sclk_cnt == 7'd75) begin
+        sclk = ~sclk;
+        sclk_cnt <= 0;
     end
 end
+
+dualshock_controller controller (
+    .I_CLK250K(sclk), .I_RSTn(1'b1),
+    .O_psCLK(joystick_clk), .O_psSEL(joystick_cs), .O_psTXD(joystick_mosi),
+    .I_psRXD(joystick_miso),
+    .O_RXD_1(joy_rx[0]), .O_RXD_2(joy_rx[1]), .O_RXD_3(joy_rx[2]),
+    .O_RXD_4(joy_rx[3]), .O_RXD_5(joy_rx[4]), .O_RXD_6(joy_rx[5]),
+    // config=1, mode=1(analog), mode_en=1
+    .I_CONF_SW(1'b1), .I_MODE_SW(1'b1), .I_MODE_EN(1'b1),
+    .I_VIB_SW(2'b00), .I_VIB_DAT(8'hff)     // no vibration
+);
 
 //
 // Print control
@@ -387,7 +404,6 @@ reg[3:0] state_old = 3'd7;
 wire[3:0] state_new = state_1;
 
 reg [7:0] print_counters = 0, print_counters_p;
-reg [7:0] print_mem = 0, print_mem_p;
 
 reg tick;       // pulse every 0.01 second
 reg print_stat; // pulse every 2 seconds
@@ -395,9 +411,21 @@ reg print_stat; // pulse every 2 seconds
 reg [15:0] recv_packets = 0;
 reg [15:0] indata_clk_count = 0;
 
+reg [3:0] sd_state0 = 0;
+
+reg [19:0] timer;           // 27 times per second
+always @(posedge clk) timer <= timer + 1;
+
 always@(posedge clk)begin
     state_0<={2'b0, loader_done};
     state_1<=state_0;
+
+//    if (timer == 0) begin
+//        `print({joy_rx[0], joy_rx[1]}, 2);
+//    end
+//    if (timer == 20'b1000_0000_0000_0000_0000) begin
+//        `print("\n", STR);
+//    end
 
     if (uart_demux.write)
         recv_packets <= recv_packets + 1;        
@@ -406,26 +434,23 @@ always@(posedge clk)begin
         state_old<=state_new;
 
         if(state_old!=state_new)begin//state changes
-            if(state_new==3'd0) `print("NES_Tang restarting...\n", STR);
+            if(state_new==3'd0) `print("NES_Tang starting...\n", STR);
             if(state_new==3'd1) `print("Game loading done.\n", STR);
         end
     end
 
-    if (meminit_check) begin
-        print_mem <= 8'd1;
-    end
-    print_mem_p <= print_mem;
-    if (print_state == PRINT_IDLE_STATE && print_mem == print_mem_p && print_mem != 0) begin
-        case (print_mem)
-        8'd1: if (write_level_done_p && read_calib_done_p && ~fail_high_p && ~fail_low_p) 
-                `print("DDR3 initialization successful.\n{wstep[7:0],rclkpos[3:0],rclksel[3:0],ram_testing[3:0],test_state[3:0],fail_high[3:0],fail_low[3:0]}=", STR);
-              else
-                `print("DDR3 initialization failed. Retrying...\n{wstep[7:0],rclkpos[3:0],rclksel[3:0],ram_testing[3:0],test_state[3:0],fail_high[3:0],fail_low[3:0]}=", STR);
-        8'd2: `print({wstep_p,2'b0,rclkpos_p, 1'b0, rclksel_p, 3'b0, ram_testing_p, test_state_p, 3'b0, fail_high_p, 3'b0, fail_low_p}, 4);        // 3 bytes
-        8'd3: `print("\n", STR);
-        endcase
-        print_mem <= print_mem == 8'd4 ? 0 : print_mem + 1;
-    end
+//    if (sd_state != sd_state0) begin
+//        if (sd_state == SD_READ_META) begin
+//            `print("Reading SDcard\n", STR);
+//        end
+//        if (sd_state == SD_START_SECTOR) begin
+//            if (sd_rsector[15:0] == 16'b0) begin
+//                `print(sd_romlen, 3);
+//            end else 
+//                `print(sd_rsector[15:0], 2);
+//        end
+//        sd_state0 <= sd_state;
+//    end
 
 `ifdef COLOR_TRACING
     // print some color values
@@ -446,8 +471,8 @@ always@(posedge clk)begin
     end
 `endif
 
-`ifdef STEP_TRACING
     // print stats every 2 seconds normally, or every 0.01 second before game data is ready
+`ifdef STEP_TRACING
     if (tick)
         print_counters <= 8'd1;
     print_counters_p <= print_counters;
@@ -478,8 +503,7 @@ always@(posedge clk)begin
 `endif
 
     if(~sys_resetn) begin
-//        `print("System Reset\nWelcome to NES_Tang\n",STR);
-        `print(ram_debug, 1);
+       `print("System Reset\nWelcome to NES_Tang\n",STR);
     end
 end
 
@@ -498,67 +522,6 @@ end
 
 `endif
 
-
-//  assign led = ~{loader_done, ram_busy, uart_error, 5'b0};
- assign led = ~{loader_done, ram_busy, uart_error, ram_testing, fail_high, fail_low, 2'b0};
-//  assign led2 = ~sample[15:8];
-//  assign led2 = ~{6'b0, ram_fail, ram_busy};
-  assign led2 = ~loader_addr[15:8];
+assign led = ~{~UART_RXD, loader_done};
 
 endmodule
-
-
-`ifdef EMBED_GAME
-// Feed INES data to Game_Loader
-module GameData (input clk, input reset, input start,
-    output reg [7:0] odata, output reg odata_clk
-    );
-
-    // localparam [21:0] INES_SIZE = 24719; 
-    // localparam string INES_FILE="../BattleCity.nes.hex";
-
-    // localparam [21:0] INES_SIZE = 131088; 
-    // localparam string INES_FILE="../Contra.nes.hex";
-
-    localparam [21:0] INES_SIZE = 262160; 
-    localparam string INES_FILE="../SuperC.nes.hex";
-
-    // Buffer for ROM file
-    reg [7:0] INES[INES_SIZE:0];
-    initial $readmemh(INES_FILE, INES);
-
-    reg [1:0] state = 0;
-    reg [21:0] addr = 0;
-    reg out_clk = 0;
-
-    always @(posedge clk) begin
-        if (reset) begin
-            state <= 0;
-            addr <= 0;  // odata gets INES[0]
-            odata_clk <= 0;
-        end else if (start && state == 2'd0) begin
-            // start loading
-            state <= 1;
-        end else if (state == 2'd1) begin
-            if (addr == INES_SIZE) begin
-                // we've just sent the last byte
-                state <= 2'd3;     // end of data
-                odata_clk <= 0;
-            end else begin
-                // pump data to Game_Loader
-/* verilator lint_off WIDTH */
-                odata <= INES[addr];
-/* verilator lint_on WIDTH */
-                odata_clk <= 1;
-                state <= 2;   
-            end
-        end else if (state == 2'd2) begin
-          // wait one clock cycle, then send next byte
-          odata_clk <= 0;
-          addr <= addr + 1;
-          state <= 1;
-        end
-    end
-endmodule
-`endif
-

@@ -16,12 +16,6 @@ module nes2hdmi (
     input [15:0] sample,
     input aspect_8x7,       // 1: 8x7 pixel aspect ratio mode
 
-    // osd
-    input osd_enable,       // 1: OSD display is on
-    input [11:0] osd_addr,  // byte address into osd buffer, {Y[6:0],X[4:0]}, total 4KB
-    input [7:0] osd_din,    // data input
-    input osd_we,           // write enable
-
 	// video clocks
 	input clk_pixel,
 	input clk_5x_pixel,
@@ -36,13 +30,7 @@ module nes2hdmi (
 	output [2:0] tmds_d_p
 );
     // flags
-    logic osd_on, asp8x7_on = 1'b1;
-    logic p_osd_on, p_asp8x7_on;
-    always_ff @(clk_pixel) begin        // crossing from clk to clk_pixel
-        p_osd_on <= osd_enable;     osd_on <= p_osd_on;
-//        p_asp8x7_on <= aspect_8x7;  asp8x7_on <= p_asp8x7_on;
-    end
-
+    logic asp8x7_on = 1'b1;
 
     // video stuff
     wire [9:0] cy, frameHeight;
@@ -85,20 +73,6 @@ module nes2hdmi (
         $readmemb("nes_fb_testpattern_palette.txt", mem);
     end
 
-    // OSD buffer, 32Kbits, 256*128 mono
-    //
-    localparam OSD_WIDTH=256;   // 32*8
-    localparam OSD_HEIGHT=128;  // 16*8
-    logic [7:0] osd [0:OSD_WIDTH*OSD_HEIGHT/8-1];       // each byte is 8-pixel on same scanline
-    wire [11:0] osd_raddr;      // port B: hdmi read
-    logic [7:0] osd_sr;         // shift register for current 8 pixels
-
-    // OSD port A write
-    always_ff @(posedge clk) begin
-        if (osd_we) begin
-            osd[osd_addr] <= osd_din;
-        end
-    end 
     // 
     // Data input
     //
@@ -145,7 +119,7 @@ module nes2hdmi (
     //      13: 183,73   17: 37,219  20: 146,110
     //   For 1:1, there's no border pixels. Each NES pixel is expanded to 3 HDMI pixels.
     // - For 8:7, total width is 36*24 + 13 = 877. Therefore x goes from 201 to 1077.
-    reg r_active, r2_active;
+    reg r2_active;
     reg [4:0] xs, r_xs, r2_xs;       // x step for each 7 NES pixel group, 0-23 for 8:7 pixel aspect ratio, or 0-20 for 1:1 pixel aspect ratio
     wire xload = asp8x7_on ? 
           (xs == 5'd0 || xs == 5'd3 || xs == 5'd6 || xs == 5'd10 || xs == 5'd13 || xs == 5'd17 || xs == 5'd20)
@@ -173,34 +147,12 @@ module nes2hdmi (
     wire [15:0] bmix = r_rgbv[7:0]*mixratio[15:8] + rgbv[7:0]*mixratio[7:0];
     reg [23:0] rgb;     // actual RGB output
 
-    // OSD
-    localparam OX = 3;          // OSD scale
-    localparam OSD_LEFT = 640 - 128*OX;
-    localparam OSD_RIGHT = 640 + 128*OX;
-    localparam OSD_TOP = 360 - 64*OX;
-    localparam OSD_BOTTOM = 360 + 64*OX;
-    wire osd_active = osd_on && cx >= OSD_LEFT && cx < OSD_RIGHT && cy >= OSD_TOP && cy < OSD_BOTTOM;
-    logic r_osd_active;
-    wire [7:0] ox = ONE_THIRD[cx - OSD_LEFT];
-    wire [6:0] oy = ONE_THIRD[cy - OSD_TOP];
-    assign osd_raddr = {oy[6:0], ox[7:3]};
-    reg [4:0] osd_cnt;  // 0 - 23, load new byte at 0, shifts at 3, 6, 9, 12, 15, 18, 21
-
     // calc rgb value to hdmi
     always_ff @(posedge clk_pixel) begin
         if (asp8x7_on && cx == 11'd198 || ~asp8x7_on && cx == 11'd253)
             active <= 1'b1;
         if (asp8x7_on && cx == 11'd1075 || ~asp8x7_on && cx == 11'd1021)
             active <= 1'b0;
-        r_osd_active <= osd_active;
-        if (osd_active) begin    // load or shift left osd_sr, and put on screen next cycle
-            osd_cnt <= osd_cnt == 5'd23 ? 0 : osd_cnt + 1;
-            if (osd_cnt == 5'b0)
-                osd_sr <= osd[osd_raddr];
-            if (osd_cnt == 5'd3 || osd_cnt == 5'd6 || osd_cnt == 5'd9 || osd_cnt == 5'd12
-                || osd_cnt == 5'd15 || osd_cnt == 5'd18 || osd_cnt == 5'd21)
-                osd_sr <= {1'b0, osd_sr[7:1]};
-        end
 
         // calculate pixel rgb through 3 cycles
         // 0 - load: xmem_portB_rdata = mem[{y,x}]
@@ -224,9 +176,7 @@ module nes2hdmi (
         mix <= next_mix;
 
         // 2 - mix rgb and output
-        if (r_osd_active)
-            rgb <= osd_sr[0] ? 24'h808080 : 24'h260604;
-        else if (r2_active) begin
+        if (r2_active) begin
             if (asp8x7_on && mix)
                 rgb <= {rmix[15:8], gmix[15:8], bmix[15:8]};
             else
@@ -234,8 +184,7 @@ module nes2hdmi (
         end else
             rgb <= 24'b0;
 
-        if (cx == 0) begin      // reset osd_cnt at each new line
-            osd_cnt <= 0;
+        if (cx == 0) begin
             x <= 0;
             xs <= 0; r_xs <= 0; r2_xs <= 0;
         end
