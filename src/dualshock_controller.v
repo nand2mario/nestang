@@ -20,6 +20,11 @@
 //--------- SIMULATION ---------------------------------------------- 
 //`define	SIMULATION_1	
 
+// Poll controller status every 2^Timer clock cycles
+// 250Khz / 2^12 = 61Hz
+//
+// "The DS4 stock polling rate is 250Hz 3-4 ms compared to the SN30 which is 67-75Hz 13-18 ms"
+// https://www.reddit.com/r/8bitdo/comments/u8z3ag/has_anyone_managed_to_get_their_controllers/
 `ifdef SIMULATION_1
 `define Timer_siz 18  
 `else

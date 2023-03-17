@@ -44,6 +44,10 @@ module NES_Tang20k(
     output joystick_mosi,
     input joystick_miso,
     output reg joystick_cs,
+    output joystick_clk2,
+    output joystick_mosi2,
+    input joystick_miso2,
+    output reg joystick_cs2,
 
     // HDMI TX
     output       tmds_clk_n,
@@ -109,17 +113,8 @@ Gowin_rPLL_nes pll_nes(
   reg [3:0] nes_ce = 0;
   wire [15:0] SW = 16'b1111_1111_1111_1111;   // every switch is on
 
-  // MicroSD state and wires
-  reg sd_rstart = 0;
-  reg [31:0] sd_rsector;
-  wire sd_rdone, sd_outen;
-  wire [7:0] sd_outbyte;
-  reg [23:0] sd_romlen;     // max 32K sectors (16MB)
-  reg [8:0] sd_off;         // in-sector offset
-  reg sd_loading, sd_last_sector;
-  wire sd_nes_valid = sd_loading & sd_outen & 
-                  (~sd_last_sector | (sd_off < sd_romlen[8:0]));
-                          // whether current sd_outbyte is valid NES data
+  wire [7:0] sd_dout;
+  wire sd_dout_valid;
 
   // UART
   wire [7:0] uart_data;
@@ -145,8 +140,8 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
         .odata(loader_input), .odata_clk(loader_clk));
 `else
   // Dynamic game loading from UART
-  wire [7:0] loader_input = sd_nes_valid ? sd_outbyte : uart_data;
-  wire       loader_clk   = (uart_addr == 8'h37) && uart_write || sd_nes_valid;
+  wire [7:0] loader_input = sd_dout_valid ? sd_dout : uart_data;
+  wire       loader_clk   = (uart_addr == 8'h37) && uart_write || sd_dout_valid;
   wire loader_reset = ~sys_resetn | loader_conf[0];
 `endif
 
@@ -161,14 +156,16 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
   end
 
   /*
-  joy_rx[0:1] dualshock buttons: (L D R U St R3 L3 Se)  (□ X O △ R1 L1 R2 L2)
-  nes_btn[0:1] NES buttons:      (A B	Select Start U D L R)
+  joy_rx[0:1] dualshock buttons: 0:(L D R U St R3 L3 Se)  1:(□ X O △ R1 L1 R2 L2)
+  nes_btn[0:1] NES buttons:      (R L D U START SELECT B A)
   O is A, X is B
   */
-  wire [7:0] joy_rx[0:5];     // 6 RX bytes for all button/axis state
-  wire [7:0] nes_btn = ~{joy_rx[0][5], joy_rx[0][7], joy_rx[0][6], joy_rx[0][4], 
-                         joy_rx[0][3], joy_rx[0][0], joy_rx[1][6], joy_rx[1][5] };
-  wire [7:0] nes_btn2 = 0;
+  wire [7:0] joy_rx[0:5], joy_rx2[0:1];     // 6 RX bytes for all button/axis state
+  wire auto_square, auto_triangle, auto_square2, auto_triangle2;
+  wire [7:0] nes_btn = {~joy_rx[0][5], ~joy_rx[0][7], ~joy_rx[0][6], ~joy_rx[0][4], 
+                         ~joy_rx[0][3], ~joy_rx[0][0], ~joy_rx[1][6] | auto_square, ~joy_rx[1][5] | auto_triangle};
+  wire [7:0] nes_btn2 = {~joy_rx2[0][5], ~joy_rx2[0][7], ~joy_rx2[0][6], ~joy_rx2[0][4], 
+                         ~joy_rx2[0][3], ~joy_rx2[0][0], ~joy_rx2[1][6] | auto_square2, ~joy_rx2[1][5] | auto_triangle2};
   
   // Joypad handling
   always @(posedge clk) begin
@@ -288,82 +285,34 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
 
 `ifndef VERILATOR
 
+wire menu_overlay;
+wire [5:0] menu_color;
+wire [7:0] menu_scanline, menu_cycle;
+
 // HDMI output
 nes2hdmi u_hdmi (
     .clk(clk), .resetn(sys_resetn),
-    .color(color), .cycle(cycle), .scanline(scanline), .sample(sample >> 1),
+    .color(menu_overlay ? menu_color : color), .cycle(menu_overlay ? menu_cycle : cycle), 
+    .scanline(menu_overlay ? menu_scanline : scanline), .sample(sample >> 1),
     .clk_pixel(clk_p), .clk_5x_pixel(clk_p5), .locked(pll_lock),
     .tmds_clk_n(tmds_clk_n), .tmds_clk_p(tmds_clk_p),
     .tmds_d_n(tmds_d_n), .tmds_d_p(tmds_d_p)
 );
 
-// MicroSD
-assign sd_dat1 = 1;
-assign sd_dat2 = 1;
-assign sd_dat3 = 1; // Must set sddat1~3 to 1 to avoid SD card from entering SPI mode
+wire [4:0] sd_active, sd_total;
+wire [23:0] sd_rsector, sd_last_sector;
+SDLoader sd_loader (
+    .clk(clk), .resetn(sys_resetn),
+    .overlay(menu_overlay), .color(menu_color), .scanline(menu_scanline),
+    .cycle(menu_cycle),
+    .nes_btn(loader_btn | nes_btn | loader_btn_2 | nes_btn2), 
+    .dout(sd_dout), .dout_valid(sd_dout_valid),
+    .sd_clk(sd_clk), .sd_cmd(sd_cmd), .sd_dat0(sd_dat0), .sd_dat1(sd_dat1),
+    .sd_dat2(sd_dat2), .sd_dat3(sd_dat3),
 
-sd_reader #(
-    .CLK_DIV(3'd1),.SIMULATE(0)
-) sd_reader_i (
-    .rstn(sys_resetn), .clk(clk),
-    .sdclk(sd_clk), .sdcmd(sd_cmd), .sddat0(sd_dat0),
-    .card_stat(),.card_type(),
-    .rstart(sd_rstart), .rbusy(), .rdone(sd_rdone), .outen(sd_outen),
-    .rsector(sd_rsector),
-    .outaddr(), .outbyte(sd_outbyte)
+    .debug_active(sd_active), .debug_total(sd_total),
+    .debug_sd_rsector(sd_rsector), .debug_sd_last_sector(sd_last_sector)
 );
-
-// SD card loading process
-reg [3:0] sd_state;
-localparam [3:0] SD_READ_META = 4'd1;     // getting meta-data from sector 0
-localparam [3:0] SD_START_SECTOR = 4'd2;
-localparam [3:0] SD_READ_NES = 4'd3;
-localparam [3:0] SD_DONE = 4'd15;
-always @(posedge clk) begin
-    if (~sys_resetn) begin
-        sd_rstart <= 1;
-        sd_rsector <= 0;
-        sd_state <= SD_READ_META;
-        sd_off <= 0;
-        sd_loading <= 0;
-    end else case (sd_state)
-    SD_READ_META: begin
-        if (sd_outen) begin
-            sd_off <= sd_off + 1;
-            if (sd_off == 8'd0) sd_romlen[7:0] <= sd_outbyte;
-            if (sd_off == 8'd1) sd_romlen[15:8] <= sd_outbyte;
-            if (sd_off == 8'd2) sd_romlen[23:16] <= sd_outbyte;
-        end
-        if (sd_rdone) begin
-            sd_rstart <= 0;     // turn off reading
-            sd_off <= 0;
-            sd_state <= SD_START_SECTOR;
-        end
-    end
-    SD_START_SECTOR: begin 
-        if (sd_rsector[14:0] > sd_romlen[23:9]) begin // sd_rsector is # of sectors finished
-            sd_loading <= 0;
-            sd_state = SD_DONE;
-        end else begin      // start reading next sector
-            sd_rsector[14:0] <= sd_rsector[14:0] + 1;
-            sd_off <= 0;
-            sd_rstart <= 1'b1;
-            sd_loading <= 1;
-            sd_last_sector <= (sd_rsector[14:0] == sd_romlen[23:9]);
-            sd_state = SD_READ_NES;
-        end
-    end
-    SD_READ_NES: begin
-        if (sd_outen) begin
-            // data handled by sd_nes_valid, loader_input above
-        end
-        if (sd_rdone) begin
-            sd_rstart <= 0;
-            sd_state <= SD_START_SECTOR;
-        end
-    end
-    endcase
-end
 
 // Dualshock controller
 reg sclk;                   // controller main clock at 250Khz
@@ -388,6 +337,21 @@ dualshock_controller controller (
     .I_CONF_SW(1'b1), .I_MODE_SW(1'b1), .I_MODE_EN(1'b1),
     .I_VIB_SW(2'b00), .I_VIB_DAT(8'hff)     // no vibration
 );
+
+dualshock_controller controller2 (
+    .I_CLK250K(sclk), .I_RSTn(1'b1),
+    .O_psCLK(joystick_clk2), .O_psSEL(joystick_cs2), .O_psTXD(joystick_mosi2),
+    .I_psRXD(joystick_miso2),
+    .O_RXD_1(joy_rx2[0]), .O_RXD_2(joy_rx2[1]), 
+    .O_RXD_3(), .O_RXD_4(), .O_RXD_5(), .O_RXD_6(),
+    .I_CONF_SW(1'b1), .I_MODE_SW(1'b1), .I_MODE_EN(1'b1),
+    .I_VIB_SW(2'b00), .I_VIB_DAT(8'hff)     // no vibration
+);
+
+Autofire af_square (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx[1][7]), .out(auto_square));
+Autofire af_triangle (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx[1][4]), .out(auto_triangle));
+Autofire af_square2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][7]), .out(auto_square2));
+Autofire af_triangle2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][4]), .out(auto_triangle2));
 
 //
 // Print control
@@ -420,12 +384,14 @@ always@(posedge clk)begin
     state_0<={2'b0, loader_done};
     state_1<=state_0;
 
-//    if (timer == 0) begin
+    if (timer == 0) begin
 //        `print({joy_rx[0], joy_rx[1]}, 2);
-//    end
-//    if (timer == 20'b1000_0000_0000_0000_0000) begin
-//        `print("\n", STR);
-//    end
+//        `print({nes_btn, nes_btn2}, 2);
+        `print({3'b0, sd_active, 3'b0, sd_total, sd_rsector, sd_last_sector}, 8);
+    end
+    if (timer == 20'b1000_0000_0000_0000_0000) begin
+        `print("\n", STR);
+    end
 
     if (uart_demux.write)
         recv_packets <= recv_packets + 1;        

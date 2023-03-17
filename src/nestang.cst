@@ -49,6 +49,16 @@ IO_PORT "joystick_miso" PULL_MODE=UP IO_TYPE=LVCMOS33;
 IO_LOC "joystick_cs"  18;
 IO_PORT "joystick_cs" PULL_MODE=NONE IO_TYPE=LVCMOS33;
 
+// Joystick 2
+IO_LOC "joystick_clk2" 52;
+IO_PORT "joystick_clk2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC "joystick_mosi2" 53;
+IO_PORT "joystick_mosi2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC "joystick_miso2" 71;
+IO_PORT "joystick_miso2" PULL_MODE=UP IO_TYPE=LVCMOS33;
+IO_LOC "joystick_cs2"  72;
+IO_PORT "joystick_cs2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+
 // UART through USB-TTL dongle
 IO_LOC "UART_TXD" 30;
 IO_PORT "UART_TXD" IO_TYPE=LVCMOS33 PULL_MODE=NONE;

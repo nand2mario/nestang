@@ -1,7 +1,7 @@
 // Main clock frequency
-// localparam FREQ=37_800_000;          // at least 10x baudrate
+localparam FREQ=37_800_000;          // at least 10x baudrate
 // localparam FREQ=37_500_000;             // internal OSC value
-localparam FREQ=27_000_000;             // just for testing timing closure
+// localparam FREQ=27_000_000;             // just for testing timing closure
 // UART baudrate: BAUDRATE <= FREQ/10
 localparam BAUDRATE=921600;
 
