@@ -5,9 +5,9 @@ v0.5 - The Tang Nano 20k release
 - This release only supports the new Tang Nano 20K board.
 - Direct controller support. Playstation 2 controllers (wired or wireless) can be directly 
   connected to the board through a Sipeed adapter.
-- Basic SD card support (one game per card). Now games can be loaded through a MicroSD card.
-  Use tools/nes2img.py to generate the SD card image. Support for multiple games per card is
-  coming.
+- SD card support. Now games can be loaded through a MicroSD card. Use tools/nes2img.py to
+  generate the SD card image. A simple menu system allows easy navigation. Press S1 button
+  on the board to return to menu. 
 - This is the first NESTang version that can operate standalone (without a PC). It is much 
   easier to use. At the same time, game loading and controlling through the PC loader is 
   still supported.
