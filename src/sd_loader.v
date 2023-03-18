@@ -3,7 +3,7 @@
 // Display a menu for user to choose a ROM.
 
 module SDLoader #(
-    parameter FREQ = 37_800_000
+    parameter FREQ = 27_000_000
 ) (
     input clk,
     input resetn,

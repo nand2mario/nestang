@@ -38,13 +38,19 @@ rPLL rpll_inst (
     .FDLY({gw_gnd,gw_gnd,gw_gnd,gw_gnd})
 );
 
-// Target main clock: 5.369 * 7 = 37.583 Mhz
+// Target main clock: 5.369 * 5 = 26.845 Mhz
+
+// 27 -> 27 Mhz, 1% off
+defparam rpll_inst.FCLKIN = "27";
+defparam rpll_inst.IDIV_SEL = 0;
+defparam rpll_inst.FBDIV_SEL = 0;
+defparam rpll_inst.ODIV_SEL = 32;
 
 // 27 -> 37.8 Mhz, 0.6% deviation
-defparam rpll_inst.FCLKIN = "27";
-defparam rpll_inst.IDIV_SEL = 4;
-defparam rpll_inst.FBDIV_SEL = 6;
-defparam rpll_inst.ODIV_SEL = 16;
+//defparam rpll_inst.FCLKIN = "27";
+//defparam rpll_inst.IDIV_SEL = 4;
+//defparam rpll_inst.FBDIV_SEL = 6;
+//defparam rpll_inst.ODIV_SEL = 16;
 
 // 62.5 -> 37.5
 //defparam rpll_inst.FCLKIN = "62.5";

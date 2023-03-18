@@ -1,6 +1,3 @@
-
-`define GW_IDE
-
 module serializer
 #(
     parameter int NUM_CHANNELS = 3,

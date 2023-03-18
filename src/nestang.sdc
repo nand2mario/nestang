@@ -1,6 +1,6 @@
 
 // NES clocks
-create_clock -name clk -period 26.46 [get_nets {clk}]       // 37.8 Mhz
+create_clock -name clk -period 37.04 [get_nets {clk}]       // 27 Mhz
 //create_generated_clock -name clk -source [get_nets {pclk}] -master_clock pclk -divide_by 3 [get_nets {clk}]     // 32.25 Mhz
 
 // HDMI clocks

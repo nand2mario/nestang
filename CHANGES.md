@@ -11,6 +11,9 @@ v0.5 - The Tang Nano 20k release
 - This is the first NESTang version that can operate standalone (without a PC). It is much 
   easier to use. At the same time, game loading and controlling through the PC loader is 
   still supported.
+- Other changes: 
+  1. Fixed a bug where there's no sound on some TVs.
+  2. PS2 controller supports auto-fire buttons (square and triangle buttons)
 
 v0.4, 10/22/2022 - Linux loader
 - New Linux loader for loading ROMs and connect gamepads.  Tested on MangoPi MQ-Quad. Should 

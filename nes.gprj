@@ -7,6 +7,7 @@
     <FileList>
         <File path="src/MicroCode.v" type="file.verilog" enable="1"/>
         <File path="src/apu.v" type="file.verilog" enable="1"/>
+        <File path="src/autofire.v" type="file.verilog" enable="1"/>
         <File path="src/compat.v" type="file.verilog" enable="1"/>
         <File path="src/config.sv" type="file.verilog" enable="1"/>
         <File path="src/cpu.v" type="file.verilog" enable="1"/>
@@ -34,6 +35,7 @@
         <File path="src/nes2hdmi.sv" type="file.verilog" enable="1"/>
         <File path="src/nes_tang20k.v" type="file.verilog" enable="1"/>
         <File path="src/ppu.v" type="file.verilog" enable="1"/>
+        <File path="src/sd_loader.v" type="file.verilog" enable="1"/>
         <File path="src/sd_reader.sv" type="file.verilog" enable="1"/>
         <File path="src/sdcmd_ctrl.sv" type="file.verilog" enable="1"/>
         <File path="src/sdram.v" type="file.verilog" enable="1"/>

@@ -22,17 +22,15 @@ localparam int CLK_AUDIO_COUNTER_WIDTH = $clog2(N / 128);
 localparam bit [CLK_AUDIO_COUNTER_WIDTH-1:0] CLK_AUDIO_COUNTER_END = CLK_AUDIO_COUNTER_WIDTH'(N / 128 - 1);
 logic [CLK_AUDIO_COUNTER_WIDTH-1:0] clk_audio_counter = CLK_AUDIO_COUNTER_WIDTH'(0);
 logic internal_clk_audio_counter_wrap = 1'd0;
-always_ff @(posedge clk_pixel)
+always_ff @(posedge clk_audio)
 begin
-    if (clk_audio) begin
-        if (clk_audio_counter == CLK_AUDIO_COUNTER_END)
-        begin
-            clk_audio_counter <= CLK_AUDIO_COUNTER_WIDTH'(0);
-            internal_clk_audio_counter_wrap <= !internal_clk_audio_counter_wrap;
-        end
-        else
-            clk_audio_counter <= clk_audio_counter + 1'd1;
+    if (clk_audio_counter == CLK_AUDIO_COUNTER_END)
+    begin
+        clk_audio_counter <= CLK_AUDIO_COUNTER_WIDTH'(0);
+        internal_clk_audio_counter_wrap <= !internal_clk_audio_counter_wrap;
     end
+    else
+        clk_audio_counter <= clk_audio_counter + 1'd1;
 end
 
 logic [1:0] clk_audio_counter_wrap_synchronizer_chain = 2'd0;

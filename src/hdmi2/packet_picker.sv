@@ -65,12 +65,10 @@ localparam bit WORD_LENGTH_LIMIT = AUDIO_BIT_WIDTH <= 20 ? 1'b0 : 1'b1;
 
 logic [AUDIO_BIT_WIDTH-1:0] audio_sample_word_transfer [1:0];
 logic audio_sample_word_transfer_control = 1'd0;
-always_ff @(posedge clk_pixel)
+always_ff @(posedge clk_audio)
 begin
-    if (clk_audio) begin
-        audio_sample_word_transfer <= audio_sample_word;
-        audio_sample_word_transfer_control <= !audio_sample_word_transfer_control;
-    end
+    audio_sample_word_transfer <= audio_sample_word;
+    audio_sample_word_transfer_control <= !audio_sample_word_transfer_control;
 end
 
 logic [1:0] audio_sample_word_transfer_control_synchronizer_chain = 2'd0;
@@ -99,8 +97,8 @@ begin
 
     if (audio_sample_word_transfer_control_synchronizer_chain[0] ^ audio_sample_word_transfer_control_synchronizer_chain[1])
     begin
-        audio_sample_word_buffer[sample_buffer_current][samples_remaining][0] <= {audio_sample_word_transfer_mux[0], (24-AUDIO_BIT_WIDTH)'(0)};
-        audio_sample_word_buffer[sample_buffer_current][samples_remaining][1] <= {audio_sample_word_transfer_mux[1], (24-AUDIO_BIT_WIDTH)'(0)};
+        audio_sample_word_buffer[sample_buffer_current][samples_remaining][0] <=  24'(audio_sample_word_transfer_mux[0])<<(24-AUDIO_BIT_WIDTH);
+        audio_sample_word_buffer[sample_buffer_current][samples_remaining][1] <=  24'(audio_sample_word_transfer_mux[1])<<(24-AUDIO_BIT_WIDTH);
         if (samples_remaining == 2'd3)
         begin
             samples_remaining <= 2'd0;

@@ -90,24 +90,30 @@ module nes2hdmi (
     end
 
     // audio stuff
-    logic [10:0] audio_divider;
+//    localparam AUDIO_RATE=32000;        // weird only 32K sampling rate works
+//    localparam AUDIO_RATE=96000;
+    localparam AUDIO_RATE=48000;
+    localparam AUDIO_CLK_DELAY = CLKFRQ * 1000 / AUDIO_RATE / 2;
+    logic [$clog2(AUDIO_CLK_DELAY)-1:0] audio_divider;
     logic clk_audio;
-
-    localparam AUDIO_RATE=32000;
 
     always_ff@(posedge clk_pixel) 
     begin
-        if (audio_divider != CLKFRQ * 1000 / AUDIO_RATE / 2 - 11'd1) 
-            audio_divider++; //generated from clk_pixel 27.0000MHz/281=48042,70Hz ; 27.0000MHz/306=44117,64Hz
+        if (audio_divider != AUDIO_CLK_DELAY - 1) 
+            audio_divider++;
         else begin 
             clk_audio <= ~clk_audio; 
             audio_divider <= 0; 
         end
     end
 
-    wire [15:0] audio_sample_word [1:0];
-    assign audio_sample_word[0] = sample;
-    assign audio_sample_word[1] = sample;
+    reg [15:0] audio_sample_word [1:0], audio_sample_word0 [1:0];
+    always @(posedge clk_pixel) begin       // crossing clock domain
+        audio_sample_word0[0] <= sample;
+        audio_sample_word[0] <= audio_sample_word0[0];
+        audio_sample_word0[1] <= sample;
+        audio_sample_word[1] <= audio_sample_word0[1];
+    end
 
     //
     // Video

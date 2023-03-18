@@ -194,13 +194,13 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
         .done(loader_done), .error(loader_fail));
 
   // The NES machine
-  // nes_ce  / 0 \___/ 1 \___/ 2 \___/ 3 \___/ 4 \___/ 5 \___/ 6 \___/ 0 \___
-  // MemCtrl |run_mem|mem_cmd|       |       |       |  Dout |       |run_mem|
-  // NES                                                     |run_nes|
+  // nes_ce  / 0 \___/ 1 \___/ 2 \___/ 3 \___/ 4 \___/ 0 \___
+  // MemCtrl |mem_cmd|ACTIVE | RD/WR |       |  Dout |run_mem|
+  // NES                                     |run_nes|
   //                 `-------- read delay = 4 -------'
   wire reset_nes = !loader_done;
   wire run_mem = (nes_ce == 0) && !reset_nes;       // memory runs at clock cycle #0
-  wire run_nes = (nes_ce == 6) && !reset_nes;       // nes runs at clock cycle #7
+  wire run_nes = (nes_ce == 4) && !reset_nes;       // nes runs at clock cycle #4
 
   // For debug
   reg [21:0] last_addr;
@@ -211,13 +211,13 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
 
   reg tick_seen;
 
-  // NES is clocked at every 7th cycle.
+  // NES is clocked at every 5th cycle.
   always @(posedge clk) begin
 `ifdef VERILATOR
-    nes_ce <= nes_ce == 4'd6 ? 0 : nes_ce + 1;
+    nes_ce <= nes_ce == 4'd4 ? 0 : nes_ce + 1;
 `else
   `ifndef STEP_TRACING
-    nes_ce <= nes_ce == 4'd6 ? 0 : nes_ce + 1;    
+    nes_ce <= nes_ce == 4'd4 ? 0 : nes_ce + 1;    
   `else
     // single stepping every 0.01 second
     // - when waiting for a tick, nes_ce loops between 7 and 13 and 
@@ -232,7 +232,7 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
   `endif
 `endif
     // log memory access result for debug
-    if (nes_ce == 4'd6 && !reset_nes) begin
+    if (nes_ce == 4'd4 && !reset_nes) begin
         if (memory_write || memory_read_cpu || memory_read_ppu) begin
             last_addr <= memory_addr;
             last_dout <= memory_read_cpu ? memory_din_cpu : memory_din_ppu;
@@ -301,7 +301,7 @@ nes2hdmi u_hdmi (
 
 wire [4:0] sd_active, sd_total;
 wire [23:0] sd_rsector, sd_last_sector;
-SDLoader sd_loader (
+SDLoader #(.FREQ(FREQ)) sd_loader (
     .clk(clk), .resetn(sys_resetn),
     .overlay(menu_overlay), .color(menu_color), .scanline(menu_scanline),
     .cycle(menu_cycle),
@@ -316,12 +316,13 @@ SDLoader sd_loader (
 
 // Dualshock controller
 reg sclk;                   // controller main clock at 250Khz
-reg [6:0] sclk_cnt;         // FREQ / 250K / 2 = 75
+localparam SCLK_DELAY = FREQ / 250_000 / 2;
+reg [$clog2(SCLK_DELAY)-1:0] sclk_cnt;         // FREQ / 250K / 2 = 75
 
 // Generate sclk
 always @(posedge clk) begin
     sclk_cnt <= sclk_cnt + 1;
-    if (sclk_cnt == 7'd75) begin
+    if (sclk_cnt == SCLK_DELAY-1) begin
         sclk = ~sclk;
         sclk_cnt <= 0;
     end

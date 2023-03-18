@@ -1,4 +1,5 @@
 // A bridge controller connecting SDRAM to NES.
+// The main function is to 2 read buffers (dout_a and dout_b) for CPU and PPU
 // nand2mario, 2022.10
 // 
 // Memory layout:
@@ -17,8 +18,8 @@ module MemoryController(
     input refresh,            // Set to 1 to auto-refresh RAM
     input [21:0] addr,        // Address to read / write
     input [7:0] din,          // Data to write
-    output reg [7:0] dout_a,  // Last read data a, available 2 cycles after read_a is set
-    output reg [7:0] dout_b,  // Last read data b, available 2 cycles after read_b is set
+    output [7:0] dout_a,      // Last read data a, available 4 cycles after read_a is set
+    output [7:0] dout_b,      // Last read data b, available 4 cycles after read_b is set
     output reg busy,          // 1 while an operation is in progress
 
     // debug interface
@@ -46,7 +47,11 @@ reg [7:0] MemDin;
 wire [7:0] MemDout;
 reg [2:0] cycles;
 reg r_read_a, r_read_b;
+reg [7:0] da, db;
 wire MemBusy, MemDataReady;
+
+assign dout_a = (cycles == 3'd4 && r_read_a) ? MemDout : da;
+assign dout_b = (cycles == 3'd4 && r_read_b) ? MemDout : db;
 
 `ifndef VERILATOR
 
@@ -55,8 +60,9 @@ sdram #(
     .FREQ(FREQ)
 ) u_sdram (
     .clk(clk), .clk_sdram(clk_sdram), .resetn(resetn),
-	.addr(MemAddr), .rd(MemRD), .wr(MemWR), .refresh(MemRefresh),
-	.din(MemDin), .dout(MemDout), .busy(MemBusy), .data_ready(MemDataReady),
+	.addr(busy ? MemAddr : {1'b0, addr}), .rd(busy ? MemRD : (read_a || read_b)), 
+    .wr(busy ? MemWR : write), .refresh(busy ? MemRefresh : refresh),
+	.din(busy ? MemDin : din), .dout(MemDout), .busy(MemBusy), .data_ready(MemDataReady),
 
     .SDRAM_DQ(SDRAM_DQ), .SDRAM_A(SDRAM_A), .SDRAM_BA(SDRAM_BA), 
     .SDRAM_nCS(SDRAM_nCS), .SDRAM_nWE(SDRAM_nWE), .SDRAM_nRAS(SDRAM_nRAS),
@@ -91,15 +97,15 @@ always @(posedge clk) begin
         end
     end else begin
         // Wait for operation to finish and latch incoming data on read.
-        if (cycles == 3'd5) begin
+        if (cycles == 3'd4) begin
             busy <= 0;
             if (r_read_a || r_read_b) begin
                 if (~MemDataReady)      // assert data ready
                     fail <= 1'b1;
                 if (r_read_a) 
-                    dout_a <= MemDout;
+                    da <= MemDout;
                 if (r_read_b)
-                    dout_b <= MemDout;
+                    db <= MemDout;
                 r_read_a <= 1'b0;
                 r_read_b <= 1'b0;
             end
