@@ -385,6 +385,7 @@ always@(posedge clk)begin
     state_0<={2'b0, loader_done};
     state_1<=state_0;
 
+/*
     if (timer == 0) begin
 //        `print({joy_rx[0], joy_rx[1]}, 2);
 //        `print({nes_btn, nes_btn2}, 2);
@@ -393,6 +394,7 @@ always@(posedge clk)begin
     if (timer == 20'b1000_0000_0000_0000_0000) begin
         `print("\n", STR);
     end
+*/
 
     if (uart_demux.write)
         recv_packets <= recv_packets + 1;        
