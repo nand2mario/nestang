@@ -9,6 +9,8 @@ from importlib.resources import files,as_file      # to read back.png
 from PIL import Image
 from myfont import FONT
 from nescolor import image2nes
+from functools import cmp_to_key
+import re
 
 BACKGROUND=13   # cursor background: black 
 FOREGROUND=55   # cursor foreground: bright yellow
@@ -25,15 +27,42 @@ if len(sys.argv) < 4:
 
 NES=[]
 IMG=''
+SORT = False
 
 i = 1
 while i < len(sys.argv):
     if sys.argv[i] == '-o':
         IMG=sys.argv[i+1]
         i+=1
+    elif sys.argv[i] == '-s':
+        SORT = True
     else:
         NES.append(sys.argv[i])
     i+=1
+
+# numbers first, then alphabetical order
+def compare(a, b):
+    am = re.search('^[0-9]+', a)
+    bm = re.search('^[0-9]+', b)
+    if am != None and bm == None:
+        return -1
+    elif am == None and bm != None:
+        return 1
+    elif am != None and bm != None:
+        A = int(am.group())
+        B = int(bm.group())
+        if A != B:
+            return -1 if A < B else (1 if A > B else 0)
+        else:
+            return -1 if a < b else (1 if a > b else 0)
+    else:
+        return -1 if a < b else (1 if a > b else 0)
+
+if SORT:
+    NES.sort(key=cmp_to_key(compare))
+
+for x in NES:
+    print(x)
 
 pages = (len(NES) + 19) // 20
 print('Number of menu pages: {}'.format(pages))

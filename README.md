@@ -1,4 +1,4 @@
-# NESTang - an NES emulator for Tang Primer 20K
+# NESTang - An NES Emulator for Sipeed Tang Nano 20K and Primer 20K FPGA Boards
 
 <p align="right">
   <a title="Releases" href="https://github.com/nand2mario/nestang/releases"><img src="https://img.shields.io/github/commits-since/nand2mario/nestang/latest.svg?longCache=true&style=flat-square&logo=git&logoColor=fff"></a>
@@ -6,44 +6,47 @@
 
 <img src="doc/images/nestang0.5.jpg" width=400>
 
-NESTang is a Nintendo Entertainment System emulator for the affordable Sipeed Tang [Nano 20K](https://wiki.sipeed.com/hardware/en/tang/tang-nano-20k/) and [Primer 20K](https://wiki.sipeed.com/hardware/en/tang/tang-primer-20k/primer-20k.html) FPGA boards. The core logic comes from [fpganes](https://github.com/strigeus/fpganes). I added SDRAM/DDR3 and HDMI interfaces and other things.
+NESTang is an emulator for the Nintendo Entertainment System (NES) designed to run on the affordable Sipeed [Tang Nano 20K](https://wiki.sipeed.com/hardware/en/tang/tang-nano-20k/) and [Primer 20K](https://wiki.sipeed.com/hardware/en/tang/tang-primer-20k/primer-20k.html) FPGA boards. The emulator's core logic comes from [fpganes](https://github.com/strigeus/fpganes), to which I have added SDRAM/DDR3 and HDMI interfaces, among other features.
 
-This is still a work in progress. Here's what works.
+It should be noted that this project is still a work in progress. The following aspects of the emulator currently work:
 
-* Majority of games I tested work.
-* 720p HDMI video and sound output.
-* Cycle accurate emulation quality as we nearly recreated the NES circuits.
-* Game loading through MicroSD cards (Tang Nano 20K only) or Windows/Linux loader program.
-* Playstation 2 controller interface (Tang Nano 20K only), or controllers connected through PC.
+- The majority of games that have been tested function properly.
+- HDMI output with a resolution of 720p and sound capabilities.
+- Cycle accurate emulation quality has been achieved since the NES circuits have been almost entirely replicated.
+- Game loading via MicroSD cards (for Tang Nano 20K only) or Windows/Linux loader program.
+- Playstation 2 controller interface (for Tang Nano 20K only) or interfacing with controllers connected through a PC.
 
 ## Setup for Tang Nano 20K
 
-With the release of Tang Nano 20K in March 2023, running NESTang has been greatly simplified. And it runs more stable as the board has SDRAM memory, which are more friendly to FPGAs than DDR memory. You need,
+Since the release of Tang Nano 20K in May 2023, running NESTang has become simpler and more stable. The board features SDRAM memory which is more FPGA-friendly than DDR memory. Here's what you need to run NESTang:
+
 * The Tang Nano 20K board.
-* Sipeed ps2 controller adapter, connected to pin 15-20 of the board.
+* Sipeed ps2 controller adapter connected to the board's pin 15-20.
 * Playstation controller (wired or wireless) connected to the adapter.
-* HDMI connection to a monitor.
-* Program [NESTang 0.5](https://github.com/nand2mario/nestang/releases) to the board with [openFPGALoader](https://github.com/trabucayre/openFPGALoader) or Gowin programmer.
-* A MicroSD card for holding ROMs. I've tried several old 8GB cards and they all work. Use `tools/nes2img.py` python program to convert a .nes ROM file to .img file. This script requires Python >=3.7 and needs the Pillow package (install with `pip3 install pillow`).  Then burn that image to the sd card with any sd tool (e.g. [Balena Etcher](https://www.balena.io/etcher)).
-* Insert MicroSD and power up the board, and enjoy your game!
+* HDMI cable to connect the board to a monitor.
+* NESTang 0.5 program downloaded from github.com/nand2mario/nestang/releases and transferred to the board using either [openFPGALoader](https://github.com/trabucayre/openFPGALoader) or Gowin programmer.
+* A MicroSD card to hold ROMs. An 8GB cards should suffice. The `tools/nes2img.py` python program can be used to convert .nes ROM files to an .img file. Ensure that you have Python version 3.7 or higher, and then install the Pillow package using `pip3 install pillow`. You can then used an SD imaging tool such as [Balena Etcher](https://www.balena.io/etcher) to burn the newly created image onto the MicroSD card.
+* Insert the MicroSD card and power up the board to start playing your favorite games!
 
 ## Setup for Tang Primer 20K
 
-If you have Tang Primer 20K instead (get the nano if you don't have any board). Then here's what you need.
-* Sipeed Tang Primer 20K (starting at $30).
-* Muse-Lab HDMI PMod if you got the lite version of Tang: [aliexpress](https://www.aliexpress.com/item/3256804122775243.html) or [taobao](https://item.taobao.com/item.htm?id=671021594308). The dock version already has HDMI so you are fine. [Wiring instructions](doc/wiring.md) for lite version.
+If you own a Tang Primer 20K board (which starts at $30), you will require a few additional components to run NESTang. However, if you don't own any board, it is recommended that you get the Tang Nano 20K instead.
 
-Then it's time to enjoy some NES games，
-* Download [NESTang 0.4](https://github.com/nand2mario/nestang/releases/tag/v0.4), as later versions currently only support Tang Nano 20K.
-* Start **Gowin Programmer**, and program `nestang-lite.fs` or `nestang-dock.fs` depending on which board you have. If you see a colorful NES palette, then your setup is working. 
+To run NESTang on a Tang Primer 20K board, the following components are required:
+
+* Sipeed Tang Primer 20K board
+* Muse-Lab HDMI PMod if you got the "lite" version of Tang board. You can purchase it from [aliexpress](https://www.aliexpress.com/item/3256804122775243.html) or [taobao](https://item.taobao.com/item.htm?id=671021594308). The "dock" version of the board already has an HDMI port, so there is no need for this component. The wiring instructions for the "lite" version can be found in the [doc/wiring.md](doc/wiring.md) file.
+
+Once you have all the necessary components, follow the instructions below:
+
+* Download [NESTang 0.4](https://github.com/nand2mario/nestang/releases/tag/v0.4) since later versions only support Tang Nano 20K.
+* Launch the **Gowin Programmer** application and program either the `nestang-lite.fs` or `nestang-dock.fs` file, depending on your specific board. If your setup is correctly configured, a colorful NES palette should be displayed. 
 * Connect your game controller/controllers to your PC. I use a pair of old Xbox 360 controllers.
-* Run `loader.exe -c COM4 games\rom.nes` (replace COM4 with your port number) to load the game `rom.nes` and run it. If it complains about missing DLLs, install [Microsoft Visual C++ Redistributable package](https://aka.ms/vs/17/release/vc_redist.x64.exe).
-* Press the left button (LB) to call out the in-game OSD menu. There you can load other games in the `games` directory.
-* If it didn't work, `loader.exe -r game.nes` will print messages from the core.
+* Use the command `loader.exe -c COM4 games\rom.nes` (replace COM4 with your port number) to load the game `rom.nes`. If the game does not load, install [Microsoft Visual C++ Redistributable package](https://aka.ms/vs/17/release/vc_redist.x64.exe) to resolve any missing DLL errors.
+* Press the left button (LB) to open the in-game OSD menu, from where you can load other games located in the `games` directory.
+* If the game does not load, run `loader.exe -r game.nes` to generate error messages from the core.
 
-Hurrah! and enjoy.
-
-For 0.4, there's also a Linux loader program in addition to Windows. See [Linux loader](doc/linux.md)
+Congratulations! Now you can enjoy all your favorite NES games. For version 0.4, a Linux loader program is also available. See [Linux loader](doc/linux.md) for details.
 
 ## Development
 
