@@ -6,7 +6,7 @@
 
 <img src="doc/images/nestang0.5.jpg" width=400>
 
-NESTang is an open source project to recreated the Nintendo Entertainment System (NES) with modern affordable FPGA boards including Sipeed [Tang Nano 20K](https://wiki.sipeed.com/hardware/en/tang/tang-nano-20k/nano-20k.html) and [Primer 20K](https://wiki.sipeed.com/hardware/en/tang/tang-primer-20k/primer-20k.html). The main logic comes from [fpganes](https://github.com/strigeus/fpganes), to which I have added SDRAM/DDR3 and HDMI interfaces, among other features.
+NESTang is an open source project to recreate the Nintendo Entertainment System (NES) with modern affordable FPGA boards including Sipeed [Tang Nano 20K](https://wiki.sipeed.com/hardware/en/tang/tang-nano-20k/nano-20k.html) and [Primer 20K](https://wiki.sipeed.com/hardware/en/tang/tang-primer-20k/primer-20k.html). The main logic comes from [fpganes](https://github.com/strigeus/fpganes), to which I have added SDRAM/DDR3 and HDMI interfaces, among other features.
 
 Main features,
 
@@ -17,13 +17,13 @@ Main features,
 
 ## Setup for Tang Nano 20K
 
-The best way to experience NESTang is with the Tang Nano 20K (Retro Game Kit version), which costs $38 last time I checked. The board features SDRAM memory which is more FPGA-friendly than DDR memory. And the kit includes the necessary controller adapter and a pair of controllers. Here's what you need to run NESTang:
+The best way to experience NESTang is with the Tang Nano 20K (Retro Game Kit version), which cost $38 last time I checked. The board features FPGA-friendly SDRAM memory. And the kit includes the necessary controller adapters and a pair of controllers. Here's what you need to run NESTang:
 
 * The Tang Nano 20K board.
 * Sipeed ps2 controller adapters connected to the board's pin 15-20 on both sides.
 * Playstation controllers (wired or wireless) connected to the adapters.
 * HDMI cable to connect the board to a monitor.
-* NESTang 0.5 program downloaded from [github](http://github.com/nand2mario/nestang/releases) and transferred to the board using either [openFPGALoader](https://github.com/trabucayre/openFPGALoader) or Gowin programmer.
+* NESTang 0.5 program downloaded from [github](https://github.com/nand2mario/nestang/releases) and transferred to the board using either [openFPGALoader](https://github.com/trabucayre/openFPGALoader) or Gowin programmer.
 * A MicroSD card to hold ROMs. An 8GB cards should suffice. The `tools/nes2img.py` python program can be used to convert .nes ROM files to an .img file. Ensure that you have Python version 3.7 or higher, and then install the Pillow package using `pip3 install pillow`. You can then use an SD imaging tool such as [Balena Etcher](https://www.balena.io/etcher) to burn the newly created image onto the MicroSD card.
 * Insert the MicroSD card and power up the board to start playing your favorite games!
 
