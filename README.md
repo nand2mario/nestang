@@ -23,7 +23,7 @@ The best way to experience NESTang is with the Tang Nano 20K (Retro Game Kit ver
 * Sipeed ps2 controller adapters connected to the board's pin 15-20 on both sides.
 * Playstation controllers (wired or wireless) connected to the adapters.
 * HDMI cable to connect the board to a monitor.
-* NESTang 0.5 program downloaded from [github](github.com/nand2mario/nestang/releases) and transferred to the board using either [openFPGALoader](https://github.com/trabucayre/openFPGALoader) or Gowin programmer.
+* NESTang 0.5 program downloaded from [github](http://github.com/nand2mario/nestang/releases) and transferred to the board using either [openFPGALoader](https://github.com/trabucayre/openFPGALoader) or Gowin programmer.
 * A MicroSD card to hold ROMs. An 8GB cards should suffice. The `tools/nes2img.py` python program can be used to convert .nes ROM files to an .img file. Ensure that you have Python version 3.7 or higher, and then install the Pillow package using `pip3 install pillow`. You can then use an SD imaging tool such as [Balena Etcher](https://www.balena.io/etcher) to burn the newly created image onto the MicroSD card.
 * Insert the MicroSD card and power up the board to start playing your favorite games!
 
