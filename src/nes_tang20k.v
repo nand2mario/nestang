@@ -160,7 +160,7 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
   nes_btn[0:1] NES buttons:      (R L D U START SELECT B A)
   O is A, X is B
   */
-  wire [7:0] joy_rx[0:5], joy_rx2[0:1];     // 6 RX bytes for all button/axis state
+  wire [7:0] joy_rx[0:1], joy_rx2[0:1];     // 6 RX bytes for all button/axis state
   wire auto_square, auto_triangle, auto_square2, auto_triangle2;
   wire [7:0] nes_btn = {~joy_rx[0][5], ~joy_rx[0][7], ~joy_rx[0][6], ~joy_rx[0][4], 
                          ~joy_rx[0][3], ~joy_rx[0][0], ~joy_rx[1][6] | auto_square, ~joy_rx[1][5] | auto_triangle};
@@ -332,10 +332,10 @@ dualshock_controller controller (
     .I_CLK250K(sclk), .I_RSTn(1'b1),
     .O_psCLK(joystick_clk), .O_psSEL(joystick_cs), .O_psTXD(joystick_mosi),
     .I_psRXD(joystick_miso),
-    .O_RXD_1(joy_rx[0]), .O_RXD_2(joy_rx[1]), .O_RXD_3(joy_rx[2]),
-    .O_RXD_4(joy_rx[3]), .O_RXD_5(joy_rx[4]), .O_RXD_6(joy_rx[5]),
+    .O_RXD_1(joy_rx[0]), .O_RXD_2(joy_rx[1]), .O_RXD_3(),
+    .O_RXD_4(), .O_RXD_5(), .O_RXD_6(),
     // config=1, mode=1(analog), mode_en=1
-    .I_CONF_SW(1'b1), .I_MODE_SW(1'b1), .I_MODE_EN(1'b1),
+    .I_CONF_SW(1'b0), .I_MODE_SW(1'b1), .I_MODE_EN(1'b0),
     .I_VIB_SW(2'b00), .I_VIB_DAT(8'hff)     // no vibration
 );
 
@@ -345,7 +345,7 @@ dualshock_controller controller2 (
     .I_psRXD(joystick_miso2),
     .O_RXD_1(joy_rx2[0]), .O_RXD_2(joy_rx2[1]), 
     .O_RXD_3(), .O_RXD_4(), .O_RXD_5(), .O_RXD_6(),
-    .I_CONF_SW(1'b1), .I_MODE_SW(1'b1), .I_MODE_EN(1'b1),
+    .I_CONF_SW(1'b0), .I_MODE_SW(1'b1), .I_MODE_EN(1'b0),
     .I_VIB_SW(2'b00), .I_VIB_DAT(8'hff)     // no vibration
 );
 
@@ -387,9 +387,8 @@ always@(posedge clk)begin
 
 /*
     if (timer == 0) begin
-//        `print({joy_rx[0], joy_rx[1]}, 2);
-//        `print({nes_btn, nes_btn2}, 2);
-        `print({3'b0, sd_active, 3'b0, sd_total, sd_rsector, sd_last_sector}, 8);
+        `print({joy_rx[0], joy_rx[1], joy_rx2[0], joy_rx2[1], nes_btn, nes_btn2}, 6);
+//        `print({3'b0, sd_active, 3'b0, sd_total, sd_rsector, sd_last_sector}, 8);
     end
     if (timer == 20'b1000_0000_0000_0000_0000) begin
         `print("\n", STR);
