@@ -49,6 +49,10 @@ module NES_Tang20k(
     input joystick_miso2,
     output reg joystick_cs2,
 
+    // USB
+    inout usbdm,
+    inout usbdp,
+
     // HDMI TX
     output       tmds_clk_n,
     output       tmds_clk_p,
@@ -64,12 +68,21 @@ always @(posedge clk) begin
 end
 
 `ifndef VERILATOR
-// NES PPU clock 5.369 * 7 = 37.6
-Gowin_rPLL_nes pll_nes(
-    .clkin(sys_clk),
-    .clkout(clk),          // FREQ main clock
-    .clkoutp(clk_sdram)    // FREQ main clock phase shifted
-);
+// Gowin_rPLL_nes pll_nes(
+//     .clkin(sys_clk),
+//     .clkout(clk),          // FREQ main clock
+//     .clkoutp(clk_sdram)    // FREQ main clock phase shifted
+// );
+  wire clk = sys_clk;
+  wire clk_sdram = ~sys_clk;  
+  wire clk_usb;
+
+  // USB clock 12Mhz
+  Gowin_rPLL_usb pll_nes(
+      .clkin(sys_clk),
+      .clkout(clk_usb),       // 12Mhz usb clock
+      .clkoutp()
+  );
 
   // HDMI domain clocks
   wire clk_p;     // 720p pixel clock: 74.25 Mhz
@@ -161,9 +174,11 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
   O is A, X is B
   */
   wire [7:0] joy_rx[0:1], joy_rx2[0:1];     // 6 RX bytes for all button/axis state
+  wire [7:0] usb_btn;
   wire auto_square, auto_triangle, auto_square2, auto_triangle2;
   wire [7:0] nes_btn = {~joy_rx[0][5], ~joy_rx[0][7], ~joy_rx[0][6], ~joy_rx[0][4], 
-                         ~joy_rx[0][3], ~joy_rx[0][0], ~joy_rx[1][6] | auto_square, ~joy_rx[1][5] | auto_triangle};
+                         ~joy_rx[0][3], ~joy_rx[0][0], ~joy_rx[1][6] | auto_square, ~joy_rx[1][5] | auto_triangle}
+                         | usb_btn;
   wire [7:0] nes_btn2 = {~joy_rx2[0][5], ~joy_rx2[0][7], ~joy_rx2[0][6], ~joy_rx2[0][4], 
                          ~joy_rx2[0][3], ~joy_rx2[0][0], ~joy_rx2[1][6] | auto_square2, ~joy_rx2[1][5] | auto_triangle2};
   
@@ -354,6 +369,11 @@ Autofire af_triangle (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx[1][4]), .out(
 Autofire af_square2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][7]), .out(auto_square2));
 Autofire af_triangle2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][4]), .out(auto_triangle2));
 
+ukp2nes usb_controller (
+  .usbclk(clk_usb), .usbrst_n(sys_resetn),
+	.usb_dm(usb_dm), .usb_dp(usb_dp),	.btn_nes(usb_btn), .conerr(usb_conerr)
+);
+
 //
 // Print control
 //
@@ -490,6 +510,6 @@ end
 
 `endif
 
-assign led = ~{~UART_RXD, loader_done};
+assign led = ~{~UART_RXD, usb_conerr, loader_done};
 
 endmodule
