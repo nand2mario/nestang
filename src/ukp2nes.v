@@ -6,19 +6,19 @@ module ukp2nes (
     output conerr
 );
 
-	wire dtrdy, dtstb;
-	wire [7:0] ukpdat;
-	wire conerr;
-	ukp ukp(
-		.usbrst_n(usbrst_n), .usbclk(usbclk),
-		.usb_dp(usb_dp), .usb_dm(usb_dm), .usb_oe(),
-		.ukprdy(dtrdy), .ukpstb(dtstb), .ukpdat(ukpdat),
-		.conerr(conerr) );
+wire dtrdy, dtstb;		// data ready and strobe
+wire [7:0] ukpdat;		// actual data
+wire conerr;			// connection error
+ukp ukp(
+	.usbrst_n(usbrst_n), .usbclk(usbclk),
+	.usb_dp(usb_dp), .usb_dm(usb_dm), .usb_oe(),
+	.ukprdy(dtrdy), .ukpstb(dtstb), .ukpdat(ukpdat),
+	.conerr(conerr) );
 
-reg  [2:0] rcvct;
-reg  dtstbd, dtrdyd;
+reg  [2:0] rcvct;		// counter for recv data
+reg  dtstbd, dtrdyd;	// delayed dtstb and dtrdy
 reg  btn_a, btn_b, btn_sel, btn_sta;
-reg  btn_al, btn_ar, btn_ad, btn_au;
+reg  btn_al, btn_ar, btn_ad, btn_au;	// left, right, down, up
 always @(posedge usbclk) begin
 	dtrdyd <= dtrdy; dtstbd <= dtstb;
 	if(~dtrdy) rcvct <= 0;
@@ -57,12 +57,12 @@ endmodule
 
 module ukp(
 	input usbrst_n,
-	input usbclk,			// 12MHz
-	inout usb_dp, usb_dm,
+	input usbclk,				// 12MHz clock
+	inout usb_dp, usb_dm,		// D+, D-
 	output usb_oe,
-	output reg ukprdy, 
-	output ukpstb,
-	output reg [7:0] ukpdat,
+	output reg ukprdy, 			// data frame is outputing
+	output ukpstb,				// strobe for a byte within the frame
+	output reg [7:0] ukpdat,	// output data when ukpstb=1
 	output conerr
 );
 
@@ -78,21 +78,21 @@ module ukp(
 
 	wire [3:0] inst;
 	reg  [3:0] insth;
-	wire sample;
+	wire sample;						// 1: an IN sample is available
 	reg connected = 0, inst_ready = 0, up = 0, um = 0, cond = 0, nak = 0, dmis = 0;
 	reg ug, ugw, nrzon;
 	reg bank = 0, record1 = 0;
-	reg [1:0] mbit = 0;
+	reg [1:0] mbit = 0;					// 1: out4/outb is transmitting
 	reg [3:0] state = 0, stated;
-	reg [7:0] wk = 0;
-	reg [7:0] sb = 0;
-	reg [3:0] sadr;
-	reg [13:0] pc = 0, wpc;
-	reg [2:0] timing = 0;
+	reg [7:0] wk = 0;					// W register
+	reg [7:0] sb = 0;					// out value
+	reg [3:0] sadr;						// out4/outb write ptr
+	reg [13:0] pc = 0, wpc;				// program counter, wpc = next pc
+	reg [2:0] timing = 0;				// T register (0~7)
 	reg [3:0] lb4 = 0, lb4w;
 	reg [13:0] interval = 0;
 	reg [6:0] bitadr = 0;
-	reg [7:0] data = 0;
+	reg [7:0] data = 0;					// received data
 	reg [2:0] nrztxct, nrzrxct;
 	wire interval_cy = interval == 12001;
 	wire next = ~(state == S_OPCODE & (

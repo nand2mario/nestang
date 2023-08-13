@@ -9,7 +9,7 @@ module ukprom(clk, adr, data);
 			10'h000: data = 4'h1; // 	ldi	9
 			10'h001: data = 4'h9;
 			10'h002: data = 4'h0;
-			10'h003: data = 4'h0;
+			10'h003: data = 4'h0; //    nop
 								  // cstart2:
 			10'h004: data = 4'he; // 	wait
 			10'h005: data = 4'h9; // 	bc	connected
@@ -21,8 +21,8 @@ module ukprom(clk, adr, data);
 			10'h00b: data = 4'h1; // 	ldi	200
 			10'h00c: data = 4'h8;
 			10'h00d: data = 4'hc;
-			10'h00e: data = 4'h0;
-			10'h00f: data = 4'h0;
+			10'h00e: data = 4'h0; //    nop
+			10'h00f: data = 4'h0; //    nop
 								  // w200ms:
 			10'h010: data = 4'he; // 	wait
 			10'h011: data = 4'hb; // 	djnz	w200ms
@@ -159,128 +159,129 @@ module ukprom(clk, adr, data);
 			10'h08e: data = 4'h0;
 			10'h08f: data = 4'h0;
 								  // setadr1:
-			10'h090: data = 4'h6; // 	outb 0x80
+			10'h090: data = 4'h6; // 	outb 0x80, SYNC
 			10'h091: data = 4'h0;
 			10'h092: data = 4'h8;
-			10'h093: data = 4'h6; // 	outb 0x2d
+			10'h093: data = 4'h6; // 	outb 0x2d, PID=1101 Setup Token
 			10'h094: data = 4'hd;
 			10'h095: data = 4'h2;
-			10'h096: data = 4'h6; // 	outb 0x00
+			10'h096: data = 4'h6; // 	outb 0x00, ADDR[6:0], ENDP[3]
 			10'h097: data = 4'h0;
 			10'h098: data = 4'h0;
-			10'h099: data = 4'h6; // 	outb 0x10
+			10'h099: data = 4'h6; // 	outb 0x10, ENDP[2-0], CRC5
 			10'h09a: data = 4'h0;
 			10'h09b: data = 4'h1;
-			10'h09c: data = 4'h3; // 	out4 0x03
+			10'h09c: data = 4'h3; // 	out4 0x03, EOP
 			10'h09d: data = 4'h3;
 			10'h09e: data = 4'h0;
-			10'h09f: data = 4'h6; // 	outb 0x80
+			10'h09f: data = 4'h6; // 	outb 0x80, SYNC
 			10'h0a0: data = 4'h0;
 			10'h0a1: data = 4'h8;
-			10'h0a2: data = 4'h6; // 	outb 0xc3
+			10'h0a2: data = 4'h6; // 	outb 0xc3, PID=0011 DATA0
 			10'h0a3: data = 4'h3;
 			10'h0a4: data = 4'hc;
-			10'h0a5: data = 4'h6; // 	outb 0x00
+			10'h0a5: data = 4'h6; // 	outb 0x00, bmRequestType=0
 			10'h0a6: data = 4'h0;
 			10'h0a7: data = 4'h0;
-			10'h0a8: data = 4'h6; // 	outb 0x05
+			10'h0a8: data = 4'h6; // 	outb 0x05, bRequest=5 Set_Address
 			10'h0a9: data = 4'h5;
 			10'h0aa: data = 4'h0;
-			10'h0ab: data = 4'h6; // 	outb 0x01
+			10'h0ab: data = 4'h6; // 	outb 0x01, wValue=1
 			10'h0ac: data = 4'h1;
 			10'h0ad: data = 4'h0;
 			10'h0ae: data = 4'h6; // 	outb 0x00
 			10'h0af: data = 4'h0;
 			10'h0b0: data = 4'h0;
-			10'h0b1: data = 4'h6; // 	outb 0x00
+			10'h0b1: data = 4'h6; // 	outb 0x00, wIndex=0
 			10'h0b2: data = 4'h0;
 			10'h0b3: data = 4'h0;
 			10'h0b4: data = 4'h6; // 	outb 0x00
 			10'h0b5: data = 4'h0;
 			10'h0b6: data = 4'h0;
-			10'h0b7: data = 4'h6; // 	outb 0x00
+			10'h0b7: data = 4'h6; // 	outb 0x00, wLength=0
 			10'h0b8: data = 4'h0;
 			10'h0b9: data = 4'h0;
 			10'h0ba: data = 4'h6; // 	outb 0x00
 			10'h0bb: data = 4'h0;
 			10'h0bc: data = 4'h0;
-			10'h0bd: data = 4'h6; // 	outb 0xeb
+			10'h0bd: data = 4'h6; // 	outb 0xeb, CRC16
 			10'h0be: data = 4'hb;
 			10'h0bf: data = 4'he;
 			10'h0c0: data = 4'h6; // 	outb 0x25
 			10'h0c1: data = 4'h5;
 			10'h0c2: data = 4'h2;
-			10'h0c3: data = 4'h3; // 	out4 0x03
+			10'h0c3: data = 4'h3; // 	out4 0x03, EOP
 			10'h0c4: data = 4'h3;
 			10'h0c5: data = 4'h0;
 			10'h0c6: data = 4'h7; // 	ret
 			10'h0c7: data = 4'h0;
 								  // setconfig1:
-			10'h0c8: data = 4'h6; // 	outb 0x80
+			10'h0c8: data = 4'h6; // 	outb 0x80, SYNC
 			10'h0c9: data = 4'h0;
 			10'h0ca: data = 4'h8;
-			10'h0cb: data = 4'h6; // 	outb 0x2d
+			10'h0cb: data = 4'h6; // 	outb 0x2d, PID=1101 Setup Token
 			10'h0cc: data = 4'hd;
 			10'h0cd: data = 4'h2;
-			10'h0ce: data = 4'h6; // 	outb 0x01
+			10'h0ce: data = 4'h6; // 	outb 0x01, ADDR=1, ENDP=0
 			10'h0cf: data = 4'h1;
 			10'h0d0: data = 4'h0;
-			10'h0d1: data = 4'h6; // 	outb 0xe8
+			10'h0d1: data = 4'h6; // 	outb 0xe8, 11101000, CRC5=11101
 			10'h0d2: data = 4'h8;
 			10'h0d3: data = 4'he;
-			10'h0d4: data = 4'h3; // 	out4 0x03
+			10'h0d4: data = 4'h3; // 	out4 0x03, EOP
 			10'h0d5: data = 4'h3;
 			10'h0d6: data = 4'h0;
-			10'h0d7: data = 4'h6; // 	outb 0x80
+			10'h0d7: data = 4'h6; // 	outb 0x80, SYNC
 			10'h0d8: data = 4'h0;
 			10'h0d9: data = 4'h8;
-			10'h0da: data = 4'h6; // 	outb 0xc3
+			10'h0da: data = 4'h6; // 	outb 0xc3, PID=0011, DATA0
 			10'h0db: data = 4'h3;
 			10'h0dc: data = 4'hc;
-			10'h0dd: data = 4'h6; // 	outb 0x00
+			10'h0dd: data = 4'h6; // 	outb 0x00, bmRequestType=0
 			10'h0de: data = 4'h0;
 			10'h0df: data = 4'h0;
-			10'h0e0: data = 4'h6; // 	outb 0x09
+			10'h0e0: data = 4'h6; // 	outb 0x09, bRequest=9 Set_Configuration
 			10'h0e1: data = 4'h9;
 			10'h0e2: data = 4'h0;
-			10'h0e3: data = 4'h6; // 	outb 0x01
+			10'h0e3: data = 4'h6; // 	outb 0x01, wValue=1
 			10'h0e4: data = 4'h1;
 			10'h0e5: data = 4'h0;
 			10'h0e6: data = 4'h6; // 	outb 0x00
 			10'h0e7: data = 4'h0;
 			10'h0e8: data = 4'h0;
-			10'h0e9: data = 4'h6; // 	outb 0x00
+			10'h0e9: data = 4'h6; // 	outb 0x00, Zero
 			10'h0ea: data = 4'h0;
 			10'h0eb: data = 4'h0;
 			10'h0ec: data = 4'h6; // 	outb 0x00
 			10'h0ed: data = 4'h0;
 			10'h0ee: data = 4'h0;
-			10'h0ef: data = 4'h6; // 	outb 0x00
+			10'h0ef: data = 4'h6; // 	outb 0x00, Zero
 			10'h0f0: data = 4'h0;
 			10'h0f1: data = 4'h0;
 			10'h0f2: data = 4'h6; // 	outb 0x00
 			10'h0f3: data = 4'h0;
 			10'h0f4: data = 4'h0;
-			10'h0f5: data = 4'h6; // 	outb 0x27
+			10'h0f5: data = 4'h6; // 	outb 0x27, CRC16
 			10'h0f6: data = 4'h7;
 			10'h0f7: data = 4'h2;
 			10'h0f8: data = 4'h6; // 	outb 0x25
 			10'h0f9: data = 4'h5;
 			10'h0fa: data = 4'h2;
-			10'h0fb: data = 4'h3; // 	out4 0x03
+			10'h0fb: data = 4'h3; // 	out4 0x03, EOP
 			10'h0fc: data = 4'h3;
 			10'h0fd: data = 4'h0;
 			10'h0fe: data = 4'h7; // 	ret
 			10'h0ff: data = 4'h0;
 								  // rcvdt:
-			10'h100: data = 4'h1; // 	ldi	104
+			10'h100: data = 4'h1; // 	ldi	104 (18 bytes)
 			10'h101: data = 4'h8;
 			10'h102: data = 4'h6;
 			10'h103: data = 4'h2; // 	start
-			10'h104: data = 4'hd; // 	in
+			10'h104: data = 4'hd; // 	in		(receives 18 bytes)
 			10'h105: data = 4'h0;
 			10'h106: data = 4'h0;
 			10'h107: data = 4'h0;
+								  // wait until D- is not 0 for 2 cycles
 								  // rcvdt2:
 			10'h108: data = 4'h1; // 	ldi	2
 			10'h109: data = 4'h2;
@@ -290,7 +291,7 @@ module ukprom(clk, adr, data);
 			10'h10c: data = 4'h8; // 	bz		rcvdt2
 			10'h10d: data = 4'h2;
 			10'h10e: data = 4'h4;
-			10'h10f: data = 4'hb; // 	djnz	rcvdt3
+			10'h10f: data = 4'hb; // 	djnz	rcvdt3 
 			10'h110: data = 4'h3;
 			10'h111: data = 4'h4;
 			10'h112: data = 4'h7; // 	ret
@@ -299,13 +300,13 @@ module ukprom(clk, adr, data);
 			10'h114: data = 4'h6; // 	outb 0x80
 			10'h115: data = 4'h0;
 			10'h116: data = 4'h8;
-			10'h117: data = 4'h6; // 	outb 0x69
+			10'h117: data = 4'h6; // 	outb 0x69, PID=IN token
 			10'h118: data = 4'h9;
 			10'h119: data = 4'h6;
-			10'h11a: data = 4'h6; // 	outb 0x00
+			10'h11a: data = 4'h6; // 	outb 0x00, ADDR=0, ENDP=0
 			10'h11b: data = 4'h0;
 			10'h11c: data = 4'h0;
-			10'h11d: data = 4'h6; // 	outb 0x10
+			10'h11d: data = 4'h6; // 	outb 0x10, CRC5=10000
 			10'h11e: data = 4'h0;
 			10'h11f: data = 4'h1;
 			10'h120: data = 4'h3; // 	out4 0x03
@@ -316,13 +317,13 @@ module ukprom(clk, adr, data);
 			10'h124: data = 4'h6; // 	outb 0x80
 			10'h125: data = 4'h0;
 			10'h126: data = 4'h8;
-			10'h127: data = 4'h6; // 	outb 0x69
+			10'h127: data = 4'h6; // 	outb 0x69; PID=IN token
 			10'h128: data = 4'h9;
 			10'h129: data = 4'h6;
-			10'h12a: data = 4'h6; // 	outb 0x01
+			10'h12a: data = 4'h6; // 	outb 0x01; ADDR=1, ENDP=0
 			10'h12b: data = 4'h1;
 			10'h12c: data = 4'h0;
-			10'h12d: data = 4'h6; // 	outb 0xe8
+			10'h12d: data = 4'h6; // 	outb 0xe8, CRC5=11101
 			10'h12e: data = 4'h8;
 			10'h12f: data = 4'he;
 			10'h130: data = 4'h3; // 	out4 0x03
@@ -336,13 +337,13 @@ module ukprom(clk, adr, data);
 			10'h137: data = 4'h6; // 	outb 0x69
 			10'h138: data = 4'h9;
 			10'h139: data = 4'h6;
-			10'h13a: data = 4'h6; // 	outb 0x81
+			10'h13a: data = 4'h6; // 	outb 0x81, ADDR=1, ENDP=1
 			10'h13b: data = 4'h1;
 			10'h13c: data = 4'h8;
-			10'h13d: data = 4'h6; // 	outb 0x58
+			10'h13d: data = 4'h6; // 	outb 0x58, CRC5=01011
 			10'h13e: data = 4'h8;
 			10'h13f: data = 4'h5;
-			10'h140: data = 4'h3; // 	out4 0x03
+			10'h140: data = 4'h3; // 	out4 0x03, EOP
 			10'h141: data = 4'h3;
 			10'h142: data = 4'h0;
 			10'h143: data = 4'h7; // 	ret
