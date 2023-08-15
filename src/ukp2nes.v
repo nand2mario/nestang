@@ -1,3 +1,6 @@
+// Original author: hi631@github
+// https://github.com/hi631/tang-nano-9K
+
 module ukp2nes (
     input   usbclk,		// 12MHz
     input   usbrst_n,	// reset
@@ -23,17 +26,47 @@ always @(posedge usbclk) begin
 	dtrdyd <= dtrdy; dtstbd <= dtstb;
 	if(~dtrdy) rcvct <= 0;
 	else begin
+		// VID=0x081f, PID=0xe401
+		//           X axis Y axis
+		//             0    1    2  3    4    5          6 
+		// no button: [127, 127, 0, 128, 128, 00001111,  0, 0]
+		//        up: [127, 0,   0, 128, 128, 00001111,  0, 0]
+		//      down: [127, 255, 0, 128, 128, 00001111,  0, 0]
+		//      left: [0,   127, 0, 128, 128, 00001111,  0, 0]
+		//     right: [255, 127, 0, 128, 128, 00001111,  0, 0]
+		//   left+up: [0,   0,   0, 128, 128, 00001111,  0, 0]
+		//  right+up: [255, 0, 	 0, 128, 128, 00001111,  0, 0]
+		//         A: [127, 127, 0, 128, 128, 00101111,  0, 0]
+		//         B: [127, 127, 0, 128, 128, 01001111,  0, 0]
+		//    select: [127, 127, 0, 128, 128, 00001111, 16, 0]
+		//     start: [127, 127, 0, 128, 128, 00001111, 32, 0]
+		//         X: [127, 127, 0, 128, 128, 00011111,  0, 0]
+		//         Y: [127, 127, 0, 128, 128, 10001111,  0, 0]
+		//        LB: [127, 127, 0, 128, 128, 00001111,  1, 0]
+		//        RB: [127, 127, 0, 128, 128, 00001111,  2, 0]
 		if(dtstb && ~dtstbd) begin
 			case(rcvct)
+				// nand2mario's gamepad uses 0, 1 for X amd Y axis
+				0: begin
+					if     (ukpdat[7:6]==2'b00) btn_al <= 1;
+					else if(ukpdat[7:6]==2'b11) btn_ar <= 1;
+					else if(ukpdat[7:6]==2'b01) begin btn_al <=0; btn_ar <= 0; end
+				end
+				1: begin
+					if     (ukpdat[7:6]==2'b00) btn_ad <= 1;
+					else if(ukpdat[7:6]==2'b11) btn_au <= 1;
+					else if(ukpdat[7:6]==2'b01) begin btn_al <=0; btn_ar <= 0; end
+				end
+				// hi631's gamepad uses byte 3, 4 for Y and X axis
 				3: begin
 					if     (ukpdat[7:6]==2'b00) btn_ad <= 1;
 					else if(ukpdat[7:6]==2'b11) btn_au <= 1;
-					else begin btn_ad <= 0; btn_au <= 0; end
+					else if(ukpdat[7:6]==2'b01) begin btn_al <=0; btn_ar <= 0; end
 				end
 				4: begin
 					if     (ukpdat[7:6]==2'b00) btn_al <= 1;
 					else if(ukpdat[7:6]==2'b11) btn_ar <= 1;
-					else begin btn_al <=0; btn_ar <= 0; end
+					else if(ukpdat[7:6]==2'b01) begin btn_al <=0; btn_ar <= 0; end
 				end
 				5: begin
 					//if(ukpdat[4]) btn_x <= 1; else btn_x <= 0;
@@ -80,7 +113,7 @@ module ukp(
 	reg  [3:0] insth;
 	wire sample;						// 1: an IN sample is available
 	reg connected = 0, inst_ready = 0, up = 0, um = 0, cond = 0, nak = 0, dmis = 0;
-	reg ug, ugw, nrzon;
+	reg ug, ugw, nrzon;					// ug=1: output enabled, 0: hi-Z
 	reg bank = 0, record1 = 0;
 	reg [1:0] mbit = 0;					// 1: out4/outb is transmitting
 	reg [3:0] state = 0, stated;
@@ -91,9 +124,9 @@ module ukp(
 	reg [2:0] timing = 0;				// T register (0~7)
 	reg [3:0] lb4 = 0, lb4w;
 	reg [13:0] interval = 0;
-	reg [6:0] bitadr = 0;
+	reg [6:0] bitadr = 0;				// 0~127
 	reg [7:0] data = 0;					// received data
-	reg [2:0] nrztxct, nrzrxct;
+	reg [2:0] nrztxct, nrzrxct;			// NRZI trans/recv count for bit stuffing
 	wire interval_cy = interval == 12001;
 	wire next = ~(state == S_OPCODE & (
 		inst ==2 & dmi |								// start
@@ -119,7 +152,7 @@ module ukp(
 		end else begin
 			dpi <= usb_dp; dmi <= usb_dm;
 			if (inst_ready) begin
-				// 命令をデコード
+				// Instruction decoding
 				case(state)
 					S_OPCODE: begin
 						insth <= inst;
@@ -141,19 +174,19 @@ module ukp(
 						if(inst==12) connected <= ~connected;				// op=toggle
 						if(inst==15) begin state <= S_B2; cond <= 1; end	// op=jmp
 					end
-					// アドレス付き命令を実行
-					// ldiの処理
+					// Instructions with operands
+					// ldi
 					S_LDI0: begin	wk[3:0] <= inst; state <= S_LDI1;	end
 					S_LDI1: begin	wk[7:4] <= inst; state <= S_OPCODE; end
-					// branch/jmpの準備
+					// branch/jmp
 					S_B2: begin lb4w <= inst; state <= S_B0; end
 					S_B0: begin lb4  <= inst; state <= S_B1; end
 					S_B1: state <= S_OPCODE;
-					// outの準備
+					// out
 					S_S0: begin sb[3:0] <= inst; state <= S_S1; end
 					S_S1: begin sb[7:4] <= inst; state <= S_S2; mbit <= 1; end
 				endcase
-				// pcの制御
+				// pc control
 				if (mbit==0) begin 
 					if(jmppc) wpc <= pc + 4;
 					if (next | branch | retpc) begin
@@ -169,7 +202,7 @@ module ukp(
 				end
 			end
 			else inst_ready <= 1;
-			// bit送信(out4/outb)の処理
+			// bit transmission (out4/outb)
 			if (mbit==1 && timing == 0) begin
 				if(ug==0) nrztxct <= 0;
 				else
@@ -185,18 +218,19 @@ module ukp(
 				if(nrztxct!=6) sadr <= sadr - 4'd1;
 				if(sadr==0) begin mbit <= 0; state <= S_OPCODE; end
 			end
-			// start命令の処理
+			// start instruction
 			dmid <= dmi;
 			if (inst_ready & state == S_OPCODE & inst == 4'b0010) begin // op=start 
 				bitadr <= 0; nak <= 1; nrzrxct <= 0;
 			end else 
 				if(ug==0 && dmi!=dmid) timing <= 1;
 				else                   timing <= timing + 1;
-			// IN命令時の処理
+			// IN instruction
 			if (sample) begin
 				if (bitadr == 8) nak <= dmi;
 				if(nrzrxct!=6) begin
-					data[6:0] <= data[7:1]; data[7] <= dmis ~^ dmi;
+					data[6:0] <= data[7:1]; 
+					data[7] <= dmis ~^ dmi;		// ~^/^~ is XNOR, basically testing bit equality
 					bitadr <= bitadr + 1; nrzon <= 0;
 				end else nrzon <= 1;
 				dmis <= dmi;
@@ -204,15 +238,15 @@ module ukp(
 				else           nrzrxct <= 0;
 			end
 			if(ug==0) begin
-				if(bitadr==24) ukprdy <= 1;
-				if(bitadr==88) ukprdy <= 0;
+				if(bitadr==24) ukprdy <= 1;			// ignore first 3 bytes
+				if(bitadr==88) ukprdy <= 0;			// output next 8 bytes
 			end
 			if((bitadr>11 & bitadr[2:0] == 3'b000) & (timing == 2)) ukpdat <= data;
-			// タイミング
+			// Timing
 			interval <= interval_cy ? 0 : interval + 1;
 			record1 <= record;
 			if (~record & record1) bank <= ~bank;
-			// 接続確認 & WDT
+			// Connection status & WDT
 			ukprdyd <= ukprdy;
 			if(ukprdy && ~ukprdyd) conct <= 0; 
 			else begin 

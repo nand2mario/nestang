@@ -177,8 +177,8 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
   wire [7:0] usb_btn;
   wire auto_square, auto_triangle, auto_square2, auto_triangle2;
   wire [7:0] nes_btn = {~joy_rx[0][5], ~joy_rx[0][7], ~joy_rx[0][6], ~joy_rx[0][4], 
-                         ~joy_rx[0][3], ~joy_rx[0][0], ~joy_rx[1][6] | auto_square, ~joy_rx[1][5] | auto_triangle}
-                         | usb_btn;
+                        ~joy_rx[0][3], ~joy_rx[0][0], ~joy_rx[1][6] | auto_square, ~joy_rx[1][5] | auto_triangle} |
+                         usb_btn;
   wire [7:0] nes_btn2 = {~joy_rx2[0][5], ~joy_rx2[0][7], ~joy_rx2[0][6], ~joy_rx2[0][4], 
                          ~joy_rx2[0][3], ~joy_rx2[0][0], ~joy_rx2[1][6] | auto_square2, ~joy_rx2[1][5] | auto_triangle2};
   
@@ -370,8 +370,8 @@ Autofire af_square2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][7]), .out(
 Autofire af_triangle2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][4]), .out(auto_triangle2));
 
 ukp2nes usb_controller (
-  .usbclk(clk_usb), .usbrst_n(sys_resetn),
-	.usb_dm(usb_dm), .usb_dp(usb_dp),	.btn_nes(usb_btn), .conerr(usb_conerr)
+    .usbclk(clk_usb), .usbrst_n(sys_resetn),
+    .usb_dm(usbdm), .usb_dp(usbdp),	.btn_nes(usb_btn), .conerr(usb_conerr)
 );
 
 //
@@ -511,5 +511,7 @@ end
 `endif
 
 assign led = ~{~UART_RXD, usb_conerr, loader_done};
+// assign led = ~usb_btn;
+
 
 endmodule

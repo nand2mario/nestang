@@ -1,3 +1,6 @@
+// Original author: hi631@github
+// https://github.com/hi631/tang-nano-9K
+
 module ukprom(clk, adr, data);
 	input clk;
 	input [13:0] adr;
@@ -120,11 +123,11 @@ module ukprom(clk, adr, data);
 			10'h068: data = 4'h8; // 	bz	connerr
 			10'h069: data = 4'h2;
 			10'h06a: data = 4'h2;
-			10'h06b: data = 4'h3; // 	out4 0x03
+			10'h06b: data = 4'h3; // 	out4 0x03			(keep-alive)
 			10'h06c: data = 4'h3;
 			10'h06d: data = 4'h0;
 			10'h06e: data = 4'h5; // 	hiz
-			10'h06f: data = 4'hb; // 	djnz	cstart2
+			10'h06f: data = 4'hb; // 	djnz	cstart2		(SYNC in 1ms intervals for 9 times)
 			10'h070: data = 4'h1;
 			10'h071: data = 4'h0;
 			10'h072: data = 4'he; // 	wait
@@ -145,7 +148,7 @@ module ukprom(clk, adr, data);
 			10'h081: data = 4'h5;
 			10'h082: data = 4'h0;
 			10'h083: data = 4'h5; // 	hiz
-			10'h084: data = 4'hf; // 	jmp  cstart
+			10'h084: data = 4'hf; // 	jmp  cstart			(keep looping with C=1)
 			10'h085: data = 4'h0;
 			10'h086: data = 4'h0;
 			10'h087: data = 4'h0;
@@ -273,7 +276,7 @@ module ukprom(clk, adr, data);
 			10'h0fe: data = 4'h7; // 	ret
 			10'h0ff: data = 4'h0;
 								  // rcvdt:
-			10'h100: data = 4'h1; // 	ldi	104 (18 bytes)
+			10'h100: data = 4'h1; // 	ldi	104 (total 18 bytes)
 			10'h101: data = 4'h8;
 			10'h102: data = 4'h6;
 			10'h103: data = 4'h2; // 	start
