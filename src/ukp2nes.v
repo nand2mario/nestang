@@ -56,19 +56,18 @@ always @(posedge usbclk) begin
 				end
 				1: begin
 					dbg_hid_report[15:8] <= ukpdat;
-					if     (ukpdat[7:6]==2'b00) btn_ad <= 1;
-					else if(ukpdat[7:6]==2'b11) btn_au <= 1;
-					else if(ukpdat[7:6]==2'b01) begin btn_al <=0; btn_ar <= 0; end
+					if     (ukpdat[7:6]==2'b00) btn_au <= 1;
+					else if(ukpdat[7:6]==2'b11) btn_ad <= 1;
+					else if(ukpdat[7:6]==2'b01) begin btn_au <=0; btn_ad <= 0; end
 				end
 				2: dbg_hid_report[23:16] <= ukpdat;
 				3: dbg_hid_report[31:24] <= ukpdat;
 				4: dbg_hid_report[39:32] <= ukpdat;
-
 				// hi631's gamepad uses byte 3, 4 for Y and X axis
 				// 3: begin
-				// 	if     (ukpdat[7:6]==2'b00) btn_ad <= 1;
-				// 	else if(ukpdat[7:6]==2'b11) btn_au <= 1;
-				// 	else if(ukpdat[7:6]==2'b01) begin btn_al <=0; btn_ar <= 0; end
+				// 	if     (ukpdat[7:6]==2'b00) btn_au <= 1;
+				// 	else if(ukpdat[7:6]==2'b11) btn_ad <= 1;
+				// 	else if(ukpdat[7:6]==2'b01) begin btn_au <=0; btn_ad <= 0; end
 				// end
 				// 4: begin
 				// 	if     (ukpdat[7:6]==2'b00) btn_al <= 1;
@@ -94,7 +93,7 @@ always @(posedge usbclk) begin
 			rcvct <= rcvct + 1;
 		end
 	end
-		if(~dtrdy && dtrdyd) btn_nes <= {btn_au,btn_ad,btn_ar,btn_al,btn_sta,btn_sel,btn_b,btn_a};
+		if(~dtrdy && dtrdyd) btn_nes <= {btn_ar,btn_al,btn_ad,btn_au,btn_sta,btn_sel,btn_b,btn_a};
 end
 endmodule
 
