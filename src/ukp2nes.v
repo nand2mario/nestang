@@ -6,6 +6,7 @@ module ukp2nes (
     input   usbrst_n,	// reset
 	inout	usb_dm, usb_dp,
 	output reg [7:0] btn_nes,
+	output reg [63:0] dbg_hid_report,		// last HID report
     output conerr
 );
 
@@ -48,38 +49,47 @@ always @(posedge usbclk) begin
 			case(rcvct)
 				// nand2mario's gamepad uses 0, 1 for X amd Y axis
 				0: begin
+					dbg_hid_report[7:0] <= ukpdat;
 					if     (ukpdat[7:6]==2'b00) btn_al <= 1;
 					else if(ukpdat[7:6]==2'b11) btn_ar <= 1;
 					else if(ukpdat[7:6]==2'b01) begin btn_al <=0; btn_ar <= 0; end
 				end
 				1: begin
+					dbg_hid_report[15:8] <= ukpdat;
 					if     (ukpdat[7:6]==2'b00) btn_ad <= 1;
 					else if(ukpdat[7:6]==2'b11) btn_au <= 1;
 					else if(ukpdat[7:6]==2'b01) begin btn_al <=0; btn_ar <= 0; end
 				end
+				2: dbg_hid_report[23:16] <= ukpdat;
+				3: dbg_hid_report[31:24] <= ukpdat;
+				4: dbg_hid_report[39:32] <= ukpdat;
+
 				// hi631's gamepad uses byte 3, 4 for Y and X axis
-				3: begin
-					if     (ukpdat[7:6]==2'b00) btn_ad <= 1;
-					else if(ukpdat[7:6]==2'b11) btn_au <= 1;
-					else if(ukpdat[7:6]==2'b01) begin btn_al <=0; btn_ar <= 0; end
-				end
-				4: begin
-					if     (ukpdat[7:6]==2'b00) btn_al <= 1;
-					else if(ukpdat[7:6]==2'b11) btn_ar <= 1;
-					else if(ukpdat[7:6]==2'b01) begin btn_al <=0; btn_ar <= 0; end
-				end
+				// 3: begin
+				// 	if     (ukpdat[7:6]==2'b00) btn_ad <= 1;
+				// 	else if(ukpdat[7:6]==2'b11) btn_au <= 1;
+				// 	else if(ukpdat[7:6]==2'b01) begin btn_al <=0; btn_ar <= 0; end
+				// end
+				// 4: begin
+				// 	if     (ukpdat[7:6]==2'b00) btn_al <= 1;
+				// 	else if(ukpdat[7:6]==2'b11) btn_ar <= 1;
+				// 	else if(ukpdat[7:6]==2'b01) begin btn_al <=0; btn_ar <= 0; end
+				// end
 				5: begin
+					dbg_hid_report[47:40] <= ukpdat;
 					//if(ukpdat[4]) btn_x <= 1; else btn_x <= 0;
 					if(ukpdat[5]) btn_a <= 1; else btn_a <= 0;
 					if(ukpdat[6]) btn_b <= 1; else btn_b <= 0;
 					//if(ukpdat[7]) btn_y <= 1; else btn_y <= 0;
 				end
 				6: begin 
+					dbg_hid_report[55:48] <= ukpdat;
 					//if(ukpdat[0]) btn_l <= 1; else btn_l <= 0;
 					//if(ukpdat[1]) btn_r <= 1; else btn_r <= 0;
 					if(ukpdat[4]) btn_sel <= 1; else btn_sel <= 0;
 					if(ukpdat[5]) btn_sta <= 1; else btn_sta <= 0;
 				end
+				7: dbg_hid_report[63:56] <= ukpdat;
 			endcase
 			rcvct <= rcvct + 1;
 		end

@@ -369,9 +369,11 @@ Autofire af_triangle (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx[1][4]), .out(
 Autofire af_square2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][7]), .out(auto_square2));
 Autofire af_triangle2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][4]), .out(auto_triangle2));
 
+wire [63:0] dbg_hid_report;
 ukp2nes usb_controller (
     .usbclk(clk_usb), .usbrst_n(sys_resetn),
-    .usb_dm(usbdm), .usb_dp(usbdp),	.btn_nes(usb_btn), .conerr(usb_conerr)
+    .usb_dm(usbdm), .usb_dp(usbdp),	.btn_nes(usb_btn), .conerr(usb_conerr),
+    .dbg_hid_report(dbg_hid_report)
 );
 
 //
@@ -380,7 +382,7 @@ ukp2nes usb_controller (
 `include "print.v"
 defparam tx.uart_freq=BAUDRATE;
 defparam tx.clk_freq=FREQ;
-assign print_clk = clk;
+assign print_clk = sys_clk;
 assign UART_TXD = uart_txp;
 
 reg[3:0] state_0;
@@ -398,22 +400,14 @@ reg [15:0] indata_clk_count = 0;
 
 reg [3:0] sd_state0 = 0;
 
-reg [19:0] timer;           // 27 times per second
+reg [19:0] timer;           // 37 times per second
 always @(posedge clk) timer <= timer + 1;
+
+`define HID_REPORT
 
 always@(posedge clk)begin
     state_0<={2'b0, loader_done};
     state_1<=state_0;
-
-/*
-    if (timer == 0) begin
-        `print({joy_rx[0], joy_rx[1], joy_rx2[0], joy_rx2[1], nes_btn, nes_btn2}, 6);
-//        `print({3'b0, sd_active, 3'b0, sd_total, sd_rsector, sd_last_sector}, 8);
-    end
-    if (timer == 20'b1000_0000_0000_0000_0000) begin
-        `print("\n", STR);
-    end
-*/
 
     if (uart_demux.write)
         recv_packets <= recv_packets + 1;        
@@ -427,18 +421,29 @@ always@(posedge clk)begin
         end
     end
 
-//    if (sd_state != sd_state0) begin
-//        if (sd_state == SD_READ_META) begin
-//            `print("Reading SDcard\n", STR);
-//        end
-//        if (sd_state == SD_START_SECTOR) begin
-//            if (sd_rsector[15:0] == 16'b0) begin
-//                `print(sd_romlen, 3);
-//            end else 
-//                `print(sd_rsector[15:0], 2);
-//        end
-//        sd_state0 <= sd_state;
-//    end
+`ifdef HID_REPORT
+    if (timer == 20'h00000)
+      `print("hid=", STR);
+    if (timer == 20'h10000)
+      `print(dbg_hid_report, 8);
+    if (timer == 20'h20000)
+      `print("\n", STR);
+`endif
+
+`ifdef PRINT_SD
+    if (sd_state != sd_state0) begin
+        if (sd_state == SD_READ_META) begin
+            `print("Reading SDcard\n", STR);
+        end
+        if (sd_state == SD_START_SECTOR) begin
+            if (sd_rsector[15:0] == 16'b0) begin
+                `print(sd_romlen, 3);
+            end else 
+                `print(sd_rsector[15:0], 2);
+        end
+        sd_state0 <= sd_state;
+    end
+`endif
 
 `ifdef COLOR_TRACING
     // print some color values
@@ -512,6 +517,5 @@ end
 
 assign led = ~{~UART_RXD, usb_conerr, loader_done};
 // assign led = ~usb_btn;
-
 
 endmodule
