@@ -76,6 +76,8 @@ IO_LOC "usbdp" 41;      // LCD_R4
 IO_PORT "usbdp" PULL_MODE=NONE IO_TYPE=LVCMOS33;
 IO_LOC "usbdm" 42;      // LCD_R3
 IO_PORT "usbdm" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC "clk_usb" 56;    // for logic analyzer
+IO_PORT "clk_usb" PULL_MODE=NONE IO_TYPE=LVCMOS33;
 
 
 // 2 LEDs for debug

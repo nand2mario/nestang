@@ -52,6 +52,7 @@ module NES_Tang20k(
     // USB
     inout usbdm,
     inout usbdp,
+    output clk_usb,
 
     // HDMI TX
     output       tmds_clk_n,
@@ -75,7 +76,7 @@ end
 // );
   wire clk = sys_clk;
   wire clk_sdram = ~sys_clk;  
-  wire clk_usb;
+//  wire clk_usb;
 
   // USB clock 12Mhz
   Gowin_rPLL_usb pll_nes(
