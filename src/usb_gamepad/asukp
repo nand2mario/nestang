@@ -34,10 +34,10 @@ while (&getline) {				# calculate all label addresses
 }
 seek(SRC, 0, SEEK_END);
 $pc = 0;
-open(DST, "> ukprom.v") || die;
+open(DST, "> usb_gamepad_rom.v") || die;
 select DST;
 print <<EOF;
-module ukprom(clk, adr, data);
+module usb_gamepad_rom(clk, adr, data);
 \tinput clk;
 \tinput [13:0] adr;
 \toutput [3:0] data;
@@ -87,7 +87,7 @@ while (&getline) {
 close SRC;
 print "\t\t\tdefault: data = 4'hX;\n\t\tendcase\n\tend\nendmodule\n";
 close DST;
-system("mv ./ukprom.v ../ukprom.v");
+system("mv ./usb_gamepad_rom.v ../usb_gamepad_rom.v");
 exit 0;
 
 sub getline {

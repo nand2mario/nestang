@@ -378,12 +378,12 @@ Autofire af_triangle2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][4] | usb
 wire [63:0] dbg_hid_report;
 wire [3:0] dbg_dev;
 wire [15:0] dbg_vid, dbg_pid;
-ukp2nes usb_controller (
+usb_gamepad usb_controller (
     .usbclk(clk_usb), .usbrst_n(sys_resetn),
     .usb_dm(usbdm), .usb_dp(usbdp),	.btn_nes(usb_btn), .btn_x(usb_btn_x), .btn_y(usb_btn_y), .conerr(usb_conerr),
     .dbg_hid_report(), .dbg_dev(), .dbg_vid(), .dbg_pid()
 );
-ukp2nes usb_controller2 (
+usb_gamepad usb_controller2 (
     .usbclk(clk_usb), .usbrst_n(sys_resetn),
     .usb_dm(usbdm2), .usb_dp(usbdp2), .btn_nes(usb_btn2), .btn_x(usb_btn_x2), .btn_y(usb_btn_y2), .conerr(usb_conerr2),
     .dbg_hid_report(dbg_hid_report), .dbg_dev(dbg_dev), .dbg_vid(dbg_vid), .dbg_pid(dbg_pid)

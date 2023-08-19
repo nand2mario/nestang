@@ -1,7 +1,8 @@
-; USB keyboard interface for UKP
+; USB gamepad firmware for UKP
+; By hi631, nand2mario
 
 cstart:
-; ---- inturrupt transfer interval (10-1mS)
+; ---- interrupt transfer interval (10-1mS)
 	ldi	9
 cstart2:
 	wait

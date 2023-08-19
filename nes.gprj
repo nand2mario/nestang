@@ -40,8 +40,8 @@
         <File path="src/sdcmd_ctrl.sv" type="file.verilog" enable="1"/>
         <File path="src/sdram.v" type="file.verilog" enable="1"/>
         <File path="src/uart_tx_V2.v" type="file.verilog" enable="1"/>
-        <File path="src/ukp2nes.v" type="file.verilog" enable="1"/>
-        <File path="src/ukprom.v" type="file.verilog" enable="1"/>
+        <File path="src/usb_gamepad.v" type="file.verilog" enable="1"/>
+        <File path="src/usb_gamepad_rom.v" type="file.verilog" enable="1"/>
         <File path="src/nestang.cst" type="file.cst" enable="1"/>
         <File path="src/nestang_dock.cst" type="file.cst" enable="0"/>
         <File path="src/nestang.sdc" type="file.sdc" enable="1"/>

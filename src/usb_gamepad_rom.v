@@ -1,4 +1,4 @@
-module ukprom(clk, adr, data);
+module usb_gamepad_rom(clk, adr, data);
 	input clk;
 	input [13:0] adr;
 	output [3:0] data;
