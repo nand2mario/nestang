@@ -52,7 +52,9 @@ module NES_Tang20k(
     // USB
     inout usbdm,
     inout usbdp,
-    output clk_usb,
+    inout usbdm2,
+    inout usbdp2,
+//    output clk_usb,
 
     // HDMI TX
     output       tmds_clk_n,
@@ -76,7 +78,7 @@ end
 // );
   wire clk = sys_clk;
   wire clk_sdram = ~sys_clk;  
-//  wire clk_usb;
+  wire clk_usb;
 
   // USB clock 12Mhz
   Gowin_rPLL_usb pll_nes(
@@ -175,13 +177,16 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
   O is A, X is B
   */
   wire [7:0] joy_rx[0:1], joy_rx2[0:1];     // 6 RX bytes for all button/axis state
-  wire [7:0] usb_btn;
+  wire [7:0] usb_btn, usb_btn2;
+  wire usb_btn_x, usb_btn_y, usb_btn_x2, usb_btn_y2;
+  wire usb_conerr, usb_conerr2;
   wire auto_square, auto_triangle, auto_square2, auto_triangle2;
   wire [7:0] nes_btn = {~joy_rx[0][5], ~joy_rx[0][7], ~joy_rx[0][6], ~joy_rx[0][4], 
                         ~joy_rx[0][3], ~joy_rx[0][0], ~joy_rx[1][6] | auto_square, ~joy_rx[1][5] | auto_triangle} |
                          usb_btn;
   wire [7:0] nes_btn2 = {~joy_rx2[0][5], ~joy_rx2[0][7], ~joy_rx2[0][6], ~joy_rx2[0][4], 
-                         ~joy_rx2[0][3], ~joy_rx2[0][0], ~joy_rx2[1][6] | auto_square2, ~joy_rx2[1][5] | auto_triangle2};
+                         ~joy_rx2[0][3], ~joy_rx2[0][0], ~joy_rx2[1][6] | auto_square2, ~joy_rx2[1][5] | auto_triangle2} |
+                         usb_btn2;
   
   // Joypad handling
   always @(posedge clk) begin
@@ -365,16 +370,23 @@ dualshock_controller controller2 (
     .I_VIB_SW(2'b00), .I_VIB_DAT(8'hff)     // no vibration
 );
 
-Autofire af_square (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx[1][7]), .out(auto_square));
-Autofire af_triangle (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx[1][4]), .out(auto_triangle));
-Autofire af_square2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][7]), .out(auto_square2));
-Autofire af_triangle2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][4]), .out(auto_triangle2));
+Autofire af_square (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx[1][7] | usb_btn_y), .out(auto_square));            // B
+Autofire af_triangle (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx[1][4] | usb_btn_x), .out(auto_triangle));        // A
+Autofire af_square2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][7] | usb_btn_y2), .out(auto_square2));
+Autofire af_triangle2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][4] | usb_btn_x2), .out(auto_triangle2));
 
 wire [63:0] dbg_hid_report;
+wire [3:0] dbg_dev;
+wire [15:0] dbg_vid, dbg_pid;
 ukp2nes usb_controller (
     .usbclk(clk_usb), .usbrst_n(sys_resetn),
-    .usb_dm(usbdm), .usb_dp(usbdp),	.btn_nes(usb_btn), .conerr(usb_conerr),
-    .dbg_hid_report(dbg_hid_report)
+    .usb_dm(usbdm), .usb_dp(usbdp),	.btn_nes(usb_btn), .btn_x(usb_btn_x), .btn_y(usb_btn_y), .conerr(usb_conerr),
+    .dbg_hid_report(), .dbg_dev(), .dbg_vid(), .dbg_pid()
+);
+ukp2nes usb_controller2 (
+    .usbclk(clk_usb), .usbrst_n(sys_resetn),
+    .usb_dm(usbdm2), .usb_dp(usbdp2), .btn_nes(usb_btn2), .btn_x(usb_btn_x2), .btn_y(usb_btn_y2), .conerr(usb_conerr2),
+    .dbg_hid_report(dbg_hid_report), .dbg_dev(dbg_dev), .dbg_vid(dbg_vid), .dbg_pid(dbg_pid)
 );
 
 //
@@ -404,7 +416,7 @@ reg [3:0] sd_state0 = 0;
 reg [19:0] timer;           // 37 times per second
 always @(posedge clk) timer <= timer + 1;
 
-`define HID_REPORT
+// `define HID_REPORT
 
 always@(posedge clk)begin
     state_0<={2'b0, loader_done};
@@ -428,6 +440,23 @@ always@(posedge clk)begin
     if (timer == 20'h10000)
       `print(dbg_hid_report, 8);
     if (timer == 20'h20000)
+      `print(", vidpid=", STR);
+    if (timer == 20'h30000)
+      `print({dbg_vid, dbg_pid}, 4);
+    if (timer == 20'h40000)
+      `print(", dev=", STR);
+    if (timer == 20'h50000)
+      `print({4'b0, dbg_dev}, 1);
+    if (timer == 20'h60000)
+      `print(", ds2[2]=", STR);
+    if (timer == 20'h70000)
+      `print({joy_rx[0], joy_rx[1], joy_rx2[0], joy_rx2[1]}, 4);
+    if (timer == 20'h80000)
+      `print(", usb_btn[2]=", STR);
+    if (timer == 20'h90000)
+      `print({usb_btn, usb_btn2}, 2);
+
+    if (timer == 20'hf0000)
       `print("\n", STR);
 `endif
 

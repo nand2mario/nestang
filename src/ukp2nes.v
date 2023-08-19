@@ -6,95 +6,134 @@ module ukp2nes (
     input   usbrst_n,	// reset
 	inout	usb_dm, usb_dp,
 	output reg [7:0] btn_nes,
+	output reg btn_x, btn_y,				// for auto-fire
 	output reg [63:0] dbg_hid_report,		// last HID report
+	output reg [15:0] dbg_vid,
+	output reg [15:0] dbg_pid,
+	output [3:0] dbg_dev,
     output conerr
 );
 
 wire dtrdy, dtstb;		// data ready and strobe
 wire [7:0] ukpdat;		// actual data
-wire conerr;			// connection error
+wire vidpid;			    // last vid/pid was valid
+//wire conerr;			// connection error
 ukp ukp(
 	.usbrst_n(usbrst_n), .usbclk(usbclk),
 	.usb_dp(usb_dp), .usb_dm(usb_dm), .usb_oe(),
-	.ukprdy(dtrdy), .ukpstb(dtstb), .ukpdat(ukpdat),
+	.ukprdy(dtrdy), .ukpstb(dtstb), .ukpdat(ukpdat), .vidpid(vidpid),
 	.conerr(conerr) );
 
-reg  [2:0] rcvct;		// counter for recv data
+reg  [3:0] rcvct;		// counter for recv data
 reg  dtstbd, dtrdyd;	// delayed dtstb and dtrdy
+reg [15:0] tmp_vid, tmp_pid;		// temporary VID and PID
+
+// Device types, see vidpid_recognition below
+localparam D_GENERIC = 0;
+localparam D_GAMEPAD = 1;			
+localparam D_DS2_ADAPTER = 2;
+
+reg [3:0] dev = D_GENERIC;			// device type recognized through VID/PID
+assign dbg_dev = dev;
+reg valid = 0;					    // whether current scancode is valid
+
 reg  btn_a, btn_b, btn_sel, btn_sta;
 reg  btn_al, btn_ar, btn_ad, btn_au;	// left, right, down, up
-always @(posedge usbclk) begin
+
+always @(posedge usbclk) begin : process_in_data
 	dtrdyd <= dtrdy; dtstbd <= dtstb;
 	if(~dtrdy) rcvct <= 0;
 	else begin
-		// VID=0x081f, PID=0xe401
-		//           X axis Y axis
-		//             0    1    2  3    4    5          6 
-		// no button: [127, 127, 0, 128, 128, 00001111,  0, 0]
-		//        up: [127, 0,   0, 128, 128, 00001111,  0, 0]
-		//      down: [127, 255, 0, 128, 128, 00001111,  0, 0]
-		//      left: [0,   127, 0, 128, 128, 00001111,  0, 0]
-		//     right: [255, 127, 0, 128, 128, 00001111,  0, 0]
-		//   left+up: [0,   0,   0, 128, 128, 00001111,  0, 0]
-		//  right+up: [255, 0, 	 0, 128, 128, 00001111,  0, 0]
-		//         A: [127, 127, 0, 128, 128, 00101111,  0, 0]
-		//         B: [127, 127, 0, 128, 128, 01001111,  0, 0]
-		//    select: [127, 127, 0, 128, 128, 00001111, 16, 0]
-		//     start: [127, 127, 0, 128, 128, 00001111, 32, 0]
-		//         X: [127, 127, 0, 128, 128, 00011111,  0, 0]
-		//         Y: [127, 127, 0, 128, 128, 10001111,  0, 0]
-		//        LB: [127, 127, 0, 128, 128, 00001111,  1, 0]
-		//        RB: [127, 127, 0, 128, 128, 00001111,  2, 0]
 		if(dtstb && ~dtstbd) begin
 			case(rcvct)
-				// nand2mario's gamepad uses 0, 1 for X amd Y axis
 				0: begin
+					tmp_vid[7:0] <= ukpdat;		// collect VID/PID from the device descriptor
 					dbg_hid_report[7:0] <= ukpdat;
-					if     (ukpdat[7:6]==2'b00) btn_al <= 1;
-					else if(ukpdat[7:6]==2'b11) btn_ar <= 1;
-					else if(ukpdat[7:6]==2'b01) begin btn_al <=0; btn_ar <= 0; end
 				end
 				1: begin
+					tmp_vid[15:8] <= ukpdat;
 					dbg_hid_report[15:8] <= ukpdat;
-					if     (ukpdat[7:6]==2'b00) btn_au <= 1;
-					else if(ukpdat[7:6]==2'b11) btn_ad <= 1;
-					else if(ukpdat[7:6]==2'b01) begin btn_au <=0; btn_ad <= 0; end
 				end
-				2: dbg_hid_report[23:16] <= ukpdat;
-				3: dbg_hid_report[31:24] <= ukpdat;
+				2: begin
+					tmp_pid[7:0] <= ukpdat;
+					dbg_hid_report[23:16] <= ukpdat;
+				end
+				3: begin
+					tmp_pid[15:8] <= ukpdat;
+					dbg_hid_report[31:24] <= ukpdat;
+				end
 				4: dbg_hid_report[39:32] <= ukpdat;
-				// hi631's gamepad uses byte 3, 4 for Y and X axis
-				// 3: begin
-				// 	if     (ukpdat[7:6]==2'b00) btn_au <= 1;
-				// 	else if(ukpdat[7:6]==2'b11) btn_ad <= 1;
-				// 	else if(ukpdat[7:6]==2'b01) begin btn_au <=0; btn_ad <= 0; end
-				// end
-				// 4: begin
-				// 	if     (ukpdat[7:6]==2'b00) btn_al <= 1;
-				// 	else if(ukpdat[7:6]==2'b11) btn_ar <= 1;
-				// 	else if(ukpdat[7:6]==2'b01) begin btn_al <=0; btn_ar <= 0; end
-				// end
-				5: begin
-					dbg_hid_report[47:40] <= ukpdat;
-					//if(ukpdat[4]) btn_x <= 1; else btn_x <= 0;
-					if(ukpdat[5]) btn_a <= 1; else btn_a <= 0;
-					if(ukpdat[6]) btn_b <= 1; else btn_b <= 0;
-					//if(ukpdat[7]) btn_y <= 1; else btn_y <= 0;
-				end
-				6: begin 
-					dbg_hid_report[55:48] <= ukpdat;
-					//if(ukpdat[0]) btn_l <= 1; else btn_l <= 0;
-					//if(ukpdat[1]) btn_r <= 1; else btn_r <= 0;
-					if(ukpdat[4]) btn_sel <= 1; else btn_sel <= 0;
-					if(ukpdat[5]) btn_sta <= 1; else btn_sta <= 0;
-				end
+				5: dbg_hid_report[47:40] <= ukpdat;
+				6: dbg_hid_report[55:48] <= ukpdat;
 				7: dbg_hid_report[63:56] <= ukpdat;
 			endcase
+			// Generic gamepad handling. 
+			// A typical scheme:
+			// - d[3] is X axis (0: left, 255: right)
+			// - d[4] is Y axis
+			// - d[5][7:4] is buttons YBAX
+			// - d[6][5:4] is buttons START,SELECT
+			// Variations:
+			// - Some gamepads uses d[0] and d[1] for X and Y axis.
+			// - Some transmits a different set when d[0][1:0] is 2 (a dualshock adapater)
+			case (rcvct)
+			0: begin
+				if (ukpdat[1:0] != 2'b10) begin
+					// for DualShock2 adapter, 2'b10 marks an irrelevant record
+					valid <= 1;
+					btn_al <= 0; btn_ar <= 0; btn_au <= 0; btn_ad <= 0;
+				end else
+					valid <= 0;
+				if (ukpdat==8'h00) {btn_al, btn_ar} <= 2'b10;
+				if (ukpdat==8'hff) {btn_al, btn_ar} <= 2'b01;
+			end
+			1: begin
+				if (ukpdat==8'h00) {btn_au, btn_ad} <= 2'b10;
+				if (ukpdat==8'hff) {btn_au, btn_ad} <= 2'b01;
+			end
+			3: if (valid) begin 
+				if (ukpdat[7:6]==2'b00) {btn_al, btn_ar} <= 2'b10;
+				if (ukpdat[7:6]==2'b11) {btn_al, btn_ar} <= 2'b01;
+			end
+			4: if (valid) begin 
+				if (ukpdat[7:6]==2'b00) {btn_au, btn_ad} <= 2'b10;
+				if (ukpdat[7:6]==2'b11) {btn_au, btn_ad} <= 2'b01;
+			end
+			5: if (valid) begin
+				btn_x <= ukpdat[4];
+				btn_a <= ukpdat[5];
+				btn_b <= ukpdat[6];
+				btn_y <= ukpdat[7];
+			end
+			6: if (valid) begin
+				btn_sel <= ukpdat[4];
+				btn_sta <= ukpdat[5];
+			end
+			endcase
+			// TODO: add any special handling if needed 
+			// (using the detected controller type in 'dev')
+
 			rcvct <= rcvct + 1;
 		end
 	end
 		if(~dtrdy && dtrdyd) btn_nes <= {btn_ar,btn_al,btn_ad,btn_au,btn_sta,btn_sel,btn_b,btn_a};
 end
+
+always @(posedge usbclk) begin : vidpid_recognition
+	if (vidpid) begin
+		dbg_vid <= tmp_vid;
+		dbg_pid <= tmp_pid;
+		case({tmp_vid, tmp_pid})
+		32'h081F_E401:		// "Gamepad" - snes-style gamepad
+			dev <= D_GAMEPAD;
+		32'h0810_0001:		// "Twin USB Joystick" - DS2 USB adapter
+			dev <= D_DS2_ADAPTER;
+		default:
+			dev <= D_GENERIC;
+		endcase
+	end
+end
+
 endmodule
 
 module ukp(
@@ -105,6 +144,7 @@ module ukp(
 	output reg ukprdy, 			// data frame is outputing
 	output ukpstb,				// strobe for a byte within the frame
 	output reg [7:0] ukpdat,	// output data when ukpstb=1
+	output reg vidpid,			// VID/PID in last response is valid
 	output conerr
 );
 
@@ -117,6 +157,7 @@ module ukp(
 	parameter S_S0 = 6;
 	parameter S_S1 = 7;
 	parameter S_S2 = 8;
+	parameter S_TOGGLE0 = 9;
 
 	wire [3:0] inst;
 	reg  [3:0] insth;
@@ -160,6 +201,7 @@ module ukp(
 			mbit <= 0; bitadr <= 0; nak <= 1; ug <= 0;
 		end else begin
 			dpi <= usb_dp; dmi <= usb_dm;
+			vidpid <= 0;		// ensure pulse
 			if (inst_ready) begin
 				// Instruction decoding
 				case(state)
@@ -180,8 +222,8 @@ module ukp(
 							endcase
 						end
 						if(inst==11 | inst==13 & sample) wk <= wk - 8'd1;	// op=DJNZ,IN
-						if(inst==12) connected <= ~connected;				// op=toggle
 						if(inst==15) begin state <= S_B2; cond <= 1; end	// op=jmp
+						if(inst==12) state <= S_TOGGLE0;
 					end
 					// Instructions with operands
 					// ldi
@@ -194,6 +236,12 @@ module ukp(
 					// out
 					S_S0: begin sb[3:0] <= inst; state <= S_S1; end
 					S_S1: begin sb[7:4] <= inst; state <= S_S2; mbit <= 1; end
+					// toggle and vidpid
+					S_TOGGLE0: begin 
+						if (inst == 1) connected <= ~connected;			// toggle
+						else vidpid <= 1;                               // vidpid
+						state <= S_OPCODE;
+  					end
 				endcase
 				// pc control
 				if (mbit==0) begin 

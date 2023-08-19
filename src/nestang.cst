@@ -71,13 +71,23 @@ IO_PORT "UART_TXD" IO_TYPE=LVCMOS33;
 //IO_LOC "UART_RXD" 31;
 //IO_PORT "UART_RXD" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
 
-// USB port
-IO_LOC "usbdp" 41;      // LCD_R4
-IO_PORT "usbdp" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "usbdm" 42;      // LCD_R3
-IO_PORT "usbdm" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "clk_usb" 56;    // for logic analyzer
-IO_PORT "clk_usb" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+// USB ports
+IO_LOC "usbdp" 42;      
+IO_PORT "usbdp" PULL_MODE=DOWN IO_TYPE=LVCMOS33;
+IO_LOC "usbdm" 41;      
+IO_PORT "usbdm" PULL_MODE=DOWN IO_TYPE=LVCMOS33;
+IO_LOC "usbdp2" 56;     
+IO_PORT "usbdp2" PULL_MODE=DOWN IO_TYPE=LVCMOS33;
+IO_LOC "usbdm2" 54;     
+IO_PORT "usbdm2" PULL_MODE=DOWN IO_TYPE=LVCMOS33;
+
+// USB debug board
+//IO_LOC "usbdp" 41;      // LCD_R4
+//IO_PORT "usbdp" PULL_MODE=DOWN IO_TYPE=LVCMOS33;
+//IO_LOC "usbdm" 42;      // LCD_R3
+//IO_PORT "usbdm" PULL_MODE=DOWN IO_TYPE=LVCMOS33;
+//IO_LOC "clk_usb" 56;    // for logic analyzer
+//IO_PORT "clk_usb" PULL_MODE=NONE IO_TYPE=LVCMOS33;
 
 
 // 2 LEDs for debug
