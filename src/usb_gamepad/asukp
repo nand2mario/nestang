@@ -1,0 +1,104 @@
+#! /usr/bin/perl
+# UKP assembler
+
+%inst = ("nop"   , 0,  "ldi"  , 1,  "start", 2,  "out4", 3,
+		 "out0"  , 4,  "hiz" , 5,  "outb" , 6,  "ret" , 7, 
+		 "bz"    , 8,  "bc"   , 9,  "bnak" , 10, "djnz", 11,
+		 "toggle", 12, "vidpid", 12, "in"   , 13, "wait" , 14, "jmp", 15 );
+
+open(SRC, "ukp.s") || die;
+while (&getline) {				# calculate all label addresses
+	if (/^(\w+):/) {
+		if (defined($label{$1})) {
+			printf STDERR "$_ already defined\n";
+			exit 1;
+		}
+		$pc = $pc + 3 & ~3;
+		$label{$1} = $pc;
+		printf "pc=%03x\t%s\n", $pc, $1;
+	}
+	else {
+		@_ = split;
+		unless (defined($inst{$_[0]})) {
+			printf STDERR "syntax error: $_\n";
+			exit 1;
+		}
+		$code = $inst{$_[0]};
+		if($code==15) {
+			$pc += 4;
+		} else {
+			$pc += $code == 1 || $code >= 8 && $code < 12  || $code == 3  || $code == 6 ? 3 : 
+				   $code == 12 ? 2 : 1;
+		}
+	}
+}
+seek(SRC, 0, SEEK_END);
+$pc = 0;
+open(DST, "> usb_gamepad_rom.v") || die;
+select DST;
+print <<EOF;
+module usb_gamepad_rom(clk, adr, data);
+\tinput clk;
+\tinput [13:0] adr;
+\toutput [3:0] data;
+\treg [3:0] data; 
+\talways @(posedge clk) begin
+\t\tcase (adr)
+EOF
+
+while (&getline) {
+	if (/^(\w+):/) {						# label
+		putline(0) while $pc & 3;
+		$scd = "  // $_";
+		printf "\t\t\t\t\t\t\t\t%s\n", $scd;  $scd="";
+	}
+	else {
+		$scd = " // $_";
+		@_ = split;
+		$code = $inst{$_[0]};
+		if ($code<16) {putline($code); $scd="";}
+		if ($code==12) {
+			putline($_[0] eq "toggle" ? 1 : 2); 				# toggle/vidpid
+		}
+		if ($code == 1 || $code == 3 || $code == 6) {		# ldi/out4/outb/
+			if (substr($_[1], 0, 2) eq "0x") {
+				$v = hex($_[1]);
+			} else {
+				$v = $_[1];
+			}
+			putline($v & 15);
+			putline($v >> 4);
+		}
+
+		elsif ($code >= 8 && $code < 12 || $code == 15) {	# jump
+			unless (defined($label{$_[1]})) {
+				printf STDERR "$_[1] not defined\n";
+				exit 1;
+			}
+			$adr = $label{$_[1]} >> 2;
+			putline($adr & 15);
+			putline(($adr >> 4) & 15);
+			if($code == 15) {
+				putline(($adr >> 8) & 15);
+			}
+		}
+	}
+}
+close SRC;
+print "\t\t\tdefault: data = 4'hX;\n\t\tendcase\n\tend\nendmodule\n";
+close DST;
+system("mv ./usb_gamepad_rom.v ../usb_gamepad_rom.v");
+exit 0;
+
+sub getline {
+	do {
+		return 0 unless $_ = <SRC>;
+		chomp;
+		s/\s*;.*$//;
+	} while (/^\s*$/);
+	1;
+}
+
+sub putline {
+	printf "\t\t\t10'h%03x: data = 4'h%x;%s\n", $pc++, shift(@_), $scd;
+}
