@@ -545,7 +545,8 @@ end
 
 `endif
 
-assign led = ~{~UART_RXD, usb_conerr, loader_done};
+assign led = ~{~UART_RXD, loader_done};
+//assign led = ~{~UART_RXD, usb_conerr, loader_done};
 // assign led = ~usb_btn;
 
 endmodule

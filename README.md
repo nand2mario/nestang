@@ -20,10 +20,10 @@ Main features,
 The best way to experience NESTang is with the Tang Nano 20K (Retro Game Kit version), which cost $38 last time I checked. The board features FPGA-friendly SDRAM memory. And the kit includes the necessary controller adapters and a pair of controllers. Here's what you need to run NESTang:
 
 * The Tang Nano 20K board.
-* Sipeed ps2 controller adapters connected to the board's pin 15-20 on both sides.
+* Sipeed ps2 controller adapters connected to the board's pin 15-20 on both sides. The latest 0.6 release also supports [USB gamepads](doc/usb_gamepad.md).
 * Playstation controllers (wired or wireless) connected to the adapters.
 * HDMI cable to connect the board to a monitor.
-* NESTang 0.5 program downloaded from [github](https://github.com/nand2mario/nestang/releases) and transferred to the board using either [openFPGALoader](https://github.com/trabucayre/openFPGALoader) or Gowin programmer.
+* Latest NESTang program downloaded from [github](https://github.com/nand2mario/nestang/releases) and transferred to the board using either [openFPGALoader](https://github.com/trabucayre/openFPGALoader) or Gowin programmer.
 * A MicroSD card to hold ROMs. An 8GB cards should suffice. The `tools/nes2img.py` python program can be used to convert .nes ROM files to an .img file. Ensure that you have Python version 3.7 or higher, and then install the Pillow package using `pip3 install pillow`. You can then use an SD imaging tool such as [Balena Etcher](https://www.balena.io/etcher) to burn the newly created image onto the MicroSD card.
 * Insert the MicroSD card and power up the board to start playing your favorite games!
 
@@ -65,6 +65,7 @@ Here are what I may work on when I get time. No promise though. Suggestions and 
 
 * [fpganes](https://github.com/strigeus/fpganes) by Ludvig Strigeus.
 * [hdl-util/hdmi](https://github.com/hdl-util/hdmi) by Sameer Puri.
+* [NES for Tang Nano 9K](https://github.com/hi631/tang-nano-9K) by hi631
 
 nand2mario (`nand2mario at outlook.com`)
 
