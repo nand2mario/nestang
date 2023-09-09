@@ -123,15 +123,15 @@ always @ (posedge clk or negedge rstn)
                 sdcmd_stat <= CMD17;
         end else if(~busy) begin
             case(sdcmd_stat)
-                CMD0    :   set_cmd(1, (SIMULATE?512:64000),  0,  'h00000000);
-                CMD8    :   set_cmd(1,                 512 ,  8,  'h000001aa);
-                CMD55_41:   set_cmd(1,                 512 , 55,  'h00000000);
-                ACMD41  :   set_cmd(1,                 256 , 41,  'h40100000);
-                CMD2    :   set_cmd(1,                 256 ,  2,  'h00000000);
-                CMD3    :   set_cmd(1,                 256 ,  3,  'h00000000);
+                CMD0    :   set_cmd(1, (SIMULATE?512:64000),  0,  'h00000000);  // GO_IDLE_STATE
+                CMD8    :   set_cmd(1,                 512 ,  8,  'h000001aa);  // SEND_IF_COND
+                CMD55_41:   set_cmd(1,                 512 , 55,  'h00000000);  // APP_CMD	
+                ACMD41  :   set_cmd(1,                 256 , 41,  'h40100000);  // SD_SEND_OP_COND
+                CMD2    :   set_cmd(1,                 256 ,  2,  'h00000000);  // Read CID register
+                CMD3    :   set_cmd(1,                 256 ,  3,  'h00000000);  // 
                 CMD7    :   set_cmd(1,                 256 ,  7, {rca,16'h0});
-                CMD16   :   set_cmd(1, (SIMULATE?512:64000), 16,  'h00000200);
-                CMD17   :   if(rstart) begin 
+                CMD16   :   set_cmd(1, (SIMULATE?512:64000), 16,  'h00000200);  // SET_BLOCKLEN
+                CMD17   :   if(rstart) begin                                    // READ_SINGLE_BLOCK
                                 set_cmd(1, 96, 17, (card_type==SDHCv2) ? rsector : (rsector<<9) );
                                 rsectoraddr <= (card_type==SDHCv2) ? rsector : (rsector<<9);
                                 sdcmd_stat <= READING;
