@@ -38,10 +38,11 @@ module sd_file_list_reader #(
     output     [7:0]  list_name[0:51],   // name of current file, max 52 chars, [255:248] is first char, etc.
     output     [7:0]  list_namelen,
     output reg [9:0]  list_file_num,     // number of current file: 0, 1...
-    output reg        list_en,           // pulse on new list result
+    output            list_en,           // pulse on new list result
     // reading content data output (sync with clk)
     output reg        outen,             // when outen=1, a byte of file content is read out from outbyte
-    output reg  [7:0] outbyte            // a byte of file content
+    output reg  [7:0] outbyte,           // a byte of file content
+    output [2:0] debug_filesystem_state
 );
 
 initial file_found = 1'b0;
@@ -91,6 +92,7 @@ localparam [2:0] RESET         = 3'd0,
                  DONE          = 3'd6;
 
 reg        [2:0] filesystem_state = RESET;
+assign debug_filesystem_state = filesystem_state;
 
 localparam [1:0] UNASSIGNED = 2'd0,
                  UNKNOWN    = 2'd1,
@@ -176,7 +178,7 @@ always @ (posedge clk or negedge rstn)
     end else begin
         op_r <= op;
         if (~op_r && op) begin
-
+            // reset when op becomes 1
         end
         cluster_size_t = cluster_size;
         first_fat_sector_no_t  = first_fat_sector_no;
@@ -372,6 +374,7 @@ sd_reader #(
 // parse root dir
 //----------------------------------------------------------------------------------------------------------------------
 reg         fready = 1'b0;            // a file is find when fready = 1
+assign list_en = fready;
 reg  [ 7:0] fnamelen = 0;
 reg  [15:0] fcluster = 0;
 reg  [31:0] fsize = 0;

@@ -28,7 +28,11 @@ module SDLoader #(
     
     // debug
     output [4:0] debug_active,
-    output [4:0] debug_total
+    output [7:0] debug_cardstat,
+    output debug_sd_list_en,
+    output [7:0] debug_sd_list_name [0:51],
+    output [7:0] debug_sd_list_namelen,
+    output [2:0] debug_filesystem_state
 );
 
 `include "font.vh"
@@ -48,7 +52,6 @@ localparam [63:0] CURSOR = {8'b00000000,        // actual glyph is flipped horiz
                             8'b00000011};
 
 assign debug_active = active;
-assign debug_total = total;
 
 reg[2:0] pad;  // de-bounced pulse for joypad 
 localparam [2:0] PAD_CENTER = 3'd0;
@@ -74,6 +77,9 @@ wire [7:0] sd_list_name[0:51];
 wire [7:0] sd_list_namelen;
 wire [9:0] sd_list_file;
 wire sd_list_en;
+assign debug_sd_list_en = sd_list_en;
+assign debug_sd_list_name = sd_list_name;
+assign debug_sd_list_namelen = sd_list_namelen;
 
 // whether current sd_outbyte is valid NES data
 assign dout = sd_outbyte;
@@ -84,11 +90,12 @@ sd_file_list_reader #(
 ) sd_reader_i (
     .rstn(resetn), .clk(clk),
     .sdclk(sd_clk), .sdcmd(sd_cmd), .sddat0(sd_dat0),
-    .card_stat(),.card_type(),
+    .card_stat(debug_cardstat[7:4]),.card_type(debug_cardstat[3:2]),.filesystem_type(debug_cardstat[1:0]),
     .op(sd_op), .read_file(sd_file),
     .list_name(sd_list_name), .list_namelen(sd_list_namelen), 
     .list_file_num(sd_list_file), .list_en(sd_list_en),
-    .outen(sd_outen), .outbyte(sd_outbyte)
+    .outen(sd_outen), .outbyte(sd_outbyte),
+    .debug_filesystem_state(debug_filesystem_state)
 );
 
 // SD card loading process
