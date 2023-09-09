@@ -28,17 +28,12 @@ module SDLoader #(
     
     // debug
     output [4:0] debug_active,
-    output [4:0] debug_total,
-    output [23:0] debug_sd_rsector,
-    output [23:0] debug_sd_last_sector
+    output [4:0] debug_total
 );
 
 `include "font.vh"
 
-reg [31:0] magic;
-reg [23:0] prev_meta, next_meta;
 reg [7:0] x[0:19], y[0:19];
-reg [23:0] rom_sector[0:19], rom_len[0:19];
 reg [5:0] background, foreground;
 reg [4:0] active, total;
 reg [4:0] cursor_now;   // current cursor under refresh
@@ -54,8 +49,6 @@ localparam [63:0] CURSOR = {8'b00000000,        // actual glyph is flipped horiz
 
 assign debug_active = active;
 assign debug_total = total;
-assign debug_sd_rsector = sd_rsector;
-assign debug_sd_last_sector = sd_last_sector;
 
 reg[2:0] pad;  // de-bounced pulse for joypad 
 localparam [2:0] PAD_CENTER = 3'd0;
@@ -71,16 +64,11 @@ assign sd_dat3 = 1; // Must set sddat1~3 to 1 to avoid SD card from entering SPI
 
 // state and wires
 reg [7:0] X, Y;           // current X and Y
-reg sd_rstart = 0;
-reg [23:0] sd_rsector, sd_last_sector;
 reg [23:0] sd_romlen;     // max 32K sectors (16MB)
-wire sd_rdone, sd_outen;
+wire sd_outen;
 wire [7:0] sd_outbyte;
-reg [8:0] sd_off;         // in-sector offset
 reg sd_loading;
-assign is_last_sector = sd_rsector == sd_last_sector;
-//assign meta_idx = sd_off[7:3] - 5'd2;     // index of 8-byte entries from offset 16
-reg [1:0] sd_cmd;
+reg sd_op = 0;
 reg [9:0] sd_file;
 wire [7:0] sd_list_name[0:51];
 wire [7:0] sd_list_namelen;
@@ -89,7 +77,7 @@ wire sd_list_en;
 
 // whether current sd_outbyte is valid NES data
 assign dout = sd_outbyte;
-assign dout_valid = sd_loading & sd_outen & (~is_last_sector | (sd_off < sd_romlen[8:0]));
+assign dout_valid = sd_loading & sd_outen;
 
 sd_file_list_reader #(
     .CLK_DIV(3'd1),.SIMULATE(0)
@@ -97,8 +85,8 @@ sd_file_list_reader #(
     .rstn(resetn), .clk(clk),
     .sdclk(sd_clk), .sdcmd(sd_cmd), .sddat0(sd_dat0),
     .card_stat(),.card_type(),
-    .cmd(sd_cmd), .read_file(sd_file),
-    .list_name(sd_list_file), .list_namelen(sd_list_namelen), 
+    .op(sd_op), .read_file(sd_file),
+    .list_name(sd_list_name), .list_namelen(sd_list_namelen), 
     .list_file_num(sd_list_file), .list_en(sd_list_en),
     .outen(sd_outen), .outbyte(sd_outbyte)
 );
@@ -110,31 +98,32 @@ localparam [3:0] SD_UI = 4'd3;              // process user input
 localparam [3:0] SD_READ_ROM = 4'd4;
 localparam [3:0] SD_FAIL = 4'd14;
 localparam [3:0] SD_DONE = 4'd15;
+wire [7:0] nx = X == 255 ? 10 : X+1;
+wire [7:0] ny = X == 255 ? (Y == 200 ? 200 : Y+1) : Y;
+wire [5:0] ch = (nx >> 3) - 2;
+wire [5:0] fn = (ny >> 3) - 5;
+
 always @(posedge clk) begin
-    wire [7:0] nx = X == 255 ? 10 : X+1;
-    wire [7:0] ny = X == 255 ? (Y == 200 ? 200 : Y+1) : Y;
-    wire [5:0] ch = (nx >> 3) - 2;
-    wire [5:0] fn = (ny >> 3) - 5;
     
     if (~resetn) begin
-        sd_cmd <= 1;                // list root dir
-        state <= SD_READ_META;
+        sd_op <= 0;                 // list root dir
+        state <= SD_READ_DIR;
         sd_loading <= 0;
         overlay <= 0;
     end else case (state)
     SD_READ_DIR: begin
         if (sd_list_en) begin       // found a dir entry, draw onto screen
             // starting from col=2, row=5, 8x8 chars, 20 lines, 30 wide
-            if (sd_list_num < 20) begin
+            if (sd_list_file < 20) begin
                 X <= 9;
-                Y <= 40 + sd_list_num << 3;
+                Y <= 40 + sd_list_file << 3;
                 overlay <= 0;
             end
         end else begin
             // fill in actual pixels, one pixel per clock cycle
             // so one file name takes 30*64=1920 cycles
             overlay <= 1;
-            if (fn == sd_list_num && ch < sd_list_namelen) begin
+            if (fn == sd_list_file && ch < sd_list_namelen) begin
                 if (FONT[sd_list_name[ch]][ny[2:0]][nx[2:0]])
                     color <= 55;    // bright yellow
                 else
@@ -150,10 +139,7 @@ always @(posedge clk) begin
         else if (pad == PAD_DOWN && active != total-1)
             active = active + 1;
         else if (pad == PAD_RIGHT || pad == PAD_LEFT) begin // navigate to next/prev menu
-            sd_rstart <= 1;
-            sd_rsector <= pad == PAD_RIGHT ? next_meta : prev_meta;
-            state <= SD_READ_META;
-            sd_off <= 0;
+            state <= SD_READ_DIR;
         end
 
         // paint cursor, one dot per clock
@@ -170,7 +156,7 @@ always @(posedge clk) begin
         cycle <= x[cursor_now] + cursor_dot[2:0];
 
         if (nes_btn[0] && total != 0) begin       // select ROM and start loading
-            sd_cmd <= 2;
+            sd_op <= 1;
             sd_file <= active;
             overlay <= 0;
             sd_loading <= 1;

@@ -4,8 +4,8 @@
 // Type    : synthesizable, IP's top
 // Standard: Verilog 2001 (IEEE1364-2001)
 // Function: A SD-card host to initialize SD-card, list root directory and read files
-//           cmd=1: list all files in root dir and output names through list_en, list_name and list_file_num
-//           cmd=2: read content of the file numbered read_file
+//           op=1: list all files in root dir and output names through list_en, list_name and list_file_num
+//           op=2: read content of the file numbered read_file
 //           Support CardType   : SDv1.1 , SDv2  or SDHCv2
 //           Support FileSystem : FAT16 or FAT32
 //--------------------------------------------------------------------------------------------------------
@@ -27,7 +27,7 @@ module sd_file_list_reader #(
     inout             sdcmd,
     input  wire       sddat0,            // FPGA only read SDDAT signal but never drive it
     // command interface
-    input       [1:0] cmd,               // 1: list root dir, 2: read file
+    input             op,                // 0: list root dir, 1: read file
     input       [9:0] read_file,         // file number to read for cmd=2
     // status output (optional for user)
     output wire [3:0] card_stat,         // show the sdcard initialize status
@@ -158,8 +158,9 @@ end
 //----------------------------------------------------------------------------------------------------------------------
 // main FSM
 //----------------------------------------------------------------------------------------------------------------------
+reg op_r;
 always @ (posedge clk or negedge rstn)
-    if(~rstn) begin
+    if(~rstn) begin           
         read_start <= 1'b0;
         read_sector_no <= 0;
         filesystem_state <= RESET;
@@ -173,6 +174,10 @@ always @ (posedge clk or negedge rstn)
         rootdir_sector        <= 0;
         rootdir_sectorcount   <= 16'h0;
     end else begin
+        op_r <= op;
+        if (~op_r && op) begin
+
+        end
         cluster_size_t = cluster_size;
         first_fat_sector_no_t  = first_fat_sector_no;
         first_data_sector_no_t = first_data_sector_no;
@@ -529,7 +534,7 @@ always @ (posedge clk or negedge rstn)
         file_cluster <= 0;
         file_size <= 0;
     end else begin
-        if (fready && list_file_num==read_file) begin
+        if (fready && op &&  list_file_num==read_file) begin
             file_found <= 1'b1;
             file_cluster <= fcluster;
             file_size <= fsize;

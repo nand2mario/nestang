@@ -321,7 +321,6 @@ nes2hdmi u_hdmi (
 );
 
 wire [4:0] sd_active, sd_total;
-wire [23:0] sd_rsector, sd_last_sector;
 SDLoader #(.FREQ(FREQ)) sd_loader (
     .clk(clk), .resetn(sys_resetn),
     .overlay(menu_overlay), .color(menu_color), .scanline(menu_scanline),
@@ -331,8 +330,7 @@ SDLoader #(.FREQ(FREQ)) sd_loader (
     .sd_clk(sd_clk), .sd_cmd(sd_cmd), .sd_dat0(sd_dat0), .sd_dat1(sd_dat1),
     .sd_dat2(sd_dat2), .sd_dat3(sd_dat3),
 
-    .debug_active(sd_active), .debug_total(sd_total),
-    .debug_sd_rsector(sd_rsector), .debug_sd_last_sector(sd_last_sector)
+    .debug_active(sd_active), .debug_total(sd_total)
 );
 
 // Dualshock controller

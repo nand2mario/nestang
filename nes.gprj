@@ -35,6 +35,7 @@
         <File path="src/nes2hdmi.sv" type="file.verilog" enable="1"/>
         <File path="src/nes_tang20k.v" type="file.verilog" enable="1"/>
         <File path="src/ppu.v" type="file.verilog" enable="1"/>
+        <File path="src/sd_file_list_reader.v" type="file.verilog" enable="1"/>
         <File path="src/sd_loader.v" type="file.verilog" enable="1"/>
         <File path="src/sd_reader.sv" type="file.verilog" enable="1"/>
         <File path="src/sdcmd_ctrl.sv" type="file.verilog" enable="1"/>
