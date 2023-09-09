@@ -28,7 +28,6 @@ module sd_file_list_reader #(
     input  wire       sddat0,            // FPGA only read SDDAT signal but never drive it
     // command interface
     input       [1:0] cmd,               // 1: list root dir, 2: read file
-    input             ready,             // 1: enable execution of listing or reading
     input       [9:0] read_file,         // file number to read for cmd=2
     // status output (optional for user)
     output wire [3:0] card_stat,         // show the sdcard initialize status
