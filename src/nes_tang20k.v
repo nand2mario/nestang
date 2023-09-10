@@ -323,8 +323,11 @@ nes2hdmi u_hdmi (
 wire [4:0] sd_active, sd_total;
 wire [7:0] sd_list_name [0:51];
 wire [7:0] sd_list_namelen;
+wire [9:0] sd_list_file;
 wire [2:0] debug_filesystem_state;
 wire [7:0] cardstat;
+wire sd_read_done;
+wire [31:0] sd_read_sector_no;
 SDLoader #(.FREQ(FREQ)) sd_loader (
     .clk(clk), .resetn(sys_resetn),
     .overlay(menu_overlay), .color(menu_color), .scanline(menu_scanline),
@@ -338,6 +341,8 @@ SDLoader #(.FREQ(FREQ)) sd_loader (
     .debug_cardstat(cardstat),
     .debug_sd_list_name(sd_list_name),
     .debug_sd_list_namelen(sd_list_namelen),
+    .debug_sd_list_file(sd_list_file),
+    .debug_read_done(sd_read_done), .debug_read_sector_no(sd_read_sector_no),
     .debug_filesystem_state(debug_filesystem_state)
 );
 
@@ -433,14 +438,18 @@ always@(posedge clk)begin
     // status for SD file browsing
     if (sd_list_en)
       file_total <= file_total + 1;
+    if (sd_read_done)
+      `print({5'b0, debug_filesystem_state, sd_read_sector_no}, 5);
     case (timer)
     20'h00000: `print({5'b0, debug_filesystem_state}, 1);
     20'h10000: `print(", cardstat=", STR);
     20'h20000: `print(cardstat, 1);
     20'h30000: `print(", total=", STR);
     20'h40000: `print(file_total, 1);
-    20'h50000: `print(", file=", STR);
-    20'h60000: `print(sd_list_name, STR);
+    20'h50000: `print(", no=", STR);
+    20'h60000: `print(sd_list_file[7:0], 1);
+    20'h70000: `print(", file=", STR);
+    20'h80000: `print(sd_list_name, STR);
     20'hf0000: `print("\n", STR);
     endcase
 

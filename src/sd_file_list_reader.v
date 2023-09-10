@@ -10,6 +10,8 @@
 //           Support FileSystem : FAT16 or FAT32
 //--------------------------------------------------------------------------------------------------------
 
+// FAT32: https://www.p-dd.com/chapter3-page6.html
+
 module sd_file_list_reader #(
     parameter      [2:0] CLK_DIV       = 3'd2,          // when clk =   0~ 25MHz , set CLK_DIV = 3'd1,
                                                         // when clk =  25~ 50MHz , set CLK_DIV = 3'd2,
@@ -42,6 +44,8 @@ module sd_file_list_reader #(
     // reading content data output (sync with clk)
     output reg        outen,             // when outen=1, a byte of file content is read out from outbyte
     output reg  [7:0] outbyte,           // a byte of file content
+    output debug_read_done,
+    output [31:0] debug_read_sector_no,
     output [2:0] debug_filesystem_state
 );
 
@@ -52,6 +56,9 @@ initial {outen,outbyte} = 0;
 reg         read_start     = 1'b0;
 reg  [31:0] read_sector_no = 0;
 wire        read_done;
+
+assign debug_read_done = read_done;
+assign debug_read_sector_no = read_sector_no;
 
 wire        rvalid;
 wire [ 8:0] raddr;
@@ -180,6 +187,8 @@ always @ (posedge clk or negedge rstn)
         if (~op_r && op) begin
             // reset when op becomes 1
         end
+        // nand2mario: this is confusing due to mixing of blocking and non-blocking assignments
+        // all *_t variables are combinatorial and thus uses blocking assignments
         cluster_size_t = cluster_size;
         first_fat_sector_no_t  = first_fat_sector_no;
         first_data_sector_no_t = first_data_sector_no;
@@ -198,6 +207,8 @@ always @ (posedge clk or negedge rstn)
                             end else begin
                                 read_sector_no <= read_sector_no + 1;
                             end
+
+                            // DBR format: https://www.p-dd.com/chapter3-page19.html
             SEARCH_DBR :    if(is_boot_sector && is_dbr ) begin
                                 if(bytes_per_sector!=16'd512) begin
                                     filesystem_state <= DONE;
@@ -215,14 +226,15 @@ always @ (posedge clk or negedge rstn)
                                         read_sector_no      <= rootdir_sector_t + cluster_sector_offset_t;
                                         filesystem_state <= LS_ROOT_FAT16;
                                     end else if(filesystem_parsed==FAT32) begin
-                                        cluster_size_t        = sector_per_cluster;
-                                        first_fat_sector_no_t = read_sector_no + resv_sectors;
-                                        
+                                        cluster_size_t        = sector_per_cluster;             // 4
+                                        first_fat_sector_no_t = read_sector_no + resv_sectors;  // 0x155E
+                                                                                                // sectors_per_fat = 0x7551, number_of_fat = 2
                                         first_data_sector_no_t= first_fat_sector_no_t + sectors_per_fat * number_of_fat - cluster_size_t * 2;
-                                        
-                                        curr_cluster_t        = root_cluster;
+                                                                                                // 0xFFF8
+                                        curr_cluster_t        = root_cluster;                   // 2
                                         cluster_sector_offset_t = 8'h0;
                                         read_sector_no      <= first_data_sector_no_t + cluster_size_t * curr_cluster_t + cluster_sector_offset_t;
+                                                                                                // 0x10000
                                         filesystem_state <= LS_ROOT_FAT32;
                                     end else begin
                                         filesystem_state <= DONE;
@@ -417,13 +429,15 @@ always @ (posedge clk or negedge rstn) begin
         file_1st_size_t = file_1st_size;
         
         fready<=1'b0;  fnamelen<=8'h0;
-        for(i=0;i<52;i=i+1) fname[i]<=8'h0;
+        // for(i=0;i<52;i=i+1) fname[i]<=8'h0;
         fcluster<=16'h0;  fsize<=0;
 
         if (filesystem_state == SEARCH_MBR) list_file_num <= 0;     // reset file number on start of search
 
         if( rvalid && (filesystem_state==LS_ROOT_FAT16||filesystem_state==LS_ROOT_FAT32) && ~search_fat ) begin
             // valid byte from root dir FAT
+            // Root dir: https://www.p-dd.com/chapter3-page26.html
+            // FAT32 tables: https://www.p-dd.com/chapter3-page23.html
             case (raddr[4:0])
                 5'h1A : file_1st_cluster_t[ 0+:8] = rdata;
                 5'h1B : file_1st_cluster_t[ 8+:8] = rdata;
@@ -437,7 +451,7 @@ always @ (posedge clk or negedge rstn) begin
                 {islongok_t, isshort_t} = 2'b00;
                 fdtnamelen_t = 8'h0;  sdtnamelen_t=8'h0;
                 
-                if(rdata!=8'hE5 && rdata!=8'h2E && rdata!=8'h00) begin
+                if(rdata!=8'hE5 && rdata!=8'h2E && rdata!=8'h00) begin  // file name entry is valid
                     if(islong_t && longno_t==6'h1)
                         islongok_t = 1'b1;
                     else
@@ -459,10 +473,10 @@ always @ (posedge clk or negedge rstn) begin
                         islong_t = 1'b0;
                 end else
                     islong_t = 1'b0;
-            end else if(raddr[4:0]==5'hB) begin
-                if(rdata!=8'h0F)
+            end else if(raddr[4:0]==5'hB) begin             // file attribute
+                if(rdata!=8'h0F)                            // not LFN
                     islong_t = 1'b0;
-                if(rdata!=8'h20)
+                if(rdata!=8'h20 && rdata != 8'h21)          // not valid dir entry
                     {isshort_t, islongok_t} = 2'b00;
             end else if(raddr[4:0]==5'h1F) begin
                 if(islongok_t && longvalid_t || isshort_t) begin

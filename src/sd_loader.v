@@ -32,6 +32,9 @@ module SDLoader #(
     output debug_sd_list_en,
     output [7:0] debug_sd_list_name [0:51],
     output [7:0] debug_sd_list_namelen,
+    output [9:0] debug_sd_list_file,
+    output debug_read_done,
+    output [31:0] debug_read_sector_no,
     output [2:0] debug_filesystem_state
 );
 
@@ -66,7 +69,6 @@ assign sd_dat2 = 1;
 assign sd_dat3 = 1; // Must set sddat1~3 to 1 to avoid SD card from entering SPI mode
 
 // state and wires
-reg [7:0] X, Y;           // current X and Y
 reg [23:0] sd_romlen;     // max 32K sectors (16MB)
 wire sd_outen;
 wire [7:0] sd_outbyte;
@@ -80,6 +82,7 @@ wire sd_list_en;
 assign debug_sd_list_en = sd_list_en;
 assign debug_sd_list_name = sd_list_name;
 assign debug_sd_list_namelen = sd_list_namelen;
+assign debug_sd_list_file = sd_list_file;
 
 // whether current sd_outbyte is valid NES data
 assign dout = sd_outbyte;
@@ -95,20 +98,22 @@ sd_file_list_reader #(
     .list_name(sd_list_name), .list_namelen(sd_list_namelen), 
     .list_file_num(sd_list_file), .list_en(sd_list_en),
     .outen(sd_outen), .outbyte(sd_outbyte),
+    .debug_read_done(debug_read_done), .debug_read_sector_no(debug_read_sector_no),
     .debug_filesystem_state(debug_filesystem_state)
 );
 
 // SD card loading process
 reg [3:0] state;
-localparam [3:0] SD_READ_DIR = 4'd1;       // getting meta-data, starting from sector 0
+localparam [3:0] SD_READ_DIR = 4'd1;        // getting meta-data, starting from sector 0
 localparam [3:0] SD_UI = 4'd3;              // process user input
 localparam [3:0] SD_READ_ROM = 4'd4;
 localparam [3:0] SD_FAIL = 4'd14;
 localparam [3:0] SD_DONE = 4'd15;
-wire [7:0] nx = X == 255 ? 10 : X+1;
+reg [7:0] X = 15, Y = 40;                   // current X and Y
+wire [7:0] nx = X == 255 ? 16 : X+1;
 wire [7:0] ny = X == 255 ? (Y == 200 ? 200 : Y+1) : Y;
-wire [5:0] ch = (nx >> 3) - 2;
-wire [5:0] fn = (ny >> 3) - 5;
+wire [7:0] ch = (nx >> 3) - 2;              // current char
+wire [7:0] fn = (ny >> 3) - 5;              // current file
 
 always @(posedge clk) begin
     
@@ -122,22 +127,22 @@ always @(posedge clk) begin
         if (sd_list_en) begin       // found a dir entry, draw onto screen
             // starting from col=2, row=5, 8x8 chars, 20 lines, 30 wide
             if (sd_list_file < 20) begin
-                X <= 9;
-                Y <= 40 + sd_list_file << 3;
+                X <= 15;
+                Y <= 40 + (sd_list_file[7:0] << 3);
                 overlay <= 0;
             end
         end else begin
             // fill in actual pixels, one pixel per clock cycle
             // so one file name takes 30*64=1920 cycles
             overlay <= 1;
-            if (fn == sd_list_file && ch < sd_list_namelen) begin
+            if (fn == sd_list_file[7:0] /* && ch < sd_list_namelen*/) begin
                 if (FONT[sd_list_name[ch]][ny[2:0]][nx[2:0]])
                     color <= 55;    // bright yellow
                 else
                     color <= 13;    // black
             end else color <= 13;
-            X <= nx;
-            Y <= ny;
+            X <= nx; cycle <= nx;
+            Y <= ny; scanline <= ny;
         end
     end
     SD_UI: begin                    // UP and DOWN to choose rom and A to load
