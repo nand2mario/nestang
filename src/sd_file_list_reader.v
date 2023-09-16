@@ -29,8 +29,9 @@ module sd_file_list_reader #(
     inout             sdcmd,
     input  wire       sddat0,            // FPGA only read SDDAT signal but never drive it
     // command interface
-    input             op,                // 0: list root dir, 1: read file
+    input             op,                // 0: list root dir, 1: read file. rstn <= 0 to restart a new operation.
     input       [9:0] read_file,         // file number to read for cmd=2
+    output      [2:0] done,              // operation finished
     // status output (optional for user)
     output wire [3:0] card_stat,         // show the sdcard initialize status
     output wire [1:0] card_type,         // 0=UNKNOWN    , 1=SDv1    , 2=SDv2  , 3=SDHCv2
@@ -46,7 +47,7 @@ module sd_file_list_reader #(
     output reg  [7:0] outbyte,           // a byte of file content
     output debug_read_done,
     output [31:0] debug_read_sector_no,
-    output [2:0] debug_filesystem_state
+    output debug_filesystem_state
 );
 
 initial file_found = 1'b0;
@@ -100,6 +101,7 @@ localparam [2:0] RESET         = 3'd0,
 
 reg        [2:0] filesystem_state = RESET;
 assign debug_filesystem_state = filesystem_state;
+assign done = filesystem_state == DONE;
 
 localparam [1:0] UNASSIGNED = 2'd0,
                  UNKNOWN    = 2'd1,
@@ -167,12 +169,11 @@ end
 //----------------------------------------------------------------------------------------------------------------------
 // main FSM
 //----------------------------------------------------------------------------------------------------------------------
-reg op_r;
 always @ (posedge clk or negedge rstn)
     if(~rstn) begin           
+        filesystem_state <= RESET;
         read_start <= 1'b0;
         read_sector_no <= 0;
-        filesystem_state <= RESET;
         filesystem <= UNASSIGNED;
         search_fat <= 1'b0;
         cluster_size <= 8'h0;
@@ -183,10 +184,6 @@ always @ (posedge clk or negedge rstn)
         rootdir_sector        <= 0;
         rootdir_sectorcount   <= 16'h0;
     end else begin
-        op_r <= op;
-        if (~op_r && op) begin
-            // reset when op becomes 1
-        end
         // nand2mario: this is confusing due to mixing of blocking and non-blocking assignments
         // all *_t variables are combinatorial and thus uses blocking assignments
         cluster_size_t = cluster_size;
