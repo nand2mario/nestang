@@ -18,7 +18,7 @@ COLOR=56        # bright text: yellow
 COLOR_DARK=4    # dark text:   purple
 META_MENU_SECTORS=121   # 1 meta-sector + 120 menu image
 
-if len(sys.argv) < 4:
+if len(sys.argv) < 3:
     print('Packing nes roms as an sdcard image. Usage:')
     print('  nes2img.py -o x.img x.nes y.nes ...')
     print('Then you can write it to a card with dd or Balena Etcher:')
@@ -28,17 +28,35 @@ if len(sys.argv) < 4:
 NES=[]
 IMG=''
 SORT = False
+BIN=''      # print background image as binary
 
 i = 1
 while i < len(sys.argv):
     if sys.argv[i] == '-o':
         IMG=sys.argv[i+1]
         i+=1
+    elif sys.argv[i] == '-b':
+        BIN=sys.argv[i+1]
+        i+=1
     elif sys.argv[i] == '-s':
         SORT = True
     else:
         NES.append(sys.argv[i])
     i+=1
+
+def writeBackBinary():
+    png = os.path.join(os.path.dirname(__file__), 'back.png')
+    with Image.open(png) as im:
+        img = image2nes(im)
+    with open(BIN, 'w') as bin_file:
+        for i in range(240):        # print image for debug
+            for j in range(256):
+                bin_file.write('{:06b}\n'.format(img[i][j]))
+
+if BIN != '':       # Just write background as binary file
+    writeBackBinary()
+    print('Done.')
+    exit(0)
 
 # numbers first, then alphabetical order
 def compare(a, b):
@@ -140,12 +158,6 @@ def writeMetaAndMenu(img_file, id):
     text(img, 27, 29, '{}'.format(id+1), COLOR_DARK)
     for i in range(240):        # write menu image to sd 
         img_file.write(bytearray(img[i]))
-
-
-# for i in range(240):        # print image for debug
-#     for j in range(256):
-#         print(' ' if img[i][j] == BACKGROUND else '*', end='')
-#     print()
 
 img_file = open(IMG, 'wb')
 

@@ -70,7 +70,8 @@ module nes2hdmi (
     end
 
     initial begin
-        $readmemb("nes_fb_testpattern_palette.txt", mem);
+        $readmemb("background.txt", mem);
+        // $readmemb("nes_fb_testpattern_palette.txt", mem);
     end
 
     // 
