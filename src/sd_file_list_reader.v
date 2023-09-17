@@ -497,7 +497,8 @@ always @ (posedge clk or negedge rstn) begin
                             file_namelen <= fdtnamelen_t-8'd1 + (longno_t-8'd1)*8'd13;
                         end else if({rdata,lastchar} != 16'hFFFF) begin
                             if(rdata == 8'h0) begin
-                                file_name[fdtnamelen_t-8'd1+(longno_t-8'd1)*8'd13] <= (lastchar>=8'h61 && lastchar<=8'h7A) ? lastchar&8'b11011111 : lastchar; 
+//                                file_name[fdtnamelen_t-8'd1+(longno_t-8'd1)*8'd13] <= (lastchar>=8'h61 && lastchar<=8'h7A) ? lastchar&8'b11011111 : lastchar;     // convert to upper case
+                                file_name[fdtnamelen_t-8'd1+(longno_t-8'd1)*8'd13] <= lastchar; 
                             end else begin
                                 longvalid_t = 1'b0;
                             end
