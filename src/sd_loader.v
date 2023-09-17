@@ -27,22 +27,18 @@ module SDLoader #(
     output sd_dat3,             // 1
     
     // debug
-    output [4:0] debug_active,
-    output [7:0] debug_cardstat,
-    output debug_sd_list_en,
-    output [7:0] debug_sd_list_name [0:51],
-    output [7:0] debug_sd_list_namelen,
-    output [9:0] debug_sd_list_file,
-    output debug_read_done,
-    output [31:0] debug_read_sector_no,
-    output [2:0] debug_filesystem_state
+    input [7:0] debug_reg,
+    output reg [7:0] debug_out
 );
 
 `include "font.vh"
 
-reg [7:0] x[0:19], y[0:19];
-reg [5:0] background, foreground;
-reg [4:0] active, total;
+localparam [5:0] COLOR_BACK=13, COLOR_CURSOR=55, COLOR_TEXT=56;
+reg [4:0] active;       // within the page
+reg [9:0] file_total;   // max 1023 files
+reg [9:0] file_start = 1;   // file number is 1-based
+wire [4:0] total = file_total < file_start ? 0 :        // number of files in this page
+                   file_total >= file_start + 19 ? 20 : file_total - file_start + 1;
 reg [4:0] cursor_now;   // current cursor under refresh
 reg [5:0] cursor_dot;   // RRRCCC
 localparam [63:0] CURSOR = {8'b00000000,        // actual glyph is flipped horizontally
@@ -81,10 +77,6 @@ wire [7:0] sd_list_name[0:51];
 wire [7:0] sd_list_namelen;
 wire [9:0] sd_list_file;
 wire sd_list_en;
-assign debug_sd_list_en = sd_list_en;
-assign debug_sd_list_name = sd_list_name;
-assign debug_sd_list_namelen = sd_list_namelen;
-assign debug_sd_list_file = sd_list_file;
 
 // whether current sd_outbyte is valid NES data
 assign dout = sd_outbyte;
@@ -95,13 +87,13 @@ sd_file_list_reader #(
 ) sd_reader_i (
     .rstn(resetn & ~sd_restart), .clk(clk),
     .sdclk(sd_clk), .sdcmd(sd_cmd), .sddat0(sd_dat0),
-    .card_stat(debug_cardstat[7:4]),.card_type(debug_cardstat[3:2]),.filesystem_type(debug_cardstat[1:0]),
+    .card_stat(),.card_type(),.filesystem_type(),
     .op(sd_op), .read_file(sd_file), .done(sd_done),
     .list_name(sd_list_name), .list_namelen(sd_list_namelen), 
     .list_file_num(sd_list_file), .list_en(sd_list_en),
     .outen(sd_outen), .outbyte(sd_outbyte),
-    .debug_read_done(debug_read_done), .debug_read_sector_no(debug_read_sector_no),
-    .debug_filesystem_state(debug_filesystem_state)
+    .debug_read_done(), .debug_read_sector_no(),
+    .debug_filesystem_state()
 );
 
 // SD card loading process
@@ -115,7 +107,7 @@ reg [7:0] X = 15, Y = 40;                   // current X and Y
 wire [7:0] nx = X == 255 ? 16 : X+1;
 wire [7:0] ny = X == 255 ? (Y == 200 ? 200 : Y+1) : Y;
 wire [7:0] ch = (nx >> 3) - 2;              // current char
-wire [7:0] fn = (ny >> 3) - 5;              // current file
+wire [7:0] fn = (ny >> 3) - 5;              // current file, 0 - 19
 
 always @(posedge clk) begin
     if (~resetn) begin
@@ -123,6 +115,7 @@ always @(posedge clk) begin
         state <= SD_READ_DIR;
         sd_loading <= 0;
         overlay <= 0;
+        file_start <= 1;
     end else begin
         sd_restart <= 0;
         overlay <= 0;
@@ -130,25 +123,26 @@ always @(posedge clk) begin
         SD_READ_DIR: begin
             if (sd_list_en) begin       // found a dir entry, draw onto screen
                 // starting from col=2, row=5, 8x8 chars, 20 lines, 30 wide
-                if (sd_list_file < 20) begin
+                file_total <= sd_list_file;                       // update file count
+                if (sd_list_file <= 20) begin
                     X <= 15;
-                    Y <= 40 + (sd_list_file[7:0] << 3);
+                    Y <= (40 - 8) + (sd_list_file[7:0] << 3);     // 1 ~ 20
                     overlay <= 0;
                 end
+            end else if (sd_done) begin
+                state <= SD_UI;
             end else if (Y < 200) begin
                 // fill in actual pixels, one pixel per clock cycle
                 // so one file name takes 30*64=1920 cycles
                 overlay <= 1;
-                if (fn == sd_list_file[7:0] /* && ch < sd_list_namelen*/) begin
+                if (fn + file_start == sd_list_file[7:0] /* && ch < sd_list_namelen*/) begin
                     if (FONT[sd_list_name[ch]][ny[2:0]][nx[2:0]])
-                        color <= 55;    // bright yellow
+                        color <= COLOR_TEXT;    // yellow
                     else
-                        color <= 13;    // black
+                        color <= COLOR_BACK;    // black
                 end else color <= 13;
                 X <= nx; cycle <= nx;
                 Y <= ny; scanline <= ny;
-            end else if (sd_done) begin
-                state <= SD_UI;
             end
         end
         SD_UI: begin                    // UP and DOWN to choose rom and A to load
@@ -156,7 +150,13 @@ always @(posedge clk) begin
                 active = active - 1;
             else if (pad == PAD_DOWN && active != total-1)
                 active = active + 1;
-            else if (pad == PAD_RIGHT || pad == PAD_LEFT) begin // navigate to next/prev menu
+            else if (pad == PAD_RIGHT && file_start + 20 <= file_total) begin // navigate to next/prev menu
+                file_start <= file_start + 20;
+                sd_restart <= 1;
+                state <= SD_READ_DIR;
+            end else if (pad == PAD_LEFT && file_start > 1) begin
+                file_start <= file_start - 20;
+                sd_restart <= 1;
                 state <= SD_READ_DIR;
             end
 
@@ -168,11 +168,11 @@ always @(posedge clk) begin
                 cursor_dot <= 0;            
             end
             if (cursor_now == active && total != 0) begin
-                color <= CURSOR[cursor_dot] ? foreground : background;
+                color <= CURSOR[cursor_dot] ? COLOR_CURSOR : COLOR_BACK;
             end else
-                color <= background;
-            scanline <= y[cursor_now] + cursor_dot[5:3];
-            cycle <= x[cursor_now] + cursor_dot[2:0];
+                color <= COLOR_BACK;
+            scanline <= 40 + (cursor_now<<3) + cursor_dot[5:3];
+            cycle <= cursor_dot[2:0];
 
             if (nes_btn[0] && total != 0) begin     // select ROM and start loading
                 sd_op <= 1;
@@ -221,6 +221,17 @@ always @(posedge clk) begin
             debounce <= FREQ/5;
         end
     end
+end
+
+always @* begin
+    case (debug_reg)
+    8'h1: debug_out = file_total;
+    8'h2: debug_out = file_start;
+    8'h3: debug_out = active;
+    8'h4: debug_out = total;
+    8'h5: debug_out = state;
+    default: debug_out = 0;
+    endcase
 end
 
 endmodule

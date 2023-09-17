@@ -320,14 +320,9 @@ nes2hdmi u_hdmi (
     .tmds_d_n(tmds_d_n), .tmds_d_p(tmds_d_p)
 );
 
-wire [4:0] sd_active, sd_total;
-wire [7:0] sd_list_name [0:51];
-wire [7:0] sd_list_namelen;
-wire [9:0] sd_list_file;
-wire [2:0] debug_filesystem_state;
-wire [7:0] cardstat;
-wire sd_read_done;
-wire [31:0] sd_read_sector_no;
+reg [7:0] sd_debug_reg;
+wire [7:0] sd_debug_out;
+
 SDLoader #(.FREQ(FREQ)) sd_loader (
     .clk(clk), .resetn(sys_resetn),
     .overlay(menu_overlay), .color(menu_color), .scanline(menu_scanline),
@@ -337,13 +332,7 @@ SDLoader #(.FREQ(FREQ)) sd_loader (
     .sd_clk(sd_clk), .sd_cmd(sd_cmd), .sd_dat0(sd_dat0), .sd_dat1(sd_dat1),
     .sd_dat2(sd_dat2), .sd_dat3(sd_dat3),
 
-    .debug_active(sd_active), .debug_sd_list_en(sd_list_en),
-    .debug_cardstat(cardstat),
-    .debug_sd_list_name(sd_list_name),
-    .debug_sd_list_namelen(sd_list_namelen),
-    .debug_sd_list_file(sd_list_file),
-    .debug_read_done(sd_read_done), .debug_read_sector_no(sd_read_sector_no),
-    .debug_filesystem_state(debug_filesystem_state)
+    .debug_reg(sd_debug_reg), .debug_out(sd_debug_out)
 );
 
 // Dualshock controller
@@ -427,31 +416,51 @@ reg [3:0] sd_state0 = 0;
 reg [19:0] timer;           // 37 times per second
 always @(posedge clk) timer <= timer + 1;
 
-// `define HID_REPORT
-
-reg [7:0] file_total;
+`define SD_REPORT
 
 always@(posedge clk)begin
     state_0<={2'b0, loader_done};
     state_1<=state_0;
 
+    // print button status
+    // case (timer)
+    // 20'h00000: `print({nes_btn, nes_btn2}, 2);
+    // 20'hf0000: `print("\n", STR);
+    // endcase
+
     // status for SD file browsing
-    if (sd_list_en)
-      file_total <= file_total + 1;
-    if (sd_read_done)
-      `print({5'b0, debug_filesystem_state, sd_read_sector_no}, 5);
+`ifdef SD_REPORT
     case (timer)
-    20'h00000: `print({5'b0, debug_filesystem_state}, 1);
-    20'h10000: `print(", cardstat=", STR);
-    20'h20000: `print(cardstat, 1);
-    20'h30000: `print(", total=", STR);
-    20'h40000: `print(file_total, 1);
-    20'h50000: `print(", no=", STR);
-    20'h60000: `print(sd_list_file[7:0], 1);
-    20'h70000: `print(", file=", STR);
-    20'h80000: `print(sd_list_name, STR);
+    20'h00000: begin
+      `print("sd: file_total=", STR);
+      sd_debug_reg = 1;
+    end
+    20'h10000: `print(sd_debug_out, 1);
+    20'h20000: begin
+      `print(", file_start=", STR);
+      sd_debug_reg = 2;      
+    end
+    20'h30000: `print(sd_debug_out, 1);
+    20'h40000: begin
+      `print(", active=", STR);
+      sd_debug_reg = 3;      
+    end
+    20'h50000: `print(sd_debug_out, 1);
+    20'h60000: begin
+      `print(", total=", STR);
+      sd_debug_reg = 4;      
+    end
+    20'h70000: `print(sd_debug_out, 1);
+    20'h80000: begin
+      `print(", state=", STR);
+      sd_debug_reg = 5;      
+    end
+    20'h90000: `print(sd_debug_out, 1);
+    20'ha0000: `print(", buttons=", STR);
+    20'hb0000: `print({nes_btn, nes_btn2}, 2);
     20'hf0000: `print("\n", STR);
     endcase
+`endif
 
     if (uart_demux.write)
         recv_packets <= recv_packets + 1;        
