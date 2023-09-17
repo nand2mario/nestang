@@ -13,7 +13,7 @@ Main features,
 - HDMI output with a resolution of 720p and sound capabilities.
 - Cycle accurate gameplay quality has been achieved since the NES circuits have been almost entirely replicated.
 - Game loading via MicroSD cards (for Tang Nano 20K only) or Windows/Linux loader program.
-- Playstation 2 controller interface (for Tang Nano 20K only) or interfacing with controllers connected through a PC.
+- Playstation 2 controller or USB gamepads (for Tang Nano 20K only) or interfacing with controllers connected through a PC.
 
 ## Setup for Tang Nano 20K
 
@@ -21,10 +21,11 @@ The best way to experience NESTang is with the Tang Nano 20K (Retro Game Kit ver
 
 * The Tang Nano 20K board.
 * Sipeed ps2 controller adapters connected to the board's pin 15-20 on both sides. The latest 0.6 release also supports [USB gamepads](doc/usb_gamepad.md).
-* Playstation controllers (wired or wireless) connected to the adapters.
+* Playstation or USB controllers connected to the adapters.
 * HDMI cable to connect the board to a monitor.
 * Latest NESTang program downloaded from [github](https://github.com/nand2mario/nestang/releases) and transferred to the board using either [openFPGALoader](https://github.com/trabucayre/openFPGALoader) or Gowin programmer.
-* A MicroSD card to hold ROMs. An 8GB cards should suffice. The `tools/nes2img.py` python program can be used to convert .nes ROM files to an .img file. Ensure that you have Python version 3.7 or higher, and then install the Pillow package using `pip3 install pillow`. You can then use an SD imaging tool such as [Balena Etcher](https://www.balena.io/etcher) to burn the newly created image onto the MicroSD card.
+* A MicroSD card to hold ROMs. Since 0.8, just format the SD card in FAT32 format and place all .nes roms in the root dir.
+  * For <= 0.7: An 8GB cards should suffice. The `tools/nes2img.py` python program can be used to convert .nes ROM files to an .img file. Ensure that you have Python version 3.7 or higher, and then install the Pillow package using `pip3 install pillow`. You can then use an SD imaging tool such as [Balena Etcher](https://www.balena.io/etcher) to burn the newly created image onto the MicroSD card.
 * Insert the MicroSD card and power up the board to start playing your favorite games!
 
 ## Setup for Tang Primer 20K
@@ -56,8 +57,6 @@ Quite some time was spent on getting a low-latency (90ns) [DDR3 controller](http
 See NESTang [changes.md](CHANGES.md).
 
 Here are what I may work on when I get time. No promise though. Suggestions and pull requests are welcome!
-* Support more games.
-* An enclosure?
 * Cheats support.
 * Saves and loads.
 
