@@ -66,8 +66,11 @@ module NES_Tang20k(
 `include "nes_tang20k.vh"
 
 reg sys_resetn = 0;
+reg [7:0] reset_cnt = 255;      // reset for 255 cycles before start everything
 always @(posedge clk) begin
-    sys_resetn <= ~s1;
+    reset_cnt <= reset_cnt == 0 ? 0 : reset_cnt - 1;
+    if (reset_cnt == 0)
+        sys_resetn <= ~s1;
 end
 
 `ifndef VERILATOR
@@ -375,18 +378,31 @@ Autofire af_triangle (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx[1][4] | usb_b
 Autofire af_square2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][7] | usb_btn_y2), .out(auto_square2));
 Autofire af_triangle2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][4] | usb_btn_x2), .out(auto_triangle2));
 
-wire [63:0] dbg_hid_report;
-wire [3:0] dbg_dev;
-wire [15:0] dbg_vid, dbg_pid;
-usb_gamepad usb_controller (
+//   usb_btn:      (R L D U START SELECT B A)
+wire [1:0] usb_type, usb_type2;
+wire usb_report, usb_report2;
+usb_hid_host usb_controller (
     .usbclk(clk_usb), .usbrst_n(sys_resetn),
-    .usb_dm(usbdm), .usb_dp(usbdp),	.btn_nes(usb_btn), .btn_x(usb_btn_x), .btn_y(usb_btn_y), .conerr(usb_conerr),
-    .dbg_hid_report(), .dbg_dev(), .dbg_vid(), .dbg_pid()
+    .usb_dm(usbdm), .usb_dp(usbdp),	.typ(usb_type), .report(usb_report), 
+    .game_l(usb_btn[6]), .game_r(usb_btn[7]), .game_u(usb_btn[4]), .game_d(usb_btn[5]), 
+    .game_a(usb_btn[0]), .game_b(usb_btn[1]), .game_x(usb_btn_x), .game_y(usb_btn_y), 
+    .game_sel(usb_btn[2]), .game_sta(usb_btn[3]),
+    // ignore keyboard and mouse input
+    .key_modifiers(), .key1(), .key2(), .key3(), .key4(),
+    .mouse_btn(), .mouse_dx(), .mouse_dy(),
+    .dbg_hid_report()
 );
-usb_gamepad usb_controller2 (
+
+usb_hid_host usb_controller2 (
     .usbclk(clk_usb), .usbrst_n(sys_resetn),
-    .usb_dm(usbdm2), .usb_dp(usbdp2), .btn_nes(usb_btn2), .btn_x(usb_btn_x2), .btn_y(usb_btn_y2), .conerr(usb_conerr2),
-    .dbg_hid_report(dbg_hid_report), .dbg_dev(dbg_dev), .dbg_vid(dbg_vid), .dbg_pid(dbg_pid)
+    .usb_dm(usbdm2), .usb_dp(usbdp2),	.typ(usb_type2), .report(usb_report2), 
+    .game_l(usb_btn2[6]), .game_r(usb_btn2[7]), .game_u(usb_btn2[4]), .game_d(usb_btn2[5]), 
+    .game_a(usb_btn2[0]), .game_b(usb_btn2[1]), .game_x(usb_btn_x2), .game_y(usb_btn_y2), 
+    .game_sel(usb_btn2[2]), .game_sta(usb_btn2[3]),
+    // ignore keyboard and mouse input
+    .key_modifiers(), .key1(), .key2(), .key3(), .key4(),
+    .mouse_btn(), .mouse_dx(), .mouse_dy(),
+    .dbg_hid_report()
 );
 
 //

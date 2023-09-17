@@ -124,9 +124,9 @@ always @(posedge clk) begin
             if (sd_list_en) begin       // found a dir entry, draw onto screen
                 // starting from col=2, row=5, 8x8 chars, 20 lines, 30 wide
                 file_total <= sd_list_file;                       // update file count
-                if (sd_list_file <= 20) begin
+                if (sd_list_file >= file_start && sd_list_file < file_start + 20) begin
                     X <= 15;
-                    Y <= (40 - 8) + (sd_list_file[7:0] << 3);     // 1 ~ 20
+                    Y <= 40 + ((sd_list_file - file_start) << 3);
                     overlay <= 0;
                 end
             end else if (sd_done) begin
