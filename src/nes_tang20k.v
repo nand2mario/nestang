@@ -66,8 +66,11 @@ module NES_Tang20k(
 `include "nes_tang20k.vh"
 
 reg sys_resetn = 0;
+reg [7:0] reset_cnt = 255;      // reset for 255 cycles before start everything
 always @(posedge clk) begin
-    sys_resetn <= ~s1;
+    reset_cnt <= reset_cnt == 0 ? 0 : reset_cnt - 1;
+    if (reset_cnt == 0)
+        sys_resetn <= ~s1;
 end
 
 `ifndef VERILATOR
@@ -320,8 +323,9 @@ nes2hdmi u_hdmi (
     .tmds_d_n(tmds_d_n), .tmds_d_p(tmds_d_p)
 );
 
-wire [4:0] sd_active, sd_total;
-wire [23:0] sd_rsector, sd_last_sector;
+reg [7:0] sd_debug_reg;
+wire [7:0] sd_debug_out;
+
 SDLoader #(.FREQ(FREQ)) sd_loader (
     .clk(clk), .resetn(sys_resetn),
     .overlay(menu_overlay), .color(menu_color), .scanline(menu_scanline),
@@ -331,8 +335,7 @@ SDLoader #(.FREQ(FREQ)) sd_loader (
     .sd_clk(sd_clk), .sd_cmd(sd_cmd), .sd_dat0(sd_dat0), .sd_dat1(sd_dat1),
     .sd_dat2(sd_dat2), .sd_dat3(sd_dat3),
 
-    .debug_active(sd_active), .debug_total(sd_total),
-    .debug_sd_rsector(sd_rsector), .debug_sd_last_sector(sd_last_sector)
+    .debug_reg(sd_debug_reg), .debug_out(sd_debug_out)
 );
 
 // Dualshock controller
@@ -375,18 +378,31 @@ Autofire af_triangle (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx[1][4] | usb_b
 Autofire af_square2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][7] | usb_btn_y2), .out(auto_square2));
 Autofire af_triangle2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][4] | usb_btn_x2), .out(auto_triangle2));
 
-wire [63:0] dbg_hid_report;
-wire [3:0] dbg_dev;
-wire [15:0] dbg_vid, dbg_pid;
-usb_gamepad usb_controller (
+//   usb_btn:      (R L D U START SELECT B A)
+wire [1:0] usb_type, usb_type2;
+wire usb_report, usb_report2;
+usb_hid_host usb_controller (
     .usbclk(clk_usb), .usbrst_n(sys_resetn),
-    .usb_dm(usbdm), .usb_dp(usbdp),	.btn_nes(usb_btn), .btn_x(usb_btn_x), .btn_y(usb_btn_y), .conerr(usb_conerr),
-    .dbg_hid_report(), .dbg_dev(), .dbg_vid(), .dbg_pid()
+    .usb_dm(usbdm), .usb_dp(usbdp),	.typ(usb_type), .report(usb_report), 
+    .game_l(usb_btn[6]), .game_r(usb_btn[7]), .game_u(usb_btn[4]), .game_d(usb_btn[5]), 
+    .game_a(usb_btn[0]), .game_b(usb_btn[1]), .game_x(usb_btn_x), .game_y(usb_btn_y), 
+    .game_sel(usb_btn[2]), .game_sta(usb_btn[3]),
+    // ignore keyboard and mouse input
+    .key_modifiers(), .key1(), .key2(), .key3(), .key4(),
+    .mouse_btn(), .mouse_dx(), .mouse_dy(),
+    .dbg_hid_report()
 );
-usb_gamepad usb_controller2 (
+
+usb_hid_host usb_controller2 (
     .usbclk(clk_usb), .usbrst_n(sys_resetn),
-    .usb_dm(usbdm2), .usb_dp(usbdp2), .btn_nes(usb_btn2), .btn_x(usb_btn_x2), .btn_y(usb_btn_y2), .conerr(usb_conerr2),
-    .dbg_hid_report(dbg_hid_report), .dbg_dev(dbg_dev), .dbg_vid(dbg_vid), .dbg_pid(dbg_pid)
+    .usb_dm(usbdm2), .usb_dp(usbdp2),	.typ(usb_type2), .report(usb_report2), 
+    .game_l(usb_btn2[6]), .game_r(usb_btn2[7]), .game_u(usb_btn2[4]), .game_d(usb_btn2[5]), 
+    .game_a(usb_btn2[0]), .game_b(usb_btn2[1]), .game_x(usb_btn_x2), .game_y(usb_btn_y2), 
+    .game_sel(usb_btn2[2]), .game_sta(usb_btn2[3]),
+    // ignore keyboard and mouse input
+    .key_modifiers(), .key1(), .key2(), .key3(), .key4(),
+    .mouse_btn(), .mouse_dx(), .mouse_dy(),
+    .dbg_hid_report()
 );
 
 //
@@ -416,11 +432,51 @@ reg [3:0] sd_state0 = 0;
 reg [19:0] timer;           // 37 times per second
 always @(posedge clk) timer <= timer + 1;
 
-// `define HID_REPORT
+`define SD_REPORT
 
 always@(posedge clk)begin
     state_0<={2'b0, loader_done};
     state_1<=state_0;
+
+    // print button status
+    // case (timer)
+    // 20'h00000: `print({nes_btn, nes_btn2}, 2);
+    // 20'hf0000: `print("\n", STR);
+    // endcase
+
+    // status for SD file browsing
+`ifdef SD_REPORT
+    case (timer)
+    20'h00000: begin
+      `print("sd: file_total=", STR);
+      sd_debug_reg = 1;
+    end
+    20'h10000: `print(sd_debug_out, 1);
+    20'h20000: begin
+      `print(", file_start=", STR);
+      sd_debug_reg = 2;      
+    end
+    20'h30000: `print(sd_debug_out, 1);
+    20'h40000: begin
+      `print(", active=", STR);
+      sd_debug_reg = 3;      
+    end
+    20'h50000: `print(sd_debug_out, 1);
+    20'h60000: begin
+      `print(", total=", STR);
+      sd_debug_reg = 4;      
+    end
+    20'h70000: `print(sd_debug_out, 1);
+    20'h80000: begin
+      `print(", state=", STR);
+      sd_debug_reg = 5;      
+    end
+    20'h90000: `print(sd_debug_out, 1);
+    20'ha0000: `print(", buttons=", STR);
+    20'hb0000: `print({nes_btn, nes_btn2}, 2);
+    20'hf0000: `print("\n", STR);
+    endcase
+`endif
 
     if (uart_demux.write)
         recv_packets <= recv_packets + 1;        

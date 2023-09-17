@@ -24,8 +24,8 @@ module sdcmd_ctrl (
     output reg          busy,
     output reg          done,
     output reg          timeout,
-    output reg          syntaxe,
-    output wire  [31:0] resparg
+    output reg          syntaxe,        // command syntax error?
+    output wire  [31:0] resparg         // response
 );
 
 initial {busy, done, timeout, syntaxe} = '0;

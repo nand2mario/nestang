@@ -35,13 +35,14 @@
         <File path="src/nes2hdmi.sv" type="file.verilog" enable="1"/>
         <File path="src/nes_tang20k.v" type="file.verilog" enable="1"/>
         <File path="src/ppu.v" type="file.verilog" enable="1"/>
+        <File path="src/sd_file_list_reader.v" type="file.verilog" enable="1"/>
         <File path="src/sd_loader.v" type="file.verilog" enable="1"/>
         <File path="src/sd_reader.sv" type="file.verilog" enable="1"/>
         <File path="src/sdcmd_ctrl.sv" type="file.verilog" enable="1"/>
         <File path="src/sdram.v" type="file.verilog" enable="1"/>
         <File path="src/uart_tx_V2.v" type="file.verilog" enable="1"/>
-        <File path="src/usb_gamepad.v" type="file.verilog" enable="1"/>
-        <File path="src/usb_gamepad_rom.v" type="file.verilog" enable="1"/>
+        <File path="src/usb_hid_host.v" type="file.verilog" enable="1"/>
+        <File path="src/usb_hid_host_rom.v" type="file.verilog" enable="1"/>
         <File path="src/nestang.cst" type="file.cst" enable="1"/>
         <File path="src/nestang_dock.cst" type="file.cst" enable="0"/>
         <File path="src/nestang.sdc" type="file.sdc" enable="1"/>

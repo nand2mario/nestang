@@ -122,16 +122,17 @@ always @ (posedge clk or negedge rstn)
             end else if(sddat_stat==RDONE)
                 sdcmd_stat <= CMD17;
         end else if(~busy) begin
+            // See: SD Card Specification: Card Initialization and Identification Flow (SD mode)
             case(sdcmd_stat)
-                CMD0    :   set_cmd(1, (SIMULATE?512:64000),  0,  'h00000000);
-                CMD8    :   set_cmd(1,                 512 ,  8,  'h000001aa);
-                CMD55_41:   set_cmd(1,                 512 , 55,  'h00000000);
-                ACMD41  :   set_cmd(1,                 256 , 41,  'h40100000);
-                CMD2    :   set_cmd(1,                 256 ,  2,  'h00000000);
-                CMD3    :   set_cmd(1,                 256 ,  3,  'h00000000);
-                CMD7    :   set_cmd(1,                 256 ,  7, {rca,16'h0});
-                CMD16   :   set_cmd(1, (SIMULATE?512:64000), 16,  'h00000200);
-                CMD17   :   if(rstart) begin 
+                CMD0    :   set_cmd(1, (SIMULATE?512:64000),  0,  'h00000000);  // GO_IDLE_STATE
+                CMD8    :   set_cmd(1,                 512 ,  8,  'h000001aa);  // SEND_IF_COND
+                CMD55_41:   set_cmd(1,                 512 , 55,  'h00000000);  // APP_CMD	
+                ACMD41  :   set_cmd(1,                 256 , 41,  'h40100000);  // SD_SEND_OP_COND
+                CMD2    :   set_cmd(1,                 256 ,  2,  'h00000000);  // Read CID register
+                CMD3    :   set_cmd(1,                 256 ,  3,  'h00000000);  // Publish new RCA address
+                CMD7    :   set_cmd(1,                 256 ,  7, {rca,16'h0});  // Toggle stand-by / transfer states
+                CMD16   :   set_cmd(1, (SIMULATE?512:64000), 16,  'h00000200);  // SET_BLOCKLEN
+                CMD17   :   if(rstart) begin                                    // READ_SINGLE_BLOCK
                                 set_cmd(1, 96, 17, (card_type==SDHCv2) ? rsector : (rsector<<9) );
                                 rsectoraddr <= (card_type==SDHCv2) ? rsector : (rsector<<9);
                                 sdcmd_stat <= READING;
@@ -193,14 +194,15 @@ always @ (posedge clk or negedge rstn)
         if(sdcmd_stat!=READING && sdcmd_stat!=READING2) begin
             sddat_stat <= RWAIT;
             ridx   <= 0;
-        end else if(~sdclkl & sdclk) begin
+        end else if(~sdclkl & sdclk) begin      // rising edge of sdclk
             case(sddat_stat)
                 RWAIT   : begin
                     if(~sddat0) begin
                         sddat_stat <= RDURING;
                         ridx   <= 0;
                     end else begin
-                        if(ridx > 1000000)      // according to SD datasheet, 1ms is enough to wait for DAT result, here, we set timeout to 1000000 clock cycles = 80ms (when SDCLK=12.5MHz)
+                        if(ridx > 1000000)      // according to SD datasheet, 1ms is enough to wait for DAT result, 
+                                                // here, we set timeout to 1000000 clock cycles = 80ms (when SDCLK=12.5MHz)
                             sddat_stat <= RTIMEOUT;
                         ridx   <= ridx + 1;
                     end
@@ -209,7 +211,7 @@ always @ (posedge clk or negedge rstn)
                     outbyte[3'd7 - ridx[2:0]] <= sddat0;
                     if(ridx[2:0] == 3'd7) begin
                         outen  <= 1'b1;
-                        outaddr<= ridx[11:3];
+                        outaddr<= ridx[11:3];       // 0 - 511
                     end
                     if(ridx >= 512*8-1) begin
                         sddat_stat <= RTAIL;

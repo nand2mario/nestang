@@ -1,6 +1,6 @@
 
-// Load menu and games from MicroSD card
-// Display a menu for user to choose a ROM.
+// Display root directory content from MicroSD card 
+// Allow user to choose a ROM, then load it into nes
 
 module SDLoader #(
     parameter FREQ = 27_000_000
@@ -13,32 +13,32 @@ module SDLoader #(
     output reg [7:0] scanline,  // y 
     output reg [7:0] cycle,     // x
     
-    input [7:0] nes_btn,    // gamepad input for menu navigation
+    input [7:0] nes_btn,        // gamepad input for menu navigation
 
-    output [7:0] dout,  // ROM data is streamed out through dout.  
-    output dout_valid,  // pulse 1 when dout is valid
+    output [7:0] dout,          // ROM data is streamed out through dout.  
+    output dout_valid,          // pulse 1 when dout is valid
 
     // SD card physical interface
     output sd_clk,
-    inout  sd_cmd,      // MOSI
-    input  sd_dat0,     // MISO
-    output sd_dat1,     // 1
-    output sd_dat2,     // 1
-    output sd_dat3,      // 1
+    inout  sd_cmd,              // MOSI
+    input  sd_dat0,             // MISO
+    output sd_dat1,             // 1
+    output sd_dat2,             // 1
+    output sd_dat3,             // 1
     
     // debug
-    output [4:0] debug_active,
-    output [4:0] debug_total,
-    output [23:0] debug_sd_rsector,
-    output [23:0] debug_sd_last_sector
+    input [7:0] debug_reg,
+    output reg [7:0] debug_out
 );
 
-reg [31:0] magic;
-reg [23:0] prev_meta, next_meta;
-reg [7:0] x[0:19], y[0:19];
-reg [23:0] rom_sector[0:19], rom_len[0:19];
-reg [5:0] background, foreground;
-reg [4:0] active, total;
+`include "font.vh"
+
+localparam [5:0] COLOR_BACK=13, COLOR_CURSOR=55, COLOR_TEXT=56;
+reg [4:0] active;       // within the page
+reg [9:0] file_total;   // max 1023 files
+reg [9:0] file_start = 1;   // file number is 1-based
+wire [4:0] total = file_total < file_start ? 0 :        // number of files in this page
+                   file_total >= file_start + 19 ? 20 : file_total - file_start + 1;
 reg [4:0] cursor_now;   // current cursor under refresh
 reg [5:0] cursor_dot;   // RRRCCC
 localparam [63:0] CURSOR = {8'b00000000,        // actual glyph is flipped horizontally
@@ -51,9 +51,6 @@ localparam [63:0] CURSOR = {8'b00000000,        // actual glyph is flipped horiz
                             8'b00000011};
 
 assign debug_active = active;
-assign debug_total = total;
-assign debug_sd_rsector = sd_rsector;
-assign debug_sd_last_sector = sd_last_sector;
 
 reg[2:0] pad;  // de-bounced pulse for joypad 
 localparam [2:0] PAD_CENTER = 3'd0;
@@ -68,170 +65,132 @@ assign sd_dat2 = 1;
 assign sd_dat3 = 1; // Must set sddat1~3 to 1 to avoid SD card from entering SPI mode
 
 // state and wires
-reg [7:0] X, Y;           // current X and Y
-reg sd_rstart = 0;
-reg [23:0] sd_rsector, sd_last_sector;
 reg [23:0] sd_romlen;     // max 32K sectors (16MB)
-wire sd_rdone, sd_outen;
+wire sd_outen;
 wire [7:0] sd_outbyte;
-reg [8:0] sd_off;         // in-sector offset
 reg sd_loading;
-assign is_last_sector = sd_rsector == sd_last_sector;
-//assign meta_idx = sd_off[7:3] - 5'd2;     // index of 8-byte entries from offset 16
+reg sd_op = 0;
+wire sd_done;
+reg sd_restart = 0;
+reg [9:0] sd_file;
+wire [7:0] sd_list_name[0:51];
+wire [7:0] sd_list_namelen;
+wire [9:0] sd_list_file;
+wire sd_list_en;
 
 // whether current sd_outbyte is valid NES data
 assign dout = sd_outbyte;
-assign dout_valid = sd_loading & sd_outen & (~is_last_sector | (sd_off < sd_romlen[8:0]));
+assign dout_valid = sd_loading & sd_outen;
 
-sd_reader #(
+sd_file_list_reader #(
     .CLK_DIV(3'd1),.SIMULATE(0)
 ) sd_reader_i (
-    .rstn(resetn), .clk(clk),
+    .rstn(resetn & ~sd_restart), .clk(clk),
     .sdclk(sd_clk), .sdcmd(sd_cmd), .sddat0(sd_dat0),
-    .card_stat(),.card_type(),
-    .rstart(sd_rstart), .rbusy(), .rdone(sd_rdone), .outen(sd_outen),
-    .rsector({8'b0, sd_rsector}),
-    .outaddr(), .outbyte(sd_outbyte)
+    .card_stat(),.card_type(),.filesystem_type(),
+    .op(sd_op), .read_file(sd_file), .done(sd_done),
+    .list_name(sd_list_name), .list_namelen(sd_list_namelen), 
+    .list_file_num(sd_list_file), .list_en(sd_list_en),
+    .outen(sd_outen), .outbyte(sd_outbyte),
+    .debug_read_done(), .debug_read_sector_no(),
+    .debug_filesystem_state()
 );
 
 // SD card loading process
 reg [3:0] state;
-localparam [3:0] SD_READ_META = 4'd1;       // getting meta-data, starting from sector 0
-localparam [3:0] SD_READ_MENU = 4'd2;      
+localparam [3:0] SD_READ_DIR = 4'd1;        // getting meta-data, starting from sector 0
 localparam [3:0] SD_UI = 4'd3;              // process user input
 localparam [3:0] SD_READ_ROM = 4'd4;
 localparam [3:0] SD_FAIL = 4'd14;
 localparam [3:0] SD_DONE = 4'd15;
+reg [7:0] X = 15, Y = 40;                   // current X and Y
+wire [7:0] nx = X == 255 ? 16 : X+1;
+wire [7:0] ny = X == 255 ? (Y == 200 ? 200 : Y+1) : Y;
+wire [7:0] ch = (nx >> 3) - 2;              // current char
+wire [7:0] fn = (ny >> 3) - 5;              // current file, 0 - 19
+
 always @(posedge clk) begin
     if (~resetn) begin
-        sd_rstart <= 1;
-        sd_rsector <= 0;
-        state <= SD_READ_META;
-        sd_off <= 0;
+        sd_op <= 0;                 // list root dir
+        state <= SD_READ_DIR;
         sd_loading <= 0;
         overlay <= 0;
-    end else case (state)
-    SD_READ_META: begin
-        if (sd_outen) begin         // parse meta sector
-            sd_off <= sd_off + 1;
-            if (sd_off == 8'd0) magic[7:0] <= sd_outbyte;
-            if (sd_off == 8'd1) magic[15:8] <= sd_outbyte;
-            if (sd_off == 8'd2) magic[23:16] <= sd_outbyte;
-            if (sd_off == 8'd3) magic[31:24] <= sd_outbyte;
-            if (sd_off == 8'd4) prev_meta[7:0] <= sd_outbyte;
-            if (sd_off == 8'd5) prev_meta[15:8] <= sd_outbyte;
-            if (sd_off == 8'd6) prev_meta[23:16] <= sd_outbyte;
-            if (sd_off == 8'd7) next_meta[7:0] <= sd_outbyte;
-            if (sd_off == 8'd8) next_meta[15:8] <= sd_outbyte;
-            if (sd_off == 8'd9) next_meta[23:16] <= sd_outbyte;
-            if (sd_off == 8'd10) total[4:0] <= sd_outbyte[4:0];
-            if (sd_off == 8'd11) begin
-                background <= sd_outbyte[5:0];
-                if (active + 1 > total)
-                    active = total - 1;
-            end
-            if (sd_off == 8'd12) foreground <= sd_outbyte[5:0];
-            if (sd_off >= 8'd16 && sd_off < 8'd176) begin
-                if (sd_off[2:0] == 3'd0) x[sd_off[7:3] - 5'd2] <= sd_outbyte;
-                if (sd_off[2:0] == 3'd1) y[sd_off[7:3] - 5'd2] <= sd_outbyte;
-                if (sd_off[2:0] == 3'd2) rom_sector[sd_off[7:3] - 5'd2][7:0] <= sd_outbyte;
-                if (sd_off[2:0] == 3'd3) rom_sector[sd_off[7:3] - 5'd2][15:8] <= sd_outbyte;
-                if (sd_off[2:0] == 3'd4) rom_sector[sd_off[7:3] - 5'd2][23:16] <= sd_outbyte;
-                if (sd_off[2:0] == 3'd5) rom_len[sd_off[7:3] - 5'd2][7:0] <= sd_outbyte;
-                if (sd_off[2:0] == 3'd6) rom_len[sd_off[7:3] - 5'd2][15:8] <= sd_outbyte;
-                if (sd_off[2:0] == 3'd7) rom_len[sd_off[7:3] - 5'd2][23:16] <= sd_outbyte;
-            end
-        end
-        if (sd_rdone) begin
-            if (magic != 32'h47_4E_41_54) begin        // "TANG" in reverse
-                sd_rstart <= 0;
-                state <= SD_FAIL;
-            end else begin
-                sd_rstart <= 1;
-                sd_rsector[23:0] <= sd_rsector[23:0] + 23'd1;
-                sd_off <= 0;
-                overlay <= 1;           // takes over video display
-                Y <= 0;
-                X <= 0;
-                state <= SD_READ_MENU;
-            end
-        end
-    end
-    SD_READ_MENU: begin
-        if (sd_outen) begin
-            color <= sd_outbyte;
-            scanline <= Y;
-            cycle <= X;
-            X <= X + 8'd1;
-            if (X == 8'd255)
-                Y <= Y + 8'd1;
-        end
-        if (sd_rdone) begin
-            if (Y < 240) begin
-                sd_rstart <= 1;
-                sd_rsector[23:0] <= sd_rsector[23:0] + 23'd1;
-                sd_off <= 0;
-            end else begin
-                sd_rstart <= 0;
-                cursor_now <= 0;
-                cursor_dot <= 0;
+        file_start <= 1;
+    end else begin
+        sd_restart <= 0;
+        overlay <= 0;
+        case (state)
+        SD_READ_DIR: begin
+            if (sd_list_en) begin       // found a dir entry, draw onto screen
+                // starting from col=2, row=5, 8x8 chars, 20 lines, 30 wide
+                file_total <= sd_list_file;                       // update file count
+                if (sd_list_file >= file_start && sd_list_file < file_start + 20) begin
+                    X <= 15;
+                    Y <= 40 + ((sd_list_file - file_start) << 3);
+                    overlay <= 0;
+                end
+            end else if (sd_done) begin
                 state <= SD_UI;
+            end else if (Y < 200) begin
+                // fill in actual pixels, one pixel per clock cycle
+                // so one file name takes 30*64=1920 cycles
+                overlay <= 1;
+                if (fn + file_start == sd_list_file[7:0] /* && ch < sd_list_namelen*/) begin
+                    if (FONT[sd_list_name[ch]][ny[2:0]][nx[2:0]])
+                        color <= COLOR_TEXT;    // yellow
+                    else
+                        color <= COLOR_BACK;    // black
+                end else color <= 13;
+                X <= nx; cycle <= nx;
+                Y <= ny; scanline <= ny;
             end
         end
-    end
-    SD_UI: begin                    // UP and DOWN to choose rom and A to load
-        if (pad == PAD_UP && active != 0)
-            active = active - 1;
-        else if (pad == PAD_DOWN && active != total-1)
-            active = active + 1;
-        else if (pad == PAD_RIGHT || pad == PAD_LEFT) begin // navigate to next/prev menu
-            sd_rstart <= 1;
-            sd_rsector <= pad == PAD_RIGHT ? next_meta : prev_meta;
-            state <= SD_READ_META;
-            sd_off <= 0;
-        end
+        SD_UI: begin                    // UP and DOWN to choose rom and A to load
+            if (pad == PAD_UP && active != 0)
+                active = active - 1;
+            else if (pad == PAD_DOWN && active != total-1)
+                active = active + 1;
+            else if (pad == PAD_RIGHT && file_start + 20 <= file_total) begin // navigate to next/prev menu
+                file_start <= file_start + 20;
+                sd_restart <= 1;
+                state <= SD_READ_DIR;
+            end else if (pad == PAD_LEFT && file_start > 1) begin
+                file_start <= file_start - 20;
+                sd_restart <= 1;
+                state <= SD_READ_DIR;
+            end
 
-        // paint cursor, one dot per clock
-        {cursor_now, cursor_dot} <= {cursor_now, cursor_dot} + 1;
-        if (cursor_now == total-1 && cursor_dot == 6'd63) begin
-            cursor_now <= 0;
-            cursor_dot <= 0;            
-        end
-        if (cursor_now == active && total != 0) begin
-            color <= CURSOR[cursor_dot] ? foreground : background;
-        end else
-            color <= background;
-        scanline <= y[cursor_now] + cursor_dot[5:3];
-        cycle <= x[cursor_now] + cursor_dot[2:0];
+            // paint cursor, one dot per clock
+            overlay <= 1;
+            {cursor_now, cursor_dot} <= {cursor_now, cursor_dot} + 1;
+            if (cursor_now == total-1 && cursor_dot == 6'd63) begin
+                cursor_now <= 0;
+                cursor_dot <= 0;            
+            end
+            if (cursor_now == active && total != 0) begin
+                color <= CURSOR[cursor_dot] ? COLOR_CURSOR : COLOR_BACK;
+            end else
+                color <= COLOR_BACK;
+            scanline <= 40 + (cursor_now<<3) + cursor_dot[5:3];
+            cycle <= cursor_dot[2:0];
 
-        if (nes_btn[0] && total != 0) begin       // select ROM and start loading
-            sd_rstart <= 1;
-            sd_rsector <= rom_sector[active];
-            sd_romlen <= rom_len[active];
-            sd_last_sector <= rom_sector[active] + rom_len[active][23:9];
-            sd_off <= 0;
-            overlay <= 0;
-            sd_loading <= 1;
-            state <= SD_READ_ROM;
-        end
-    end
-    SD_READ_ROM: begin
-        if (sd_outen) begin
-            // data handled by dout_valid, dout above
-        end
-        if (sd_rdone) begin
-            if (is_last_sector) begin
-                sd_loading <= 0;
-                state <= SD_DONE;
-            end else begin
-                sd_rstart <= 1;
-                sd_rsector[23:0] <= sd_rsector[23:0] + 1;
-                sd_off <= 0;
+            if (nes_btn[0] && total != 0) begin     // select ROM and start loading
+                sd_op <= 1;
+                sd_file <= active + file_start;
+                sd_restart <= 1;                    // restart controller to exec read command
+                overlay <= 0;
+                sd_loading <= 1;
                 state <= SD_READ_ROM;
             end
         end
+        SD_READ_ROM: begin
+            if (sd_outen) begin
+                // data handled by dout_valid, dout above
+            end else if (sd_done)
+                sd_loading <= 0;                    // loading is finished
+        end
+        endcase
     end
-    endcase
 end
 
 // process keyboard input
@@ -262,6 +221,17 @@ always @(posedge clk) begin
             debounce <= FREQ/5;
         end
     end
+end
+
+always @* begin
+    case (debug_reg)
+    8'h1: debug_out = file_total;
+    8'h2: debug_out = file_start;
+    8'h3: debug_out = active;
+    8'h4: debug_out = total;
+    8'h5: debug_out = state;
+    default: debug_out = 0;
+    endcase
 end
 
 endmodule
