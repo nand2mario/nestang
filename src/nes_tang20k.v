@@ -432,17 +432,11 @@ reg [3:0] sd_state0 = 0;
 reg [19:0] timer;           // 37 times per second
 always @(posedge clk) timer <= timer + 1;
 
-`define SD_REPORT
+//`define SD_REPORT
 
 always@(posedge clk)begin
     state_0<={2'b0, loader_done};
     state_1<=state_0;
-
-    // print button status
-    // case (timer)
-    // 20'h00000: `print({nes_btn, nes_btn2}, 2);
-    // 20'hf0000: `print("\n", STR);
-    // endcase
 
     // status for SD file browsing
 `ifdef SD_REPORT

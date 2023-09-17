@@ -18,6 +18,8 @@ COLOR=56        # bright text: yellow
 COLOR_DARK=4    # dark text:   purple
 META_MENU_SECTORS=121   # 1 meta-sector + 120 menu image
 
+print("Since 0.7, nes2img.py is NO LONGER NEEDED. Just format your MicroSD card as FAT32. See https://github.com/nand2mario/nestang/README.md. This script will be removed later.\n")
+
 if len(sys.argv) < 3:
     print('Packing nes roms as an sdcard image. Usage:')
     print('  nes2img.py -o x.img x.nes y.nes ...')

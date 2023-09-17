@@ -20,12 +20,12 @@ Main features,
 The best way to experience NESTang is with the Tang Nano 20K (Retro Game Kit version), which cost $38 last time I checked. The board features FPGA-friendly SDRAM memory. And the kit includes the necessary controller adapters and a pair of controllers. Here's what you need to run NESTang:
 
 * The Tang Nano 20K board.
-* Sipeed ps2 controller adapters connected to the board's pin 15-20 on both sides. The latest 0.6 release also supports [USB gamepads](doc/usb_gamepad.md).
+* Sipeed ps2 controller adapters connected to the board's pin 15-20 on both sides. Releases since 0.6 also support [USB gamepads](doc/usb_gamepad.md).
 * Playstation or USB controllers connected to the adapters.
 * HDMI cable to connect the board to a monitor.
 * Latest NESTang program downloaded from [github](https://github.com/nand2mario/nestang/releases) and transferred to the board using either [openFPGALoader](https://github.com/trabucayre/openFPGALoader) or Gowin programmer.
-* A MicroSD card to hold ROMs. Since 0.8, just format the SD card in FAT32 format and place all .nes roms in the root dir.
-  * For <= 0.7: An 8GB cards should suffice. The `tools/nes2img.py` python program can be used to convert .nes ROM files to an .img file. Ensure that you have Python version 3.7 or higher, and then install the Pillow package using `pip3 install pillow`. You can then use an SD imaging tool such as [Balena Etcher](https://www.balena.io/etcher) to burn the newly created image onto the MicroSD card.
+* A MicroSD card to hold ROMs. For >= 0.7, just format the SD card in FAT32 (the card should be [<=32GB](https://answers.microsoft.com/en-us/windows/forum/all/format-a-sandisk-extreme-64gb-micro-sd-card-to/ff51be64-75b9-435f-9d39-92299b9d006e)) and place all .nes roms in the root dir.
+  * For <= 0.6: The `tools/nes2img.py` python program can be used to convert .nes ROM files to an .img file. Ensure that you have Python version 3.7 or higher, and then install the Pillow package using `pip3 install pillow`. You can then use an SD imaging tool such as [Balena Etcher](https://www.balena.io/etcher) to burn the newly created image onto the MicroSD card.
 * Insert the MicroSD card and power up the board to start playing your favorite games!
 
 ## Setup for Tang Primer 20K
@@ -50,7 +50,7 @@ Congratulations! Now you can enjoy all your favorite NES games. For version 0.4,
 
 If you want to generate the bitstream from source, see [Build Instructions](https://nand2mario.github.io/nestang-doc/dev/build_bitstream/).
 
-Quite some time was spent on getting a low-latency (90ns) [DDR3 controller](https://github.com/nand2mario/ddr3-tang-primer-20k) to work for Tang Primer 20K. You may find that useful too.
+[Usb_hid_host](https://github.com/nand2mario/usb_hid_host) was development so NESTang could support USB gamepads. Follow the link if you want to use it for your FPGA projects. It supports keyboards and mice too.
 
 ## Next steps
 

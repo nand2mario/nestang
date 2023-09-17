@@ -1,7 +1,15 @@
 
 ## Version history for NESTang - an NES emulator for Tang Primer 20K
 
-v0.5 - The Tang Nano 20k release
+v0.7, 9/18/2023 - FAT32 MicroSD
+- This release only supports Tang Nano 20K.
+- FAT32 MicroSD support. We have switched to FAT32 format for rom loading from MicroSD cards. Simply format your card in FAT32 and place all roms in the root directory.
+
+v0.6, 8/20/2023 - USB gamepads
+- This release only supports Tang Nano 20K.
+- USB gamepad support. In addition to playstation 2 controllers, now low-speed USB gamepads can be connected to the board. USB connectors and a bit circuitry is needed. See [usb_gamepad.md](doc/usb_gamepad.md)
+
+v0.5, 6/4/2023 - The Tang Nano 20k release
 - This release only supports the new Tang Nano 20K board.
 - Direct controller support. Playstation 2 controllers (wired or wireless) can be directly 
   connected to the board through a Sipeed adapter.
