@@ -176,7 +176,7 @@ always @(posedge clk) begin
 
             if (nes_btn[0] && total != 0) begin     // select ROM and start loading
                 sd_op <= 1;
-                sd_file <= active;
+                sd_file <= active + file_start;
                 sd_restart <= 1;                    // restart controller to exec read command
                 overlay <= 0;
                 sd_loading <= 1;
