@@ -24,7 +24,7 @@ The best way to experience NESTang is with the Tang Nano 20K (Retro Game Kit ver
 * Playstation or USB controllers connected to the adapters.
 * HDMI cable to connect the board to a monitor.
 * Latest NESTang program downloaded from [github](https://github.com/nand2mario/nestang/releases) and transferred to the board using either [openFPGALoader](https://github.com/trabucayre/openFPGALoader) or Gowin programmer.
-* A MicroSD card to hold ROMs. For >= 0.7, just format the SD card in FAT32 (the card should be [<=32GB](https://answers.microsoft.com/en-us/windows/forum/all/format-a-sandisk-extreme-64gb-micro-sd-card-to/ff51be64-75b9-435f-9d39-92299b9d006e)) and place all .nes roms in the root dir.
+* A MicroSD card to hold ROMs. For >= 0.7, just format the SD card in FAT32 (the card should be [<=32GB](https://answers.microsoft.com/en-us/windows/forum/all/format-a-sandisk-extreme-64gb-micro-sd-card-to/ff51be64-75b9-435f-9d39-92299b9d006e)) and place all .nes roms in the root dir. You can use [DriveSort](http://www.anerty.net/software/file/DriveSort/?lang=en) or similar tools to sort the files on the card if you want them to show in order.
   * For <= 0.6: The `tools/nes2img.py` python program can be used to convert .nes ROM files to an .img file. Ensure that you have Python version 3.7 or higher, and then install the Pillow package using `pip3 install pillow`. You can then use an SD imaging tool such as [Balena Etcher](https://www.balena.io/etcher) to burn the newly created image onto the MicroSD card.
 * Insert the MicroSD card and power up the board to start playing your favorite games!
 
