@@ -432,7 +432,7 @@ reg [3:0] sd_state0 = 0;
 reg [19:0] timer;           // 37 times per second
 always @(posedge clk) timer <= timer + 1;
 
-//`define SD_REPORT
+// `define SD_REPORT
 
 always@(posedge clk)begin
     state_0<={2'b0, loader_done};
@@ -443,31 +443,35 @@ always@(posedge clk)begin
     case (timer)
     20'h00000: begin
       `print("sd: file_total=", STR);
+      sd_debug_reg = 2;
+    end
+    20'h10000: begin 
+      `print(sd_debug_out, 1);
       sd_debug_reg = 1;
     end
-    20'h10000: `print(sd_debug_out, 1);
-    20'h20000: begin
+    20'h20000: `print(sd_debug_out, 1);
+    20'h30000: begin
       `print(", file_start=", STR);
-      sd_debug_reg = 2;      
-    end
-    20'h30000: `print(sd_debug_out, 1);
-    20'h40000: begin
-      `print(", active=", STR);
       sd_debug_reg = 3;      
     end
-    20'h50000: `print(sd_debug_out, 1);
-    20'h60000: begin
-      `print(", total=", STR);
+    20'h40000: `print(sd_debug_out, 1);
+    20'h50000: begin
+      `print(", active=", STR);
       sd_debug_reg = 4;      
     end
-    20'h70000: `print(sd_debug_out, 1);
-    20'h80000: begin
-      `print(", state=", STR);
+    20'h60000: `print(sd_debug_out, 1);
+    20'h70000: begin
+      `print(", total=", STR);
       sd_debug_reg = 5;      
     end
-    20'h90000: `print(sd_debug_out, 1);
-    20'ha0000: `print(", buttons=", STR);
-    20'hb0000: `print({nes_btn, nes_btn2}, 2);
+    20'h80000: `print(sd_debug_out, 1);
+    20'h80000: begin
+      `print(", state=", STR);
+      sd_debug_reg = 6;      
+    end
+    20'ha0000: `print(sd_debug_out, 1);
+    20'hb0000: `print(", buttons=", STR);
+    20'hc0000: `print({nes_btn, nes_btn2}, 2);
     20'hf0000: `print("\n", STR);
     endcase
 `endif

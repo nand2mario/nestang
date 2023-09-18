@@ -34,9 +34,9 @@ module SDLoader #(
 `include "font.vh"
 
 localparam [5:0] COLOR_BACK=13, COLOR_CURSOR=55, COLOR_TEXT=56;
-reg [4:0] active;       // within the page
-reg [9:0] file_total;   // max 1023 files
-reg [9:0] file_start = 1;   // file number is 1-based
+reg [4:0] active;           // within the page
+reg [11:0] file_total;      // max 4095 files
+reg [11:0] file_start = 1;  // file number is 1-based
 wire [4:0] total = file_total < file_start ? 0 :        // number of files in this page
                    file_total >= file_start + 19 ? 20 : file_total - file_start + 1;
 reg [4:0] cursor_now;   // current cursor under refresh
@@ -72,10 +72,10 @@ reg sd_loading;
 reg sd_op = 0;
 wire sd_done;
 reg sd_restart = 0;
-reg [9:0] sd_file;
+reg [11:0] sd_file;
 wire [7:0] sd_list_name[0:51];
 wire [7:0] sd_list_namelen;
-wire [9:0] sd_list_file;
+wire [11:0] sd_list_file;
 wire sd_list_en;
 
 // whether current sd_outbyte is valid NES data
@@ -135,7 +135,7 @@ always @(posedge clk) begin
                 // fill in actual pixels, one pixel per clock cycle
                 // so one file name takes 30*64=1920 cycles
                 overlay <= 1;
-                if (fn + file_start == sd_list_file[7:0] /* && ch < sd_list_namelen*/) begin
+                if (fn + file_start == sd_list_file) begin
                     if (FONT[sd_list_name[ch]][ny[2:0]][nx[2:0]])
                         color <= COLOR_TEXT;    // yellow
                     else
@@ -225,11 +225,12 @@ end
 
 always @* begin
     case (debug_reg)
-    8'h1: debug_out = file_total;
-    8'h2: debug_out = file_start;
-    8'h3: debug_out = active;
-    8'h4: debug_out = total;
-    8'h5: debug_out = state;
+    8'h1: debug_out = file_total[7:0];
+    8'h2: debug_out = file_total[11:8];
+    8'h3: debug_out = file_start;
+    8'h4: debug_out = active;
+    8'h5: debug_out = total;
+    8'h6: debug_out = state;
     default: debug_out = 0;
     endcase
 end

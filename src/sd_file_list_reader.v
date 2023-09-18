@@ -30,7 +30,7 @@ module sd_file_list_reader #(
     input  wire       sddat0,            // FPGA only read SDDAT signal but never drive it
     // command interface
     input             op,                // 0: list root dir, 1: read file. rstn <= 0 to restart a new operation.
-    input       [9:0] read_file,         // file number to read for cmd=2
+    input      [11:0] read_file,         // file number to read for cmd=2
     output      [2:0] done,              // operation finished
     // status output (optional for user)
     output wire [3:0] card_stat,         // show the sdcard initialize status
@@ -40,7 +40,7 @@ module sd_file_list_reader #(
     // listing output (root directory, files only)
     output     [7:0]  list_name[0:51],   // name of current file, max 52 chars, [255:248] is first char, etc.
     output     [7:0]  list_namelen,
-    output reg [9:0]  list_file_num,     // number of current file: 0, 1...
+    output reg [11:0] list_file_num,     // number of current file: 0, 1...
     output            list_en,           // pulse on new list result
     // reading content data output (sync with clk)
     output reg        outen,             // when outen=1, a byte of file content is read out from outbyte
