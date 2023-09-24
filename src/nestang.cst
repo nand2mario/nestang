@@ -4,8 +4,11 @@ IO_PORT "sys_clk" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
 // IO_LOC "sys_resetn" T2;
 // IO_PORT "sys_resetn" PULL_MODE=NONE;
 
+// S1 and pin 48 are both resets
 IO_LOC "s1" 88;
 IO_PORT "s1" PULL_MODE=NONE;
+IO_LOC "reset2" 48;
+IO_PORT "reset2" PULL_MODE=DOWN;
 
 // HDMI
 IO_LOC "tmds_clk_p" 33;

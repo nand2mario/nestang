@@ -7,10 +7,10 @@
 
 module NES_Tang20k(
     input sys_clk,
-    // input sys_resetn,
-    // input d7,
-    // Button S1
+
+    // Button S1 and pin 48 are both resets
     input s1,
+    input reset2,
 
     // UART
     input UART_RXD,
@@ -70,7 +70,7 @@ reg [7:0] reset_cnt = 255;      // reset for 255 cycles before start everything
 always @(posedge clk) begin
     reset_cnt <= reset_cnt == 0 ? 0 : reset_cnt - 1;
     if (reset_cnt == 0)
-        sys_resetn <= ~s1;
+        sys_resetn <= ~s1 & ~reset2;
 end
 
 `ifndef VERILATOR

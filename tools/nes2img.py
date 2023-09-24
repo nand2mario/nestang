@@ -50,10 +50,25 @@ def writeBackBinary():
     png = os.path.join(os.path.dirname(__file__), 'back.png')
     with Image.open(png) as im:
         img = image2nes(im)
+    # find bounding box of logo
+    l=256
+    r=0
+    t=240
+    b=0
     with open(BIN, 'w') as bin_file:
         for i in range(240):        # print image for debug
             for j in range(256):
                 bin_file.write('{:06b}\n'.format(img[i][j]))
+                if img[i][j] != 13:
+                    l = min(j, l)
+                    r = max(j, r)
+                    t = min(i, t)
+                    b = max(i, b)
+    print('left={}, right={}, top={}, bottom={}'.format(l, r, t, b))
+    for y in range(t, b+1):
+        for x in range(l, r+1):
+            print('{}'.format('1' if img[y][x] == 4 else '0'), end='')
+        print('')
 
 if BIN != '':       # Just write background as binary file
     writeBackBinary()

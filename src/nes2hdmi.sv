@@ -55,7 +55,11 @@ module nes2hdmi (
 
     wire [15:0] mem_portB_addr;
     logic [5:0] mem_portB_rdata;
-   
+
+    logic initializing = 1;
+    logic [7:0] init_y = 0;
+    logic [7:0] init_x = 0; 
+
     // BRAM port A read/write
 	always_ff @(posedge clk) begin
 		if (mem_portA_we) begin
@@ -66,27 +70,59 @@ module nes2hdmi (
     // BRAM port B read
     always_ff @(posedge clk_pixel) begin
         mem_portB_rdata <= mem[mem_portB_addr];
-//        mem_portB_rdata <= mem_portB_addr[13:8];
     end
 
     initial begin
         $readmemb("background.txt", mem);
-        // $readmemb("nes_fb_testpattern_palette.txt", mem);
     end
 
+    localparam [0:65] LOGO [0:12] = '{
+        'b11110000110011111111001111001111111110000000000000000000000000000,
+        'b11110000110011111111011111101111111110000000000000000000000000000,
+        'b11111000110011100000011100100001110000000000000000000000000000000,
+        'b11111000110011100000011100000001110000011111000111111100001111110,
+        'b11011100110011111110001110000001110000110011100111001110011100111,
+        'b11001110110011111110000111000001110000000011100110001110011000111,
+        'b11001111110011000000000011100001110000111111100110001110111000111,
+        'b11000111110011000000110011100001110001111111100110001110111000111,
+        'b11000011110011111110111111100001100001110011100110001110011001111,
+        'b11000011110011111110011111000001100000111111100110001110001111111,
+        'b00000000000000000000000000000000000000000000000000000000000000111,
+        'b00000000000000000000000000000000000000000000000000000000011001110,
+        'b00000000000000000000000000000000000000000000000000000000011111100
+    };
+
     // 
-    // Data input
+    // Data input and initial background loading
     //
     logic [8:0] r_scanline;
     logic [8:0] r_cycle;
     always @(posedge clk) begin
-        r_scanline <= scanline;
-        r_cycle <= cycle;
-        mem_portA_we <= 1'b0;
-        if ((r_scanline != scanline || r_cycle != cycle) && scanline < 9'd240 && ~cycle[8]) begin
-            mem_portA_addr <= {scanline[7:0], cycle[7:0]};
-            mem_portA_wdata <= color;
-            mem_portA_we <= 1'b1;
+        if (~resetn) begin
+            initializing <= 1;
+            init_y <= 0;
+            init_x <= 0;
+            mem_portA_we <= 0;
+        end else if (initializing) begin    // setup background at initialization
+            init_x <= init_x + 1;
+            init_y <= init_x == 255 ? init_y + 1 : init_y;
+            if (init_y == 240)
+                initializing <= 0;
+            mem_portA_we <= 1;
+            mem_portA_addr <= {init_y, init_x};
+            if (init_x >= 96 && init_x <= 160 && init_y >= 212 && init_y <= 224 && LOGO[init_y - 212][init_x - 96])
+                mem_portA_wdata <= 4;       // blue logo
+            else
+                mem_portA_wdata <= 13;      // black
+        end else begin
+            r_scanline <= scanline;
+            r_cycle <= cycle;
+            mem_portA_we <= 1'b0;
+            if ((r_scanline != scanline || r_cycle != cycle) && scanline < 9'd240 && ~cycle[8]) begin
+                mem_portA_addr <= {scanline[7:0], cycle[7:0]};
+                mem_portA_wdata <= color;
+                mem_portA_we <= 1'b1;
+            end
         end
     end
 
