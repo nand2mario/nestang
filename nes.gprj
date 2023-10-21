@@ -3,7 +3,7 @@
 <Project>
     <Template>FPGA</Template>
     <Version>5</Version>
-    <Device name="GW2AR-18C" pn="GW2AR-LV18QN88C8/I7">gw2ar18c-000</Device>
+    <Device name="GW5A-25A" pn="GW5A-LV25MG121NC1/I0">gw5a25a-002</Device>
     <FileList>
         <File path="src/MicroCode.v" type="file.verilog" enable="1"/>
         <File path="src/apu.v" type="file.verilog" enable="1"/>

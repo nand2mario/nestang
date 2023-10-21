@@ -19,6 +19,8 @@ wire gw_gnd;
 
 assign gw_gnd = 1'b0;
 
+`ifdef NANO20K
+
 rPLL rpll_inst (
     .CLKOUT(clkout),
     .LOCK(lock),
@@ -36,6 +38,8 @@ rPLL rpll_inst (
     .DUTYDA({gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
     .FDLY({gw_gnd,gw_gnd,gw_gnd,gw_gnd})
 );
+
+`endif
 
 defparam rpll_inst.FCLKIN = "27";
 defparam rpll_inst.DYN_IDIV_SEL = "false";
