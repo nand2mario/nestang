@@ -583,7 +583,7 @@ always@(posedge clk)begin
 `endif
 
     if(~sys_resetn) begin
-       `print("System Reset\nWelcome to NES_Tang\n",STR);
+       `print("System Reset\nWelcome to NESTang\n",STR);
     end
 end
 
@@ -602,8 +602,12 @@ end
 
 `endif
 
-assign led = ~{~UART_RXD, loader_done};
+//assign led = ~{~UART_RXD, loader_done};
 //assign led = ~{~UART_RXD, usb_conerr, loader_done};
 // assign led = ~usb_btn;
+
+//reg [22:0] led_cnt;
+//always @(posedge clk_usb) led_cnt <= led_cnt + 1;
+//assign led = {led_cnt[22], led_cnt[22]};
 
 endmodule

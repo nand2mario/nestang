@@ -8,6 +8,9 @@
 //Created Time: Sun Oct 22 21:42:30 2023
 
 // 27Mhz in, 12Mhz out
+// Fvco = Fclkin / IDIV * FBDIV * MDIV 
+// Fout_i = Fvco / ODIV_i
+// IDIV=FBDIV=1, MDIV=32, VCO=864, ODIV0=72
 module gowin_pll_usb (clkout, clkin);
 
 output clkout;
