@@ -8,6 +8,9 @@
 // $20_0000 - $37_ffff: CHR ROM 1.5MB
 // $38_0000 - $38_07ff: Internal RAM (2KB), and 126KB unused
 // $3c_0000 - $3d_ffff: PRG RAM 128KB
+
+import configPackage::*;
+
 module MemoryController(
     input clk,                // Main logic clock
     input clk_sdram,          // 180-degree of clk
@@ -39,8 +42,6 @@ module MemoryController(
     output [3:0] SDRAM_DQM
 );
 
-`include "nes_tang20k.vh"
-
 reg [22:0] MemAddr;
 reg MemRD, MemWR, MemRefresh, MemInitializing;
 reg [7:0] MemDin;
@@ -57,7 +58,8 @@ assign dout_b = (cycles == 3'd4 && r_read_b) ? MemDout : db;
 
 // SDRAM driver
 sdram #(
-    .FREQ(FREQ)
+    .FREQ(FREQ), .DATA_WIDTH(SDRAM_DATA_WIDTH), .ROW_WIDTH(SDRAM_ROW_WIDTH),
+    .COL_WIDTH(SDRAM_COL_WIDTH), .BANK_WIDTH(SDRAM_BANK_WIDTH)
 ) u_sdram (
     .clk(clk), .clk_sdram(clk_sdram), .resetn(resetn),
 	.addr(busy ? MemAddr : {1'b0, addr}), .rd(busy ? MemRD : (read_a || read_b)), 

@@ -24,6 +24,8 @@
 // This can be generated with PLL's clkoutp output.
 //
 
+import configPackage::*;
+
 module sdram
 #(
     // Clock frequency, max 66.7Mhz with current set of T_xx/CAS parameters.
@@ -53,7 +55,7 @@ module sdram
     output reg        SDRAM_nCAS,
     output            SDRAM_CLK,
     output            SDRAM_CKE,    // not strictly necessary, always 1
-    output reg  [3:0] SDRAM_DQM,
+    output reg  [DATA_WIDTH/8-1:0] SDRAM_DQM,
     
     // Logic side interface
     input             clk,
@@ -62,25 +64,29 @@ module sdram
     input             rd,           // command: read
     input             wr,           // command: write
     input             refresh,      // command: auto refresh. 4096 refresh cycles in 64ms. Once per 15us.
-    input      [22:0] addr,         // byte address
+    input      [25:0] addr,         // byte address (64MB total space)
     input       [7:0] din,          // data input
     output      [7:0] dout,         // data output
-    output [DATA_WIDTH-1:0] dout32, // 32-bit data output
+    output [DATA_WIDTH-1:0] dout_full, // 32/16-bit data output
     output reg        data_ready,   // available 6 cycles after wr is set
     output reg        busy          // 0: ready for next command
 );
 
+localparam DATA_BYTES = DATA_WIDTH / 8;
+localparam OFF_WIDTH = $clog2(DATA_BYTES);  // address within word
+
 // Tri-state DQ input/output
 reg dq_oen;         // 0 means output
 reg [DATA_WIDTH-1:0] dq_out;
-assign SDRAM_DQ = dq_oen ? 32'bzzzz_zzzz_zzzz_zzzz_zzzz_zzzz_zzzz_zzzz : dq_out;
+assign SDRAM_DQ = dq_oen ? {DATA_WIDTH{1'bz}} : dq_out;
 wire [DATA_WIDTH-1:0] dq_in = SDRAM_DQ;     // DQ input
 
-reg [1:0] off;          // byte offset
-assign dout = off == 0 ? dq_in[7:0] :
-              off == 1 ? dq_in[15:8] :
-              off == 2 ? dq_in[23:16] : dq_in[31:24];
-assign dout32 = dq_in;
+reg [OFF_WIDTH-1:0] off;          // byte offset
+assign dout = dq_in[off*8+7 -: 8];
+// assign dout = off == 0 ? dq_in[7:0] :
+//               off == 1 ? dq_in[15:8] :
+//               off == 2 ? dq_in[23:16] : dq_in[31:24];
+assign dout_full = dq_in;
 assign SDRAM_CLK = clk_sdram;
 assign SDRAM_CKE = 1'b1;
 assign SDRAM_nCS = 1'b0;
@@ -154,8 +160,8 @@ always @(posedge clk) begin
         {IDLE, 4'bxxxx}: if (rd | wr) begin
             // bank activate
             {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_BankActivate;
-            SDRAM_BA <= addr[ROW_WIDTH+COL_WIDTH+BANK_WIDTH-1+2 : ROW_WIDTH+COL_WIDTH+2];    // bank id
-            SDRAM_A <= addr[ROW_WIDTH+COL_WIDTH-1+2:COL_WIDTH+2];      // 12-bit row address
+            SDRAM_BA <= addr[ROW_WIDTH+COL_WIDTH+BANK_WIDTH-1+OFF_WIDTH : ROW_WIDTH+COL_WIDTH+OFF_WIDTH];    // bank id
+            SDRAM_A <= addr[ROW_WIDTH+COL_WIDTH-1+OFF_WIDTH:COL_WIDTH+OFF_WIDTH];      // 12-bit row address
             state <= rd ? READ : WRITE;
             cycle <= 4'd1;
             busy <= 1'b1;
@@ -179,9 +185,9 @@ always @(posedge clk) begin
         {READ, T_RCD}: begin
             {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_Read;
             SDRAM_A[10] <= 1'b1;        // set auto precharge
-            SDRAM_A[9:0] <= {1'b0, addr[COL_WIDTH-1+2:2]};  // column address
-            SDRAM_DQM <= 4'b0;
-            off <= addr[1:0];
+            SDRAM_A[9:0] <= {1'b0, addr[COL_WIDTH-1+OFF_WIDTH:OFF_WIDTH]};  // column address
+            SDRAM_DQM <= 0;
+            off <= addr[OFF_WIDTH-1:0];
         end
         {READ, T_RCD+CAS}: begin
             data_ready <= 1'b1;
@@ -202,12 +208,13 @@ always @(posedge clk) begin
         {WRITE, T_RCD}: begin
             {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_Write;
             SDRAM_A[10] <= 1'b1;        // set auto precharge
-            SDRAM_A[9:0] <= {1'b0, addr[COL_WIDTH-1+2:2]};  // column address
-            SDRAM_DQM <= addr[1:0] == 2'd0 ? 4'b1110 :
-                         addr[1:0] == 2'd1 ? 4'b1101 :
-                         addr[1:0] == 2'd2 ? 4'b1011 : 4'b0111;     // only write the correct byte
-            off <= addr[1:0];
-            dq_out <= {din,din,din,din};
+            SDRAM_A[9:0] <= {1'b0, addr[COL_WIDTH-1+OFF_WIDTH:OFF_WIDTH]};  // column address
+            SDRAM_DQM <= ~(1 << addr[OFF_WIDTH-1:0]);
+            // SDRAM_DQM <= addr[1:0] == 2'd0 ? 4'b1110 :
+            //              addr[1:0] == 2'd1 ? 4'b1101 :
+            //              addr[1:0] == 2'd2 ? 4'b1011 : 4'b0111;     // only write the correct byte
+            off <= addr[OFF_WIDTH-1:0];
+            dq_out <= {DATA_BYTES{din}};
             dq_oen <= 1'b0;                 // DQ output on
         end
         {WRITE, T_RCD+4'd1}: begin

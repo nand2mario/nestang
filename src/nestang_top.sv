@@ -1,11 +1,13 @@
 //
-// NES top level for Sipeed Tang Nano 20K
+// NESTang top level
 // nand2mario
 //
 
 // `timescale 1ns / 100ps
 
-module NES_Tang20k(
+import configPackage::*;
+
+module nestang_top (
     input sys_clk,
 
     // Button S1 and pin 48 are both resets
@@ -20,16 +22,18 @@ module NES_Tang20k(
     output [1:0] led,
 
     // SDRAM
+    // For Primer 25K: https://github.com/MiSTer-devel/Hardware_MiSTer/blob/master/releases/sdram_xsds_3.0.pdf
+    // For Nano 20K: 8MB 32-bit SDRAM
     output O_sdram_clk,
     output O_sdram_cke,
     output O_sdram_cs_n,            // chip select
     output O_sdram_cas_n,           // columns address select
     output O_sdram_ras_n,           // row address select
     output O_sdram_wen_n,           // write enable
-    inout [31:0] IO_sdram_dq,       // 32 bit bidirectional data bus
-    output [10:0] O_sdram_addr,     // 11 bit multiplexed address bus
+    inout [SDRAM_DATA_WIDTH-1:0]    IO_sdram_dq,      // bidirectional data bus
+    output [SDRAM_ROW_WIDTH-1:0] O_sdram_addr,     // multiplexed address bus
     output [1:0] O_sdram_ba,        // two banks
-    output [3:0] O_sdram_dqm,       // 32/4
+    output [SDRAM_DATA_WIDTH/8-1:0]   O_sdram_dqm,    
 
     // MicroSD
     output sd_clk,
@@ -63,8 +67,6 @@ module NES_Tang20k(
     output [2:0] tmds_d_p
 );
 
-`include "nes_tang20k.vh"
-
 reg sys_resetn = 0;
 reg [7:0] reset_cnt = 255;      // reset for 255 cycles before start everything
 always @(posedge clk) begin
@@ -74,20 +76,21 @@ always @(posedge clk) begin
 end
 
 `ifndef VERILATOR
-// Gowin_rPLL_nes pll_nes(
-//     .clkin(sys_clk),
-//     .clkout(clk),          // FREQ main clock
-//     .clkoutp(clk_sdram)    // FREQ main clock phase shifted
-// );
-  wire clk = sys_clk;
-  wire clk_sdram = ~sys_clk;  
+
+// clk is 27Mhz
+`ifdef P25K
+  wire clk;
+  gowin_pll_27 pll27 (.clkin(sys_clk), .clkout0(clk));      // Primer25K: PLL to generate 27Mhz from 50Mhz
+`else
+  wire clk = sys_clk;       // Nano20K: native 27Mhz system clock
+`endif
+  wire clk_sdram = ~clk;  
   wire clk_usb;
 
   // USB clock 12Mhz
-  Gowin_rPLL_usb pll_nes(
-      .clkin(sys_clk),
-      .clkout(clk_usb),       // 12Mhz usb clock
-      .clkoutp()
+  gowin_pll_usb pll_usb(
+      .clkin(clk),
+      .clkout(clk_usb)       // 12Mhz usb clock
   );
 
   // HDMI domain clocks
@@ -95,13 +98,13 @@ end
   wire clk_p5;    // 5x pixel clock: 371.25 Mhz
   wire pll_lock;
 
-  Gowin_rPLL_hdmi pll_hdmi (
-    .clkin(sys_clk),
+  gowin_pll_hdmi pll_hdmi (
+    .clkin(clk),
     .clkout(clk_p5),
     .lock(pll_lock)
   );
 
-  Gowin_CLKDIV clk_div (
+  gowin_clkdiv clk_div (
     .clkout(clk_p),
     .hclkin(clk_p5),
     .resetn(sys_resetn & pll_lock)
@@ -411,7 +414,7 @@ usb_hid_host usb_controller2 (
 `include "print.v"
 defparam tx.uart_freq=BAUDRATE;
 defparam tx.clk_freq=FREQ;
-assign print_clk = sys_clk;
+assign print_clk = clk;
 assign UART_TXD = uart_txp;
 
 reg[3:0] state_0;
