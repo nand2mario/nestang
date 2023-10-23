@@ -54,10 +54,10 @@ module nestang_top (
     output reg joystick_cs2,
 
     // USB
-    inout usbdm,
-    inout usbdp,
-    inout usbdm2,
-    inout usbdp2,
+//    inout usbdm,
+//    inout usbdp,
+//    inout usbdm2,
+//    inout usbdp2,
 //    output clk_usb,
 
     // HDMI TX
@@ -384,6 +384,7 @@ Autofire af_triangle2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][4] | usb
 //   usb_btn:      (R L D U START SELECT B A)
 wire [1:0] usb_type, usb_type2;
 wire usb_report, usb_report2;
+/*
 usb_hid_host usb_controller (
     .usbclk(clk_usb), .usbrst_n(sys_resetn),
     .usb_dm(usbdm), .usb_dp(usbdp),	.typ(usb_type), .report(usb_report), 
@@ -407,6 +408,7 @@ usb_hid_host usb_controller2 (
     .mouse_btn(), .mouse_dx(), .mouse_dy(),
     .dbg_hid_report()
 );
+*/
 
 //
 // Print control
@@ -435,7 +437,7 @@ reg [3:0] sd_state0 = 0;
 reg [19:0] timer;           // 37 times per second
 always @(posedge clk) timer <= timer + 1;
 
-// `define SD_REPORT
+ `define SD_REPORT
 
 always@(posedge clk)begin
     state_0<={2'b0, loader_done};
@@ -606,8 +608,8 @@ end
 //assign led = ~{~UART_RXD, usb_conerr, loader_done};
 // assign led = ~usb_btn;
 
-//reg [22:0] led_cnt;
-//always @(posedge clk_usb) led_cnt <= led_cnt + 1;
-//assign led = {led_cnt[22], led_cnt[22]};
+reg [23:0] led_cnt;
+always @(posedge clk_p) led_cnt <= led_cnt + 1;
+assign led = {led_cnt[23], led_cnt[22]};
 
 endmodule
