@@ -30,16 +30,16 @@ module MemoryController(
     output reg [19:0] total_written,
 
     // Physical SDRAM interface
-	inout  [31:0] SDRAM_DQ,   // 16 bit bidirectional data bus
-	output [10:0] SDRAM_A,    // 13 bit multiplexed address bus
-	output [1:0] SDRAM_BA,   // 4 banks
+	inout  [SDRAM_DATA_WIDTH-1:0] SDRAM_DQ,   // 16 bit bidirectional data bus
+	output [SDRAM_ROW_WIDTH-1:0] SDRAM_A,    // 13 bit multiplexed address bus
+	output [SDRAM_BANK_WIDTH:0] SDRAM_BA,   // 4 banks
 	output SDRAM_nCS,  // a single chip select
 	output SDRAM_nWE,  // write enable
 	output SDRAM_nRAS, // row address select
 	output SDRAM_nCAS, // columns address select
 	output SDRAM_CLK,
 	output SDRAM_CKE,
-    output [3:0] SDRAM_DQM
+    output [SDRAM_DATA_WIDTH/8-1:0] SDRAM_DQM
 );
 
 reg [22:0] MemAddr;

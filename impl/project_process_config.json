@@ -58,7 +58,6 @@
  "Multiple_File_Compilation_Unit" : true,
  "Number_of_Critical_Paths" : "",
  "Number_of_Start/End_Points" : "",
- "OSC_DIVIDER" : "8",
  "OUTPUT_BASE_NAME" : "nes",
  "POWER_ON_RESET_MONITOR" : true,
  "PRINT_BSRAM_VALUE" : true,

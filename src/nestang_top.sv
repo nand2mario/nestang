@@ -44,18 +44,18 @@ module nestang_top (
     output sd_dat3,     // 1
 
     // Dualshock game controller
-    output joystick_clk,
-    output joystick_mosi,
-    input joystick_miso,
-    output reg joystick_cs,
-    output joystick_clk2,
-    output joystick_mosi2,
-    input joystick_miso2,
-    output reg joystick_cs2,
+//    output joystick_clk,
+//    output joystick_mosi,
+//    input joystick_miso,
+//    output reg joystick_cs,
+//    output joystick_clk2,
+//    output joystick_mosi2,
+//    input joystick_miso2,
+//    output reg joystick_cs2,
 
     // USB
-//    inout usbdm,
-//    inout usbdp,
+    inout usbdm,
+    inout usbdp,
 //    inout usbdm2,
 //    inout usbdp2,
 //    output clk_usb,
@@ -187,13 +187,15 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
   wire usb_btn_x, usb_btn_y, usb_btn_x2, usb_btn_y2;
   wire usb_conerr, usb_conerr2;
   wire auto_square, auto_triangle, auto_square2, auto_triangle2;
-  wire [7:0] nes_btn = {~joy_rx[0][5], ~joy_rx[0][7], ~joy_rx[0][6], ~joy_rx[0][4], 
-                        ~joy_rx[0][3], ~joy_rx[0][0], ~joy_rx[1][6] | auto_square, ~joy_rx[1][5] | auto_triangle} |
-                         usb_btn;
-  wire [7:0] nes_btn2 = {~joy_rx2[0][5], ~joy_rx2[0][7], ~joy_rx2[0][6], ~joy_rx2[0][4], 
-                         ~joy_rx2[0][3], ~joy_rx2[0][0], ~joy_rx2[1][6] | auto_square2, ~joy_rx2[1][5] | auto_triangle2} |
-                         usb_btn2;
-  
+  wire [7:0] nes_btn = usb_btn, nes_btn2 = 0;
+
+//  wire [7:0] nes_btn = {~joy_rx[0][5], ~joy_rx[0][7], ~joy_rx[0][6], ~joy_rx[0][4], 
+//                        ~joy_rx[0][3], ~joy_rx[0][0], ~joy_rx[1][6] | auto_square, ~joy_rx[1][5] | auto_triangle} |
+//                         usb_btn;
+//  wire [7:0] nes_btn2 = {~joy_rx2[0][5], ~joy_rx2[0][7], ~joy_rx2[0][6], ~joy_rx2[0][4], 
+//                         ~joy_rx2[0][3], ~joy_rx2[0][0], ~joy_rx2[1][6] | auto_square2, ~joy_rx2[1][5] | auto_triangle2} |
+//                         usb_btn2;
+//  
   // Joypad handling
   always @(posedge clk) begin
     if (joypad_strobe) begin
@@ -355,6 +357,7 @@ always @(posedge clk) begin
     end
 end
 
+/*
 dualshock_controller controller (
     .I_CLK250K(sclk), .I_RSTn(1'b1),
     .O_psCLK(joystick_clk), .O_psSEL(joystick_cs), .O_psTXD(joystick_mosi),
@@ -375,6 +378,7 @@ dualshock_controller controller2 (
     .I_CONF_SW(1'b0), .I_MODE_SW(1'b1), .I_MODE_EN(1'b0),
     .I_VIB_SW(2'b00), .I_VIB_DAT(8'hff)     // no vibration
 );
+*/
 
 Autofire af_square (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx[1][7] | usb_btn_y), .out(auto_square));            // B
 Autofire af_triangle (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx[1][4] | usb_btn_x), .out(auto_triangle));        // A
@@ -384,7 +388,6 @@ Autofire af_triangle2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][4] | usb
 //   usb_btn:      (R L D U START SELECT B A)
 wire [1:0] usb_type, usb_type2;
 wire usb_report, usb_report2;
-/*
 usb_hid_host usb_controller (
     .usbclk(clk_usb), .usbrst_n(sys_resetn),
     .usb_dm(usbdm), .usb_dp(usbdp),	.typ(usb_type), .report(usb_report), 
@@ -397,6 +400,7 @@ usb_hid_host usb_controller (
     .dbg_hid_report()
 );
 
+/*
 usb_hid_host usb_controller2 (
     .usbclk(clk_usb), .usbrst_n(sys_resetn),
     .usb_dm(usbdm2), .usb_dp(usbdp2),	.typ(usb_type2), .report(usb_report2), 
@@ -436,8 +440,9 @@ reg [3:0] sd_state0 = 0;
 
 reg [19:0] timer;           // 37 times per second
 always @(posedge clk) timer <= timer + 1;
+reg [7:0] debug_cnt = 0;
 
- `define SD_REPORT
+`define SD_REPORT
 
 always@(posedge clk)begin
     state_0<={2'b0, loader_done};
@@ -445,40 +450,43 @@ always@(posedge clk)begin
 
     // status for SD file browsing
 `ifdef SD_REPORT
-    case (timer)
-    20'h00000: begin
-      `print("sd: file_total=", STR);
-      sd_debug_reg = 2;
+    if (debug_cnt < 100) begin
+        case (timer)
+        20'h00000: begin
+          debug_cnt <= debug_cnt + 1;
+          `print("sd: file_total=", STR);
+          sd_debug_reg = 2;
+        end
+        20'h10000: begin 
+          `print(sd_debug_out, 1);
+          sd_debug_reg = 1;
+        end
+        20'h20000: `print(sd_debug_out, 1);
+        20'h30000: begin
+          `print(", file_start=", STR);
+          sd_debug_reg = 3;      
+        end
+        20'h40000: `print(sd_debug_out, 1);
+        20'h50000: begin
+          `print(", active=", STR);
+          sd_debug_reg = 4;      
+        end
+        20'h60000: `print(sd_debug_out, 1);
+        20'h70000: begin
+          `print(", total=", STR);
+          sd_debug_reg = 5;      
+        end
+        20'h80000: `print(sd_debug_out, 1);
+        20'h80000: begin
+          `print(", state=", STR);
+          sd_debug_reg = 6;      
+        end
+        20'ha0000: `print(sd_debug_out, 1);
+        20'hb0000: `print(", buttons=", STR);
+        20'hc0000: `print({nes_btn, nes_btn2}, 2);
+        20'hf0000: `print("\n", STR);
+        endcase
     end
-    20'h10000: begin 
-      `print(sd_debug_out, 1);
-      sd_debug_reg = 1;
-    end
-    20'h20000: `print(sd_debug_out, 1);
-    20'h30000: begin
-      `print(", file_start=", STR);
-      sd_debug_reg = 3;      
-    end
-    20'h40000: `print(sd_debug_out, 1);
-    20'h50000: begin
-      `print(", active=", STR);
-      sd_debug_reg = 4;      
-    end
-    20'h60000: `print(sd_debug_out, 1);
-    20'h70000: begin
-      `print(", total=", STR);
-      sd_debug_reg = 5;      
-    end
-    20'h80000: `print(sd_debug_out, 1);
-    20'h80000: begin
-      `print(", state=", STR);
-      sd_debug_reg = 6;      
-    end
-    20'ha0000: `print(sd_debug_out, 1);
-    20'hb0000: `print(", buttons=", STR);
-    20'hc0000: `print({nes_btn, nes_btn2}, 2);
-    20'hf0000: `print("\n", STR);
-    endcase
 `endif
 
     if (uart_demux.write)
@@ -586,6 +594,7 @@ always@(posedge clk)begin
 
     if(~sys_resetn) begin
        `print("System Reset\nWelcome to NESTang\n",STR);
+        debug_cnt <= 0;
     end
 end
 

@@ -5,8 +5,6 @@
     <Version>5</Version>
     <Device name="GW5A-25A" pn="GW5A-LV25MG121NC1/I0">gw5a25a-002</Device>
     <FileList>
-        <File path="src/tang_primer_25k/config.sv" type="file.verilog" enable="1"/>
-
         <File path="src/MicroCode.v" type="file.verilog" enable="1"/>
         <File path="src/apu.v" type="file.verilog" enable="1"/>
         <File path="src/autofire.v" type="file.verilog" enable="1"/>
@@ -37,10 +35,11 @@
         <File path="src/sd_loader.v" type="file.verilog" enable="1"/>
         <File path="src/sd_reader.sv" type="file.verilog" enable="1"/>
         <File path="src/sdcmd_ctrl.sv" type="file.verilog" enable="1"/>
-        <File path="src/sdram.v" type="file.verilog" enable="1"/>
+        <File path="src/tang_primer_25k/config.sv" type="file.verilog" enable="1"/>
         <File path="src/tang_primer_25k/gowin_pll_27.v" type="file.verilog" enable="1"/>
         <File path="src/tang_primer_25k/gowin_pll_hdmi.v" type="file.verilog" enable="1"/>
         <File path="src/tang_primer_25k/gowin_pll_usb.v" type="file.verilog" enable="1"/>
+        <File path="src/tang_primer_25k/sdram_p25k.v" type="file.verilog" enable="1"/>
         <File path="src/uart_tx_V2.v" type="file.verilog" enable="1"/>
         <File path="src/usb_hid_host.v" type="file.verilog" enable="1"/>
         <File path="src/usb_hid_host_rom.v" type="file.verilog" enable="1"/>
