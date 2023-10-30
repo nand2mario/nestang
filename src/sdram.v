@@ -1,30 +1,38 @@
-// Simple SDRAM controller for Tang 20k
+// Simple SDRAM controller for Tang Nano 20k and Tang Primer 25K
 // nand2mario
 // 
-// 2023.3: ported to use GW2AR-18's embedded 64Mbit SDRAM.
-//         changed to byte-based access.
-// 2022.9: iniital version.
+// 2023.10: added support for Tang Primer 25K
+// 2023.3:  ported to use GW2AR-18's embedded 64Mbit SDRAM.
+//          changed to byte-based access.
+// 2022.9:  iniital version.
 //
-// This is a byte-based, low-latency and non-bursting controller for the embedded SDRAM
-// on Tang Nano 20K. The SDRAM module is 64Mbit 32bit. (2K rows x 256 columns x 4 banks x 32 bits).
+// This is a byte-based, low-latency and non-bursting controller for the embedded 
+// SDRAM on Tang Nano 20K (64Mbit, 2K rows x 256 columns x 4 banks x 32 bits), 
+// and memory module on Tang Primer 25K (512Mbit or 1Gbit, 4K/8K rows x 
+// 1K columns x 4 banks x 16 bits).
 //
 // Under default settings (max 66.7Mhz):
 // - Data read latency is 4 cycles. 
 // - Read/write operations take 5 cycles to complete. There's no overlap between
 //   reads/writes.
-// - All reads/writes are done with auto-precharge. So user does not need to deal with
-//   row activations and precharges.
-// - SDRAMs need periodic refreshes or they lose data. So they provide an "auto-refresh"
-//   function to do one row of refresh. This "auto-refresh" operation is controlled with
-//   the 'refresh' input. 4096 or more refreshes should happen in any 64ms for the memory
-//   to not lose data. So the main circuit should invoke auto-refresh at least once 
-//   **every ~15us**.
+// - All reads/writes are done with auto-precharge. So user does not need to deal 
+//   with row activations and precharges.
+// - SDRAMs need periodic refreshes or they lose data. So they provide an 
+//   "auto-refresh" function to do one row of refresh. This "auto-refresh" operation 
+//   is controlled with the 'refresh' input. 4096 or more refreshes should happen 
+//   in any 64ms for the memory to not lose data. So the main circuit should invoke 
+//   auto-refresh at least once **every ~15us**.
 //
 // Finally you need a 180-degree phase-shifted clock signal (clk_sdram) for SDRAM. 
 // This can be generated with PLL's clkoutp output.
 //
-
-import configPackage::*;
+// The default parameters work for tang nano 20k embedded sdram.
+// For tang primer 25k's memory module, use:
+// sdram #(.FREQ(FREQ), .DATA_WIDTH(16), .ROW_WIDTH(13), .COL_WIDTH(10), .BANK_WIDTH(2) ) 
+//   u_sdram (
+//     ...
+//     .SDRAM_DQM()       // no DQM pins for memory module   
+//   )
 
 module sdram
 #(
@@ -55,7 +63,7 @@ module sdram
     output reg        SDRAM_nCAS,
     output            SDRAM_CLK,
     output            SDRAM_CKE,    // not strictly necessary, always 1
-    output reg  [DATA_WIDTH/8-1:0] SDRAM_DQM,
+    output reg  [DATA_WIDTH/8-1:0] SDRAM_DQM,    // sdram module reuses A11 and A12 for DQM
     
     // Logic side interface
     input             clk,
@@ -82,7 +90,8 @@ assign SDRAM_DQ = dq_oen ? {DATA_WIDTH{1'bz}} : dq_out;
 wire [DATA_WIDTH-1:0] dq_in = SDRAM_DQ;     // DQ input
 
 reg [OFF_WIDTH-1:0] off;          // byte offset
-assign dout = dq_in[off*8+7 -: 8];
+reg [7:0] dout_buf;
+assign dout = busy ? dq_in[off*8+7 -: 8] : dout_buf;
 // assign dout = off == 0 ? dq_in[7:0] :
 //               off == 1 ? dq_in[15:8] :
 //               off == 2 ? dq_in[23:16] : dq_in[31:24];
@@ -187,10 +196,12 @@ always @(posedge clk) begin
             SDRAM_A[10] <= 1'b1;        // set auto precharge
             SDRAM_A[9:0] <= {1'b0, addr[COL_WIDTH-1+OFF_WIDTH:OFF_WIDTH]};  // column address
             SDRAM_DQM <= 0;
+            SDRAM_A[12:11] <= 2'b0;     // A[12:11] is DQM for sdram module
             off <= addr[OFF_WIDTH-1:0];
         end
         {READ, T_RCD+CAS}: begin
             data_ready <= 1'b1;
+            dout_buf <= dq_in[off*8+7 -: 8];
         end
         {READ, T_RCD+CAS+4'd1}: begin
             data_ready <= 1'b0;
@@ -209,6 +220,7 @@ always @(posedge clk) begin
             {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_Write;
             SDRAM_A[10] <= 1'b1;        // set auto precharge
             SDRAM_A[9:0] <= {1'b0, addr[COL_WIDTH-1+OFF_WIDTH:OFF_WIDTH]};  // column address
+            SDRAM_A[12:11] <= addr[0] ? 2'b01 : 2'b10;
             SDRAM_DQM <= ~(1 << addr[OFF_WIDTH-1:0]);
             // SDRAM_DQM <= addr[1:0] == 2'd0 ? 4'b1110 :
             //              addr[1:0] == 2'd1 ? 4'b1101 :
@@ -218,9 +230,10 @@ always @(posedge clk) begin
             dq_oen <= 1'b0;                 // DQ output on
         end
         {WRITE, T_RCD+4'd1}: begin
-            dq_oen <= 1'b1;
+            // dq_oen <= 1'b1;
         end
         {WRITE, T_RCD+T_WR+T_RP}: begin  // 2+2+1
+            dq_oen <= 1'b1;
             busy <= 0;
             state <= IDLE;
         end
@@ -240,7 +253,8 @@ always @(posedge clk) begin
     if (~resetn) begin
         busy <= 1'b1;
         dq_oen <= 1'b1;         // turn off DQ output
-        SDRAM_DQM <= 4'b0;
+        SDRAM_DQM <= 0;
+        SDRAM_A[12:11] <= 2'b0;
         state <= INIT;
     end
 end
@@ -253,22 +267,22 @@ reg  [14:0]   rst_cnt;
 reg rst_done, rst_done_p1, cfg_busy;
   
 always @(posedge clk) begin
-    rst_done_p1 <= rst_done;
-    cfg_now     <= rst_done & ~rst_done_p1;// Rising Edge Detect
-
-    if (rst_cnt != FREQ / 1000 * 200 / 1000) begin      // count to 200 us
-        rst_cnt  <= rst_cnt[14:0] + 1;
-        rst_done <= 1'b0;
-        cfg_busy <= 1'b1;
-    end else begin
-        rst_done <= 1'b1;
-        cfg_busy <= 1'b0;
-    end
-
     if (~resetn) begin
         rst_cnt  <= 15'd0;
         rst_done <= 1'b0;
         cfg_busy <= 1'b1;
+    end else begin
+        rst_done_p1 <= rst_done;
+        cfg_now     <= rst_done & ~rst_done_p1;// Rising Edge Detect
+
+        if (rst_cnt != FREQ / 1000 * 200 / 1000) begin      // count to 200 us
+            rst_cnt  <= rst_cnt[14:0] + 1;
+            rst_done <= 1'b0;
+            cfg_busy <= 1'b1;
+        end else begin
+            rst_done <= 1'b1;
+            cfg_busy <= 1'b0;
+        end        
     end
 end
 
