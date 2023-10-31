@@ -1,0 +1,52 @@
+<?xml version="1" encoding="UTF-8"?>
+<!DOCTYPE gowin-fpga-project>
+<Project>
+    <Template>FPGA</Template>
+    <Version>5</Version>
+    <Device name="GW2AR-18C" pn="GW2AR-LV18QN88C7/I6">gw2ar18c-001</Device>
+    <FileList>
+        <File path="src/tang_nano_20k/config.sv" type="file.verilog" enable="1"/>
+
+        <File path="src/MicroCode.v" type="file.verilog" enable="1"/>
+        <File path="src/apu.v" type="file.verilog" enable="1"/>
+        <File path="src/autofire.v" type="file.verilog" enable="1"/>
+        <File path="src/compat.v" type="file.verilog" enable="1"/>
+        <File path="src/cpu.v" type="file.verilog" enable="1"/>
+        <File path="src/dualshock_controller.v" type="file.verilog" enable="1"/>
+        <File path="src/game_loader.v" type="file.verilog" enable="1"/>
+        <File path="src/gowin_clkdiv.v" type="file.verilog" enable="1"/>
+        <File path="src/hdmi2/audio_clock_regeneration_packet.sv" type="file.verilog" enable="1"/>
+        <File path="src/hdmi2/audio_info_frame.sv" type="file.verilog" enable="1"/>
+        <File path="src/hdmi2/audio_sample_packet.sv" type="file.verilog" enable="1"/>
+        <File path="src/hdmi2/auxiliary_video_information_info_frame.sv" type="file.verilog" enable="1"/>
+        <File path="src/hdmi2/hdmi.sv" type="file.verilog" enable="1"/>
+        <File path="src/hdmi2/packet_assembler.sv" type="file.verilog" enable="1"/>
+        <File path="src/hdmi2/packet_picker.sv" type="file.verilog" enable="1"/>
+        <File path="src/hdmi2/serializer.sv" type="file.verilog" enable="1"/>
+        <File path="src/hdmi2/source_product_description_info_frame.sv" type="file.verilog" enable="1"/>
+        <File path="src/hdmi2/tmds_channel.sv" type="file.verilog" enable="1"/>
+        <File path="src/hw_sound.v" type="file.verilog" enable="1"/>
+        <File path="src/hw_uart.v" type="file.verilog" enable="1"/>
+        <File path="src/memory_controller.v" type="file.verilog" enable="1"/>
+        <File path="src/mmu.v" type="file.verilog" enable="1"/>
+        <File path="src/nes.v" type="file.verilog" enable="1"/>
+        <File path="src/nes2hdmi.sv" type="file.verilog" enable="1"/>
+        <File path="src/nestang_top.sv" type="file.verilog" enable="1"/>
+        <File path="src/ppu.v" type="file.verilog" enable="1"/>
+        <File path="src/sd_file_list_reader.v" type="file.verilog" enable="1"/>
+        <File path="src/sd_loader.v" type="file.verilog" enable="1"/>
+        <File path="src/sd_reader.sv" type="file.verilog" enable="1"/>
+        <File path="src/sdcmd_ctrl.sv" type="file.verilog" enable="1"/>
+        <File path="src/sdram.v" type="file.verilog" enable="1"/>
+        <File path="src/tang_nano_20k/gowin_pll_hdmi.v" type="file.verilog" enable="1"/>
+        <File path="src/tang_nano_20k/gowin_pll_usb.v" type="file.verilog" enable="1"/>
+        <File path="src/uart_tx_V2.v" type="file.verilog" enable="1"/>
+        <File path="src/usb_hid_host.v" type="file.verilog" enable="1"/>
+        <File path="src/usb_hid_host_rom.v" type="file.verilog" enable="1"/>
+        <File path="src/tang_nano_20k/nestang.cst" type="file.cst" enable="1"/>
+        <File path="src/tang_primer_25k/nestang.cst" type="file.cst" enable="0"/>
+        <File path="src/tang_nano_20k/nestang.sdc" type="file.sdc" enable="1"/>
+        <File path="src/tang_primer_25k/nestang.sdc" type="file.sdc" enable="0"/>
+        <File path="src/nes.gao" type="file.gao" enable="0"/>
+    </FileList>
+</Project>

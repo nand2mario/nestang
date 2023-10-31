@@ -448,7 +448,8 @@ reg [19:0] timer;           // 37 times per second
 always @(posedge clk) timer <= timer + 1;
 reg [7:0] debug_cnt = 0;
 
-`define SD_REPORT
+// `define SD_REPORT
+// `define DS2_REPORT
 
 always@(posedge clk)begin
     state_0<={2'b0, loader_done};
@@ -493,6 +494,21 @@ always@(posedge clk)begin
         20'hf0000: `print("\n", STR);
         endcase
     end
+`endif
+
+`ifdef DS2_REPORT
+//  joy_rx[0:1] dualshock buttons: 0:(L D R U St R3 L3 Se)  1:(□ X O △ R1 L1 R2 L2)
+
+    case (timer)
+    20'h00000: `print("controller1=", STR);
+    20'h10000: `print({joy_rx[0], joy_rx[1]}, 2);
+    20'h20000: `print(", controller2=", STR);
+    20'h30000: `print({joy_rx2[0], joy_rx2[1]}, 2);
+    20'h40000: `print(", usb_btn=", STR);
+    20'h50000: `print(usb_btn, 1);
+    20'hf0000: `print("\n", STR);
+    endcase
+
 `endif
 
     if (uart_demux.write)

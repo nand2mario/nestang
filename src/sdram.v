@@ -196,7 +196,9 @@ always @(posedge clk) begin
             SDRAM_A[10] <= 1'b1;        // set auto precharge
             SDRAM_A[9:0] <= {1'b0, addr[COL_WIDTH-1+OFF_WIDTH:OFF_WIDTH]};  // column address
             SDRAM_DQM <= 0;
+`ifdef P25K
             SDRAM_A[12:11] <= 2'b0;     // A[12:11] is DQM for sdram module
+`endif
             off <= addr[OFF_WIDTH-1:0];
         end
         {READ, T_RCD+CAS}: begin
@@ -220,7 +222,9 @@ always @(posedge clk) begin
             {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_Write;
             SDRAM_A[10] <= 1'b1;        // set auto precharge
             SDRAM_A[9:0] <= {1'b0, addr[COL_WIDTH-1+OFF_WIDTH:OFF_WIDTH]};  // column address
+`ifdef P25K
             SDRAM_A[12:11] <= addr[0] ? 2'b01 : 2'b10;
+`endif
             SDRAM_DQM <= ~(1 << addr[OFF_WIDTH-1:0]);
             // SDRAM_DQM <= addr[1:0] == 2'd0 ? 4'b1110 :
             //              addr[1:0] == 2'd1 ? 4'b1101 :
@@ -254,7 +258,9 @@ always @(posedge clk) begin
         busy <= 1'b1;
         dq_oen <= 1'b1;         // turn off DQ output
         SDRAM_DQM <= 0;
+`ifdef P25K
         SDRAM_A[12:11] <= 2'b0;
+`endif
         state <= INIT;
     end
 end

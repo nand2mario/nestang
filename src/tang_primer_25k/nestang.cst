@@ -36,17 +36,17 @@ IO_PORT "tmds_d_n[2]" PULL_MODE=NONE IO_TYPE=LVCMOS33D;
 // SDCard (middle PMOD)
 // A11/D2 E11/CMD K11/D0 L5/NC GND 3V3
 // A10/D3 E10/CLK L11/D1 K5/NC GND 3V3
-IO_LOC "sd_clk" E10;
+IO_LOC "sd_clk" D10;
 IO_PORT "sd_clk" PULL_MODE=NONE IO_TYPE=LVCMOS33; 
-IO_LOC "sd_cmd" E11;        // MOSI
+IO_LOC "sd_cmd" D11;        // MOSI
 IO_PORT "sd_cmd" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "sd_dat0" K11;       // MISO
+IO_LOC "sd_dat0" B11;       // MISO
 IO_PORT "sd_dat0" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "sd_dat1" L11;       // 1
+IO_LOC "sd_dat1" B10;       // 1
 IO_PORT "sd_dat1" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "sd_dat2" A11;       // 1
+IO_LOC "sd_dat2" G11;       // 1
 IO_PORT "sd_dat2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "sd_dat3" A10;       // 1
+IO_LOC "sd_dat3" G10;       // 1
 IO_PORT "sd_dat3" PULL_MODE=NONE IO_TYPE=LVCMOS33;
 
 // UART through USB-C port
@@ -143,23 +143,23 @@ IO_LOC "O_sdram_cs_n" K9;
 IO_PORT "O_sdram_cs_n" IO_TYPE=LVCMOS33 PULL_MODE=UP;
 
 // Joystick 1 on pmod
-IO_LOC "joystick_clk" C11;
+IO_LOC "joystick_clk" L5;
 IO_PORT "joystick_clk" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "joystick_miso" B11;
+IO_LOC "joystick_miso" K11;
 IO_PORT "joystick_miso" PULL_MODE=UP IO_TYPE=LVCMOS33;
-IO_LOC "joystick_mosi" D11;
+IO_LOC "joystick_mosi" E11;
 IO_PORT "joystick_mosi" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "joystick_cs"  G11;
+IO_LOC "joystick_cs"  A11;
 IO_PORT "joystick_cs" PULL_MODE=NONE IO_TYPE=LVCMOS33;
 
 // Joystick 2 on pmod
-IO_LOC "joystick_clk2" C10;
+IO_LOC "joystick_clk2" K5;
 IO_PORT "joystick_clk2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "joystick_miso2" B10;
+IO_LOC "joystick_miso2" L11;
 IO_PORT "joystick_miso2" PULL_MODE=UP IO_TYPE=LVCMOS33;
-IO_LOC "joystick_mosi2" D10;
+IO_LOC "joystick_mosi2" E10;
 IO_PORT "joystick_mosi2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "joystick_cs2"  G10;
+IO_LOC "joystick_cs2"  A10;
 IO_PORT "joystick_cs2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
 
 // 2 LEDs for debug
