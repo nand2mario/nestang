@@ -1,11 +1,13 @@
 //
-// NES top level for Sipeed Tang Nano 20K
+// NESTang top level
 // nand2mario
 //
 
 // `timescale 1ns / 100ps
 
-module NES_Tang20k(
+import configPackage::*;
+
+module nestang_top (
     input sys_clk,
 
     // Button S1 and pin 48 are both resets
@@ -20,16 +22,20 @@ module NES_Tang20k(
     output [1:0] led,
 
     // SDRAM
+    // For Primer 25K: https://github.com/MiSTer-devel/Hardware_MiSTer/blob/master/releases/sdram_xsds_3.0.pdf
+    // For Nano 20K: 8MB 32-bit SDRAM
     output O_sdram_clk,
     output O_sdram_cke,
     output O_sdram_cs_n,            // chip select
     output O_sdram_cas_n,           // columns address select
     output O_sdram_ras_n,           // row address select
     output O_sdram_wen_n,           // write enable
-    inout [31:0] IO_sdram_dq,       // 32 bit bidirectional data bus
-    output [10:0] O_sdram_addr,     // 11 bit multiplexed address bus
+    inout [SDRAM_DATA_WIDTH-1:0]    IO_sdram_dq,      // bidirectional data bus
+    output [SDRAM_ROW_WIDTH-1:0] O_sdram_addr,     // multiplexed address bus
     output [1:0] O_sdram_ba,        // two banks
-    output [3:0] O_sdram_dqm,       // 32/4
+  `ifndef P25K
+    output [SDRAM_DATA_WIDTH/8-1:0]   O_sdram_dqm,    
+  `endif
 
     // MicroSD
     output sd_clk,
@@ -52,8 +58,10 @@ module NES_Tang20k(
     // USB
     inout usbdm,
     inout usbdp,
+`ifndef P25K
     inout usbdm2,
     inout usbdp2,
+`endif
 //    output clk_usb,
 
     // HDMI TX
@@ -63,7 +71,9 @@ module NES_Tang20k(
     output [2:0] tmds_d_p
 );
 
-`include "nes_tang20k.vh"
+`ifdef P25K
+wire [SDRAM_DATA_WIDTH/8-1:0]   O_sdram_dqm;
+`endif
 
 reg sys_resetn = 0;
 reg [7:0] reset_cnt = 255;      // reset for 255 cycles before start everything
@@ -74,20 +84,21 @@ always @(posedge clk) begin
 end
 
 `ifndef VERILATOR
-// Gowin_rPLL_nes pll_nes(
-//     .clkin(sys_clk),
-//     .clkout(clk),          // FREQ main clock
-//     .clkoutp(clk_sdram)    // FREQ main clock phase shifted
-// );
-  wire clk = sys_clk;
-  wire clk_sdram = ~sys_clk;  
+
+// clk is 27Mhz
+`ifdef P25K
+  wire clk;
+  gowin_pll_27 pll27 (.clkin(sys_clk), .clkout0(clk));      // Primer25K: PLL to generate 27Mhz from 50Mhz
+`else
+  wire clk = sys_clk;       // Nano20K: native 27Mhz system clock
+`endif
+  wire clk_sdram = ~clk;  
   wire clk_usb;
 
   // USB clock 12Mhz
-  Gowin_rPLL_usb pll_nes(
-      .clkin(sys_clk),
-      .clkout(clk_usb),       // 12Mhz usb clock
-      .clkoutp()
+  gowin_pll_usb pll_usb(
+      .clkin(clk),
+      .clkout(clk_usb)       // 12Mhz usb clock
   );
 
   // HDMI domain clocks
@@ -95,13 +106,13 @@ end
   wire clk_p5;    // 5x pixel clock: 371.25 Mhz
   wire pll_lock;
 
-  Gowin_rPLL_hdmi pll_hdmi (
-    .clkin(sys_clk),
+  gowin_pll_hdmi pll_hdmi (
+    .clkin(clk),
     .clkout(clk_p5),
     .lock(pll_lock)
   );
 
-  Gowin_CLKDIV clk_div (
+  gowin_clkdiv clk_div (
     .clkout(clk_p),
     .hclkin(clk_p5),
     .resetn(sys_resetn & pll_lock)
@@ -184,13 +195,15 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
   wire usb_btn_x, usb_btn_y, usb_btn_x2, usb_btn_y2;
   wire usb_conerr, usb_conerr2;
   wire auto_square, auto_triangle, auto_square2, auto_triangle2;
+  // wire [7:0] nes_btn = usb_btn, nes_btn2 = 0;
+
   wire [7:0] nes_btn = {~joy_rx[0][5], ~joy_rx[0][7], ~joy_rx[0][6], ~joy_rx[0][4], 
                         ~joy_rx[0][3], ~joy_rx[0][0], ~joy_rx[1][6] | auto_square, ~joy_rx[1][5] | auto_triangle} |
                          usb_btn;
   wire [7:0] nes_btn2 = {~joy_rx2[0][5], ~joy_rx2[0][7], ~joy_rx2[0][6], ~joy_rx2[0][4], 
                          ~joy_rx2[0][3], ~joy_rx2[0][0], ~joy_rx2[1][6] | auto_square2, ~joy_rx2[1][5] | auto_triangle2} |
                          usb_btn2;
-  
+
   // Joypad handling
   always @(posedge clk) begin
     if (joypad_strobe) begin
@@ -393,6 +406,7 @@ usb_hid_host usb_controller (
     .dbg_hid_report()
 );
 
+`ifndef P25K
 usb_hid_host usb_controller2 (
     .usbclk(clk_usb), .usbrst_n(sys_resetn),
     .usb_dm(usbdm2), .usb_dp(usbdp2),	.typ(usb_type2), .report(usb_report2), 
@@ -404,6 +418,7 @@ usb_hid_host usb_controller2 (
     .mouse_btn(), .mouse_dx(), .mouse_dy(),
     .dbg_hid_report()
 );
+`endif
 
 //
 // Print control
@@ -411,7 +426,7 @@ usb_hid_host usb_controller2 (
 `include "print.v"
 defparam tx.uart_freq=BAUDRATE;
 defparam tx.clk_freq=FREQ;
-assign print_clk = sys_clk;
+assign print_clk = clk;
 assign UART_TXD = uart_txp;
 
 reg[3:0] state_0;
@@ -431,8 +446,10 @@ reg [3:0] sd_state0 = 0;
 
 reg [19:0] timer;           // 37 times per second
 always @(posedge clk) timer <= timer + 1;
+reg [7:0] debug_cnt = 0;
 
 // `define SD_REPORT
+// `define DS2_REPORT
 
 always@(posedge clk)begin
     state_0<={2'b0, loader_done};
@@ -440,40 +457,58 @@ always@(posedge clk)begin
 
     // status for SD file browsing
 `ifdef SD_REPORT
+    if (debug_cnt < 100) begin
+        case (timer)
+        20'h00000: begin
+          debug_cnt <= debug_cnt + 1;
+          `print("sd: file_total=", STR);
+          sd_debug_reg = 2;
+        end
+        20'h10000: begin 
+          `print(sd_debug_out, 1);
+          sd_debug_reg = 1;
+        end
+        20'h20000: `print(sd_debug_out, 1);
+        20'h30000: begin
+          `print(", file_start=", STR);
+          sd_debug_reg = 3;      
+        end
+        20'h40000: `print(sd_debug_out, 1);
+        20'h50000: begin
+          `print(", active=", STR);
+          sd_debug_reg = 4;      
+        end
+        20'h60000: `print(sd_debug_out, 1);
+        20'h70000: begin
+          `print(", total=", STR);
+          sd_debug_reg = 5;      
+        end
+        20'h80000: `print(sd_debug_out, 1);
+        20'h80000: begin
+          `print(", state=", STR);
+          sd_debug_reg = 6;      
+        end
+        20'ha0000: `print(sd_debug_out, 1);
+        20'hb0000: `print(", buttons=", STR);
+        20'hc0000: `print({nes_btn, nes_btn2}, 2);
+        20'hf0000: `print("\n", STR);
+        endcase
+    end
+`endif
+
+`ifdef DS2_REPORT
+//  joy_rx[0:1] dualshock buttons: 0:(L D R U St R3 L3 Se)  1:(□ X O △ R1 L1 R2 L2)
+
     case (timer)
-    20'h00000: begin
-      `print("sd: file_total=", STR);
-      sd_debug_reg = 2;
-    end
-    20'h10000: begin 
-      `print(sd_debug_out, 1);
-      sd_debug_reg = 1;
-    end
-    20'h20000: `print(sd_debug_out, 1);
-    20'h30000: begin
-      `print(", file_start=", STR);
-      sd_debug_reg = 3;      
-    end
-    20'h40000: `print(sd_debug_out, 1);
-    20'h50000: begin
-      `print(", active=", STR);
-      sd_debug_reg = 4;      
-    end
-    20'h60000: `print(sd_debug_out, 1);
-    20'h70000: begin
-      `print(", total=", STR);
-      sd_debug_reg = 5;      
-    end
-    20'h80000: `print(sd_debug_out, 1);
-    20'h80000: begin
-      `print(", state=", STR);
-      sd_debug_reg = 6;      
-    end
-    20'ha0000: `print(sd_debug_out, 1);
-    20'hb0000: `print(", buttons=", STR);
-    20'hc0000: `print({nes_btn, nes_btn2}, 2);
+    20'h00000: `print("controller1=", STR);
+    20'h10000: `print({joy_rx[0], joy_rx[1]}, 2);
+    20'h20000: `print(", controller2=", STR);
+    20'h30000: `print({joy_rx2[0], joy_rx2[1]}, 2);
+    20'h40000: `print(", usb_btn=", STR);
+    20'h50000: `print(usb_btn, 1);
     20'hf0000: `print("\n", STR);
     endcase
+
 `endif
 
     if (uart_demux.write)
@@ -580,7 +615,8 @@ always@(posedge clk)begin
 `endif
 
     if(~sys_resetn) begin
-       `print("System Reset\nWelcome to NES_Tang\n",STR);
+       `print("System Reset\nWelcome to NESTang\n",STR);
+        debug_cnt <= 0;
     end
 end
 
@@ -599,8 +635,12 @@ end
 
 `endif
 
-assign led = ~{~UART_RXD, loader_done};
+//assign led = ~{~UART_RXD, loader_done};
 //assign led = ~{~UART_RXD, usb_conerr, loader_done};
 // assign led = ~usb_btn;
+
+reg [23:0] led_cnt;
+always @(posedge clk_p) led_cnt <= led_cnt + 1;
+assign led = {led_cnt[23], led_cnt[22]};
 
 endmodule
