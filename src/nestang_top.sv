@@ -33,7 +33,9 @@ module nestang_top (
     inout [SDRAM_DATA_WIDTH-1:0]    IO_sdram_dq,      // bidirectional data bus
     output [SDRAM_ROW_WIDTH-1:0] O_sdram_addr,     // multiplexed address bus
     output [1:0] O_sdram_ba,        // two banks
+  `ifndef P25K
     output [SDRAM_DATA_WIDTH/8-1:0]   O_sdram_dqm,    
+  `endif
 
     // MicroSD
     output sd_clk,
@@ -44,20 +46,22 @@ module nestang_top (
     output sd_dat3,     // 1
 
     // Dualshock game controller
-//    output joystick_clk,
-//    output joystick_mosi,
-//    input joystick_miso,
-//    output reg joystick_cs,
-//    output joystick_clk2,
-//    output joystick_mosi2,
-//    input joystick_miso2,
-//    output reg joystick_cs2,
+    output joystick_clk,
+    output joystick_mosi,
+    input joystick_miso,
+    output reg joystick_cs,
+    output joystick_clk2,
+    output joystick_mosi2,
+    input joystick_miso2,
+    output reg joystick_cs2,
 
     // USB
     inout usbdm,
     inout usbdp,
-//    inout usbdm2,
-//    inout usbdp2,
+`ifndef P25K
+    inout usbdm2,
+    inout usbdp2,
+`endif
 //    output clk_usb,
 
     // HDMI TX
@@ -66,6 +70,10 @@ module nestang_top (
     output [2:0] tmds_d_n,
     output [2:0] tmds_d_p
 );
+
+`ifdef P25K
+wire [SDRAM_DATA_WIDTH/8-1:0]   O_sdram_dqm;
+`endif
 
 reg sys_resetn = 0;
 reg [7:0] reset_cnt = 255;      // reset for 255 cycles before start everything
@@ -187,15 +195,15 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
   wire usb_btn_x, usb_btn_y, usb_btn_x2, usb_btn_y2;
   wire usb_conerr, usb_conerr2;
   wire auto_square, auto_triangle, auto_square2, auto_triangle2;
-  wire [7:0] nes_btn = usb_btn, nes_btn2 = 0;
+  // wire [7:0] nes_btn = usb_btn, nes_btn2 = 0;
 
-//  wire [7:0] nes_btn = {~joy_rx[0][5], ~joy_rx[0][7], ~joy_rx[0][6], ~joy_rx[0][4], 
-//                        ~joy_rx[0][3], ~joy_rx[0][0], ~joy_rx[1][6] | auto_square, ~joy_rx[1][5] | auto_triangle} |
-//                         usb_btn;
-//  wire [7:0] nes_btn2 = {~joy_rx2[0][5], ~joy_rx2[0][7], ~joy_rx2[0][6], ~joy_rx2[0][4], 
-//                         ~joy_rx2[0][3], ~joy_rx2[0][0], ~joy_rx2[1][6] | auto_square2, ~joy_rx2[1][5] | auto_triangle2} |
-//                         usb_btn2;
-//  
+  wire [7:0] nes_btn = {~joy_rx[0][5], ~joy_rx[0][7], ~joy_rx[0][6], ~joy_rx[0][4], 
+                        ~joy_rx[0][3], ~joy_rx[0][0], ~joy_rx[1][6] | auto_square, ~joy_rx[1][5] | auto_triangle} |
+                         usb_btn;
+  wire [7:0] nes_btn2 = {~joy_rx2[0][5], ~joy_rx2[0][7], ~joy_rx2[0][6], ~joy_rx2[0][4], 
+                         ~joy_rx2[0][3], ~joy_rx2[0][0], ~joy_rx2[1][6] | auto_square2, ~joy_rx2[1][5] | auto_triangle2} |
+                         usb_btn2;
+
   // Joypad handling
   always @(posedge clk) begin
     if (joypad_strobe) begin
@@ -357,7 +365,6 @@ always @(posedge clk) begin
     end
 end
 
-/*
 dualshock_controller controller (
     .I_CLK250K(sclk), .I_RSTn(1'b1),
     .O_psCLK(joystick_clk), .O_psSEL(joystick_cs), .O_psTXD(joystick_mosi),
@@ -378,7 +385,6 @@ dualshock_controller controller2 (
     .I_CONF_SW(1'b0), .I_MODE_SW(1'b1), .I_MODE_EN(1'b0),
     .I_VIB_SW(2'b00), .I_VIB_DAT(8'hff)     // no vibration
 );
-*/
 
 Autofire af_square (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx[1][7] | usb_btn_y), .out(auto_square));            // B
 Autofire af_triangle (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx[1][4] | usb_btn_x), .out(auto_triangle));        // A
@@ -400,7 +406,7 @@ usb_hid_host usb_controller (
     .dbg_hid_report()
 );
 
-/*
+`ifndef P25K
 usb_hid_host usb_controller2 (
     .usbclk(clk_usb), .usbrst_n(sys_resetn),
     .usb_dm(usbdm2), .usb_dp(usbdp2),	.typ(usb_type2), .report(usb_report2), 
@@ -412,7 +418,7 @@ usb_hid_host usb_controller2 (
     .mouse_btn(), .mouse_dx(), .mouse_dy(),
     .dbg_hid_report()
 );
-*/
+`endif
 
 //
 // Print control

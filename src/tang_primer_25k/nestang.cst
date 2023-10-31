@@ -55,7 +55,7 @@ IO_LOC "UART_TXD" C3;
 IO_PORT "UART_RXD" IO_TYPE=LVCMOS33;
 IO_PORT "UART_TXD" IO_TYPE=LVCMOS33;
 
-// USB ports
+// One on-board USB port
  IO_LOC "usbdp" L6;      
  IO_PORT "usbdp" PULL_MODE=DOWN IO_TYPE=LVCMOS33;
  IO_LOC "usbdm" K6;      
@@ -142,39 +142,25 @@ IO_PORT "O_sdram_cas_n" IO_TYPE=LVCMOS33 PULL_MODE=UP;
 IO_LOC "O_sdram_cs_n" K9;
 IO_PORT "O_sdram_cs_n" IO_TYPE=LVCMOS33 PULL_MODE=UP;
 
-// Joystick 1 (USB-C side PMOD)
-// IO_LOC "joystick_clk" 17;
-// IO_PORT "joystick_clk" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-// IO_LOC "joystick_mosi" 20;
-// IO_PORT "joystick_mosi" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-// IO_LOC "joystick_miso" 19;
-// IO_PORT "joystick_miso" PULL_MODE=UP IO_TYPE=LVCMOS33;
-// IO_LOC "joystick_cs"  18;
-// IO_PORT "joystick_cs" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+// Joystick 1 on pmod
+IO_LOC "joystick_clk" C11;
+IO_PORT "joystick_clk" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC "joystick_miso" B11;
+IO_PORT "joystick_miso" PULL_MODE=UP IO_TYPE=LVCMOS33;
+IO_LOC "joystick_mosi" D11;
+IO_PORT "joystick_mosi" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC "joystick_cs"  G11;
+IO_PORT "joystick_cs" PULL_MODE=NONE IO_TYPE=LVCMOS33;
 
-// Joystick 2
-// IO_LOC "joystick_clk2" 52;
-// IO_PORT "joystick_clk2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-// IO_LOC "joystick_mosi2" 53;
-// IO_PORT "joystick_mosi2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-// IO_LOC "joystick_miso2" 71;
-// IO_PORT "joystick_miso2" PULL_MODE=UP IO_TYPE=LVCMOS33;
-// IO_LOC "joystick_cs2"  72;
-// IO_PORT "joystick_cs2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-
-// UART through USB-TTL dongle, this is for pre-production board
-//IO_LOC "UART_TXD" 30;
-//IO_PORT "UART_TXD" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
-//IO_LOC "UART_RXD" 31;
-//IO_PORT "UART_RXD" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
-
-// USB debug board
-//IO_LOC "usbdp" 41;      // LCD_R4
-//IO_PORT "usbdp" PULL_MODE=DOWN IO_TYPE=LVCMOS33;
-//IO_LOC "usbdm" 42;      // LCD_R3
-//IO_PORT "usbdm" PULL_MODE=DOWN IO_TYPE=LVCMOS33;
-//IO_LOC "clk_usb" 56;    // for logic analyzer
-//IO_PORT "clk_usb" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+// Joystick 2 on pmod
+IO_LOC "joystick_clk2" C10;
+IO_PORT "joystick_clk2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC "joystick_miso2" B10;
+IO_PORT "joystick_miso2" PULL_MODE=UP IO_TYPE=LVCMOS33;
+IO_LOC "joystick_mosi2" D10;
+IO_PORT "joystick_mosi2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC "joystick_cs2"  G10;
+IO_PORT "joystick_cs2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
 
 // 2 LEDs for debug
  IO_LOC "led[1]" E8;    // Ready
