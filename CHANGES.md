@@ -1,6 +1,12 @@
 
 ## Version history for NESTang - an NES emulator for Tang Primer 20K
 
+v0.8rc, 10/31/2023 - The Tang Primer 25k release
+- This releases supports the new Tang Primer 25k, along with Tang Nano 20k.
+- For primer 25k, set up the memory module, hdmi pmod, dualshock2 pmod and microsd pmod as shown in [here](doc/images/primer25k_setup.jpg).
+- The primer 25k build supports the on-board USB-A port for P1, and the dualshock2 ports for P1 and P2.
+- For developers - the code base has been refactored to support both boards. Use `gw_sh nano20k.tcl` to build for nano 20k, and `gw_sh primer25k.tcl` to build for primer 25k.
+
 v0.7, 9/18/2023 - FAT32 MicroSD
 - This release only supports Tang Nano 20K.
 - FAT32 MicroSD support. We have switched to FAT32 format for rom loading from MicroSD cards. Simply format your card in FAT32 and place all roms in the root directory.
