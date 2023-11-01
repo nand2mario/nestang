@@ -352,38 +352,25 @@ SDLoader #(.FREQ(FREQ)) sd_loader (
 );
 
 // Dualshock controller
-reg sclk;                   // controller main clock at 250Khz
-localparam SCLK_DELAY = FREQ / 250_000 / 2;
-reg [$clog2(SCLK_DELAY)-1:0] sclk_cnt;         // FREQ / 250K / 2 = 75
-
-// Generate sclk
-always @(posedge clk) begin
-    sclk_cnt <= sclk_cnt + 1;
-    if (sclk_cnt == SCLK_DELAY-1) begin
-        sclk = ~sclk;
-        sclk_cnt <= 0;
-    end
-end
-
 dualshock_controller controller (
-    .I_CLK250K(sclk), .I_RSTn(1'b1),
+    .clk(clk), .I_RSTn(1'b1),
     .O_psCLK(joystick_clk), .O_psSEL(joystick_cs), .O_psTXD(joystick_mosi),
     .I_psRXD(joystick_miso),
     .O_RXD_1(joy_rx[0]), .O_RXD_2(joy_rx[1]), .O_RXD_3(),
     .O_RXD_4(), .O_RXD_5(), .O_RXD_6(),
     // config=1, mode=1(analog), mode_en=1
     .I_CONF_SW(1'b0), .I_MODE_SW(1'b1), .I_MODE_EN(1'b0),
-    .I_VIB_SW(2'b00), .I_VIB_DAT(8'hff)     // no vibration
+    .I_VIB_SW(2'b00)     // no vibration
 );
 
 dualshock_controller controller2 (
-    .I_CLK250K(sclk), .I_RSTn(1'b1),
+    .clk(clk), .I_RSTn(1'b1),
     .O_psCLK(joystick_clk2), .O_psSEL(joystick_cs2), .O_psTXD(joystick_mosi2),
     .I_psRXD(joystick_miso2),
     .O_RXD_1(joy_rx2[0]), .O_RXD_2(joy_rx2[1]), 
     .O_RXD_3(), .O_RXD_4(), .O_RXD_5(), .O_RXD_6(),
     .I_CONF_SW(1'b0), .I_MODE_SW(1'b1), .I_MODE_EN(1'b0),
-    .I_VIB_SW(2'b00), .I_VIB_DAT(8'hff)     // no vibration
+    .I_VIB_SW(2'b00)     // no vibration
 );
 
 Autofire af_square (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx[1][7] | usb_btn_y), .out(auto_square));            // B
