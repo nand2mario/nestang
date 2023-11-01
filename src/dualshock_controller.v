@@ -12,10 +12,9 @@
 // An author does no guarantee about this program.          
 // You can use this under your own risk.                    
 // 
-// 2003.10.30  It is optimized . by K Degawa 
-//
-// 2023.11     nand2mario: simplify by removing I_VIB_DAT for more vibration control\
-//                                                        
+// 2003.10.30          It is optimized . by K Degawa 
+// 2023.11 nand2mario: stop using signal as clock for ps_rxd to improve stability
+//                     remove fine-grained vibration control as we don't use it//                                                        
 //-------------------------------------------------------------------
 `timescale 100ps/10ps		
 
