@@ -19,7 +19,7 @@ Main features,
 
 The Tang Primer 25K is the latest small-form-factor FPGA board from Sipeed. It features a modular design that is easily extensible with pmod and sdram modules. Here is what you need to run NESTang,
 
-* The Tang Primer 25K with 4 modules: sdram, dvi, ds2 and sd, with the modules plugged in as follows (pmod positions are important as pins are fixed), <img src="doc/images/primer25k_setup.jpg" width=400 />
+* The Tang Primer 25K with 4 modules: sdram, dvi, ds2 and sd, with the modules plugged in as follows (pmod positions are important as pins are fixed), <br><img src="doc/images/primer25k_setup.jpg" width=400 />
 * NESTang program [v0.8rc or later](https://github.com/nand2mario/nestang/releases), downloaded to the board with Gowin programmer.
 * A MicroSD card to hold ROMS, formatted in FAT32. Then put the .nes roms in the root dir.
   * Windows does not allow FAT32 on cards >32GB, here's a [work-around](https://answers.microsoft.com/en-us/windows/forum/all/format-a-sandisk-extreme-64gb-micro-sd-card-to/ff51be64-75b9-435f-9d39-92299b9d006e). 
