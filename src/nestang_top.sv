@@ -206,8 +206,8 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
                          usb_btn2;
 
   // NES gamepad
-  reg [7:0]NES_gamepad_button_state;
-  reg NES_gamepad_data_available;
+  wire [7:0]NES_gamepad_button_state;
+  wire NES_gamepad_data_available;
 
 
   NESGamepad nes_gamepad(
