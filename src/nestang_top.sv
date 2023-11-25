@@ -208,11 +208,13 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
   // NES gamepad
   wire [7:0]NES_gamepad_button_state;
   wire NES_gamepad_data_available;
+  wire nes_gamepad_reset;
 
+  assign nes_gamepad_reset = ~sys_resetn;
 
   NESGamepad nes_gamepad(
 		.i_clk(clk),
-        .i_rst(sys_resetn),
+        .i_rst(nes_gamepad_reset),
 		.o_data_clock(NES_gamepad_data_clock),
 		.o_data_latch(NES_gampepad_data_latch),
 		.i_serial_data(NES_gampead_serial_data),
