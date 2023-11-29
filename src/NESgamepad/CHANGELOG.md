@@ -1,13 +1,13 @@
 # ToDo:
-- Get rid of end_state
-- First response bit comes right at latch
-- Data state needs only 7 clocks
+🙂
 
 # Changelog
 
 [29.11.2023]
 - Fix first data bit being at latch state
 - Fix Verilator FSM
+- Remove ClockDivider module
+- Get rid of end_state
 
 [26.11.2023]
 - Test physical gamepad
