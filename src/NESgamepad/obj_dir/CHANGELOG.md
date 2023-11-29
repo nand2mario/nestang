@@ -1,8 +1,20 @@
-ToDo:
+# ToDo:
+- Get rid of end_state
+- First response bit comes right at latch
+- Data state needs only 7 clocks
+
+# Changelog
+
+[26.11.2023]
 - Test physical gamepad
-- Not sure if DIVIDER_EXPONENT is accurate
-    - Where does it come from?
-- Simplify logic
+    - Use resistor-based LVCMOS3V3 to TTL5V signal converter
+    - Use resistor-based TTL5V to LVCMOS3V3 signal converter
+    - Latch signal pulled to low before 12uS needed
+    - Gamepad not responding with bits
+- Wrong timing, change 60Hz clock to 12uS clock
+    - Use 60Hz clock to sample @16,6mS
+- Add formal verification using SymbiYosis
+
 
 [14.11.2023]
 - Remove log2 helper function

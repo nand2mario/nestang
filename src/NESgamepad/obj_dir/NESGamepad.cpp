@@ -37,11 +37,13 @@
 
 
 #define MASTER_CLOCK_FREQUENCY      27000000
-#define OUTPUT_UPDATE_FREQUENCY     120
-#define i_serial_data_COUNTER         2 * 8191
-#define NUMBER_OF_STATES (10)
-#define LATCH_STATE (1)
-#define READ_STATE (1 << (NUMBER_OF_STATES-1))
+#define OUTPUT_UPDATE_FREQUENCY     (1 / 12) * 1000000
+#define SAMPLING_CLOCK_COUNT        250000
+#define SERIAL_DATA_COUNT           324
+#define NUMBER_OF_STATES            (11)
+#define LATCH_STATE                 (1)
+#define READ_STATE                  (1 << (NUMBER_OF_STATES-2))
+#define END_STATE                   (1 << (NUMBER_OF_STATES-1))
 
 #define PRINT_LATCH_STATE
 
@@ -96,28 +98,26 @@ int main(int argc, char **argv) {
     tb->i_clk = 0x00;
     tb->i_serial_data = 0x01;
     tb->i_rst = 0x00;
-    static int i_serial_data_counter = i_serial_data_COUNTER;
-    static int FSM_state = LATCH_STATE;
+    static int i_sampling_clock_counter = SAMPLING_CLOCK_COUNT;
+    static int i_serial_data_counter = SERIAL_DATA_COUNT;
+    static int FSM_state = END_STATE;
     static bool create_new_data_value = false;
     #ifdef PRINT_LATCH_STATE
     static bool latch_info_was_printed = false;
     #endif
-    for(int k=0; k<(1<<19); k++){
+    for(int k=0; k<(1<<23); k++){
         // Tick()
         tick(++tick_count, tb, tfp);
         
         i_serial_data_counter--;
-        if(!i_serial_data_counter && !tb->o_data_latch){
+        if(!i_serial_data_counter){
             // FSM_state
             FSM_state = FSM_state << 1;
             if(FSM_state > READ_STATE)
                 FSM_state = LATCH_STATE;
-            
-            i_serial_data_counter = i_serial_data_COUNTER;
-            // tb->i_serial_data = (tb->i_serial_data == 0x00) ? 0x01 : 0x00;
+            i_serial_data_counter = SERIAL_DATA_COUNT;
 
             if(FSM_state != LATCH_STATE && FSM_state != READ_STATE){
-
                 joystick_serial_bit = joystick_serial & 0x80;
                 tb->i_serial_data = joystick_serial >> 7 ;
                 joystick_serial = (uint8_t)(joystick_serial << 1);
@@ -128,8 +128,8 @@ int main(int argc, char **argv) {
         if(tb->o_data_latch){
             //
             if(!latch_info_was_printed){
-            printf("Latch state\n\tk= %7d | i_clk= %d | i_rst= %u | o_data_latch= %d | data= %d | o_button_state= %d\n", 
-            k, tb->i_clk, tb->i_rst, tb->o_data_latch, joystick_serial, tb->o_button_state);
+            printf("Latch state\n\tk= %7d | i_clk= %d | i_rst= %u | o_data_latch= %d | o_button_state= %d\n", 
+            k, tb->i_clk, tb->i_rst, tb->o_data_latch, tb->o_button_state);
             latch_info_was_printed = true;
             }
         }
