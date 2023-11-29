@@ -5,6 +5,10 @@
 
 # Changelog
 
+[29.11.2023]
+- Fix first data bit being at latch state
+- Fix Verilator FSM
+
 [26.11.2023]
 - Test physical gamepad
     - Use resistor-based LVCMOS3V3 to TTL5V signal converter

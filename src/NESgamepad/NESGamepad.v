@@ -13,10 +13,9 @@ module NESGamepad(
 		output reg [7:0] o_button_state,
 		output o_data_available
    );
-	parameter NUMBER_OF_STATES = 11;	// Latch -> 2 * 6uS
-										// Data -> 8 * 2 * 6uS
+	parameter NUMBER_OF_STATES = 9;		// Latch -> 2 * 6uS
+										// Data -> 7 * 2 * 6uS
 										// Write -> 2 * 6uS
-										// End -> Until next 60Hz posedge
 	
 	// Unit Parameters //
 	parameter Hz  = 1;
@@ -44,10 +43,9 @@ module NESGamepad(
 	wire clock_12uS;
 
 	// Generate control signals for the three states
-	wire latch_state = cycle_stage[0];
-    wire data_state = cycle_stage[1] | cycle_stage[2] | cycle_stage[3] | cycle_stage[4] | cycle_stage[5] | cycle_stage[6] | cycle_stage[7] | cycle_stage[8];	
-    wire write_state = (cycle_stage[NUMBER_OF_STATES-2]);
-	// wire end_state = (cycle_stage[NUMBER_OF_STATES-1]);
+	wire latch_state = cycle_stage[0] & (clock_counter_60Hz <= (2 * NUMBER_OF_STATES * COUNTER_12uS + NUMBER_OF_STATES));
+    wire data_state = cycle_stage[1] | cycle_stage[2] | cycle_stage[3] | cycle_stage[4] | cycle_stage[5] | cycle_stage[6] | cycle_stage[7];	
+    wire write_state = (cycle_stage[NUMBER_OF_STATES-1]);
 
 
 	// Generate a clock for generating the data clock and sampling the controller's output
@@ -58,40 +56,49 @@ module NESGamepad(
 
     // Handle 60Hz clock counter
 	always @(posedge i_clk) begin
-        if(clock_counter_60Hz <= (2 * COUNTER_60Hz)) begin
-            clock_counter_60Hz <= clock_counter_60Hz + 1;
-        end else begin
-            clock_counter_60Hz <= 0;
-        end
+        if(i_rst) begin
+			clock_counter_60Hz <= 0;
+		end else begin
+			if(clock_counter_60Hz < (2 * COUNTER_60Hz)) begin
+				clock_counter_60Hz <= clock_counter_60Hz + 1;
+			end else begin
+				clock_counter_60Hz <= 0;
+			end
+		end
 	end
 
 	// Handle 60Hz clock counter
 	always @(posedge i_clk) begin
-		if((clock_counter_60Hz > 0) && (clock_counter_60Hz < (2 * NUMBER_OF_STATES * COUNTER_12uS))) begin
-			if(clock_counter_12uS <= (2 * COUNTER_12uS)) begin
-				clock_counter_12uS <= clock_counter_12uS + 1;
+		if(i_rst) begin
+			clock_counter_12uS <= 0;
+			cycle_stage <= 1;
+		end else begin
+				if((clock_counter_60Hz > 0) && (clock_counter_60Hz <= (2 * NUMBER_OF_STATES * COUNTER_12uS + NUMBER_OF_STATES))) begin
+				if(clock_counter_12uS < (2 * COUNTER_12uS)) begin
+					clock_counter_12uS <= clock_counter_12uS + 1;
+				end else begin
+					clock_counter_12uS <= 0;
+						if(cycle_stage < (1 << NUMBER_OF_STATES-1) && (cycle_stage != 0))
+							cycle_stage <= cycle_stage << 1;
+						else
+							cycle_stage <= 1;
+				end
 			end else begin
 				clock_counter_12uS <= 0;
-				cycle_stage <= cycle_stage << 1;
-					if(cycle_stage == 0)
-						cycle_stage <= 1;
 			end
-		end else begin
-			clock_counter_12uS <= 0;
 		end
 	end
 
 	// Handle 60Hz clock
 	assign clock_60Hz = (clock_counter_60Hz < COUNTER_60Hz);
 
-
-	// Handle button output
+	// Handle 12uS clock and button output
 	always @(posedge clock_12uS) begin
 		if(i_rst) begin
 			data <= 0;
 		end else begin
 			if(latch_state) begin
-				data <= 0;
+				data <= {i_serial_data, 7'h00};	// First bit comes at latch
 			end else if(data_state) begin 
 				data <= {i_serial_data, data[7:1]};
 			end else if(write_state) begin
@@ -101,12 +108,12 @@ module NESGamepad(
 	end
 
 	// Handle 12uS clock
-	assign clock_12uS = (clock_counter_12uS <= COUNTER_12uS);
+	assign clock_12uS = (clock_counter_12uS > 0) && (clock_counter_12uS <= COUNTER_12uS);
 
 	// Assign outputs
 	// assign o_data_latch = (clock_counter_60Hz <= (2 * COUNTER_12uS));
 	assign o_data_latch = latch_state;
-    assign o_data_clock = clock_60Hz & clock_12uS;
+    assign o_data_clock = clock_60Hz & clock_12uS & !latch_state;
 	assign o_data_available = write_state;
 
 	//
@@ -115,12 +122,30 @@ module NESGamepad(
 	`ifdef	FORMAL
 
 		// Clock 60Hz
-		always @(posedge i_clk)
-			assert(clock_counter_60Hz < (2 * COUNTER_60Hz));
+		always @(*)
+			assert(clock_counter_60Hz <= (2 * COUNTER_60Hz));
 
 		// Clock 12uS
-		always @(posedge i_clk)
-			assert(clock_counter_12uS < (2 * COUNTER_12uS));
+		always @(*)
+			assert(clock_counter_12uS <= (2 * COUNTER_12uS));
+
+		// Cycle stage
+		reg	f_valid_state;
+		always @(*) begin
+			f_valid_state = 0;
+			case(cycle_stage)
+				9'h01: f_valid_state = 1'b1;
+				9'h02: f_valid_state = 1'b1;
+				9'h04: f_valid_state = 1'b1;
+				9'h08: f_valid_state = 1'b1;
+				9'h10: f_valid_state = 1'b1;
+				9'h20: f_valid_state = 1'b1;
+				9'h40: f_valid_state = 1'b1;
+				9'h80: f_valid_state = 1'b1;
+				9'h100: f_valid_state = 1'b1;
+			endcase
+			assert(f_valid_state);
+		end
 
 	`endif
 

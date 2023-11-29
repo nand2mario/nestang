@@ -40,10 +40,9 @@
 #define OUTPUT_UPDATE_FREQUENCY     (1 / 12) * 1000000
 #define SAMPLING_CLOCK_COUNT        250000
 #define SERIAL_DATA_COUNT           324
-#define NUMBER_OF_STATES            (11)
+#define NUMBER_OF_STATES            (9)
 #define LATCH_STATE                 (1)
 #define READ_STATE                  (1 << (NUMBER_OF_STATES-2))
-#define END_STATE                   (1 << (NUMBER_OF_STATES-1))
 
 #define PRINT_LATCH_STATE
 
@@ -100,7 +99,7 @@ int main(int argc, char **argv) {
     tb->i_rst = 0x00;
     static int i_sampling_clock_counter = SAMPLING_CLOCK_COUNT;
     static int i_serial_data_counter = SERIAL_DATA_COUNT;
-    static int FSM_state = END_STATE;
+    static int FSM_state = LATCH_STATE;
     static bool create_new_data_value = false;
     #ifdef PRINT_LATCH_STATE
     static bool latch_info_was_printed = false;
@@ -108,6 +107,16 @@ int main(int argc, char **argv) {
     for(int k=0; k<(1<<23); k++){
         // Tick()
         tick(++tick_count, tb, tfp);
+
+        // Data out state
+        if(FSM_state == READ_STATE){
+            if(!create_new_data_value){
+                create_new_data_value = true;
+                joystick_serial = dist255(rng);
+            }
+        }
+        else
+            create_new_data_value = false;
         
         i_serial_data_counter--;
         if(!i_serial_data_counter){
@@ -117,7 +126,7 @@ int main(int argc, char **argv) {
                 FSM_state = LATCH_STATE;
             i_serial_data_counter = SERIAL_DATA_COUNT;
 
-            if(FSM_state != LATCH_STATE && FSM_state != READ_STATE){
+            if(FSM_state != READ_STATE){
                 joystick_serial_bit = joystick_serial & 0x80;
                 tb->i_serial_data = joystick_serial >> 7 ;
                 joystick_serial = (uint8_t)(joystick_serial << 1);
@@ -137,14 +146,5 @@ int main(int argc, char **argv) {
             latch_info_was_printed = false;
 #endif
 
-        // Data out state
-        if(tb->o_data_available){
-            if(!create_new_data_value){
-                create_new_data_value = true;
-                joystick_serial = dist255(rng);
-            }
-        }
-        else
-            create_new_data_value = false;
     }
 }
