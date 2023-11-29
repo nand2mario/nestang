@@ -2,27 +2,13 @@
 //
 // Filename: 	NESGamepad.cpp
 //
-// Project:	Verilog Tutorial Example file
+// Project:	NESTang Tang Nano 20k
 //
 // Purpose:	Main Verilator simulation script for the NESGamepad design
 //
-//	In this script, we toggle the input, and (hopefully) watch the output
-//	toggle.
+//	In this script we simulate some reads to a classic NES Gamepad
 //
-// Creator:	Dan Gisselquist, Ph.D.
-//		Gisselquist Technology, LLC
-//
-////////////////////////////////////////////////////////////////////////////////
-//
-// Written and distributed by Gisselquist Technology, LLC
-//
-// This program is hereby granted to the public domain.
-//
-// This program is distributed in the hope that it will be useful, but WITHOUT
-// ANY WARRANTY; without even the implied warranty of MERCHANTIBILITY or
-// FITNESS FOR A PARTICULAR PURPOSE.
-//
-////////////////////////////////////////////////////////////////////////////////
+// Creator:	F. J. Polo @GitHub /fjpolo
 //
 //
 #include <stdio.h>
