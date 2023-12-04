@@ -228,7 +228,7 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
         .clk(clk), .reset(loader_reset), .indata(loader_input), .indata_clk(loader_clk),
         .mem_addr(loader_addr), .mem_data(loader_write_data), .mem_write(loader_write),
         .mem_refresh(loader_refresh), .mapper_flags(mapper_flags), 
-        .done(loader_done), .error(loader_fail));
+        .done(loader_done), .error(loader_fail), .loader_state(), .loader_bytes_left());
 
   // The NES machine
   // nes_ce  / 0 \___/ 1 \___/ 2 \___/ 3 \___/ 4 \___/ 0 \___
@@ -627,7 +627,7 @@ end
 // assign led = ~usb_btn;
 
 reg [23:0] led_cnt;
-always @(posedge clk_p) led_cnt <= led_cnt + 1;
+always @(posedge clk) led_cnt <= led_cnt + 1;
 assign led = {led_cnt[23], led_cnt[22]};
 
 endmodule
