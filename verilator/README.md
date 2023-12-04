@@ -3,9 +3,8 @@ This is a Verilator-driven graphical simulation of nestang. Should be useful in 
 To run the simulation:
 
 ```
-./setup.sh `pwd`/..
 hexdump -ve '1/1 "%02x\n"' game.nes > game.nes.hex
-# change INES_SIZE in nes_tang20k.v to reflect size of game.nes
+# change INES_SIZE in game_data.v to reflect size of game.nes
 make sim
 ```
 
