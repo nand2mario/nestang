@@ -1,9 +1,9 @@
 #include <cstdio>
 #include <SDL.h>
 
-#include "VNES_Tang20k.h"
-#include "VNES_Tang20k_NES_Tang20k.h"
-#include "VNES_Tang20k_NES.h"
+#include "Vnestang_top.h"
+#include "Vnestang_top_nestang_top.h"
+#include "Vnestang_top_NES.h"
 #include "verilated.h"
 #include <verilated_vcd_c.h>
 #include "nes_palette.h"
@@ -29,9 +29,9 @@ Pixel screenbuffer[H_RES*V_RES];
 vluint64_t sim_time;
 int main(int argc, char** argv, char** env) {
 	Verilated::commandArgs(argc, argv);
-	VNES_Tang20k* top = new VNES_Tang20k;
+	Vnestang_top* top = new Vnestang_top;
 	// VNES_Tang20k_NES_Tang20k *nes_tang20k = top->NES_Tang20k;
-	VNES_Tang20k_NES *nes = top->NES_Tang20k->nes;
+	Vnestang_top_NES *nes = top->nestang_top->nes;
 	bool frame_updated = false;
 	uint64_t start_ticks = SDL_GetPerformanceCounter();
 	int frame_count = 0;
@@ -73,10 +73,10 @@ int main(int argc, char** argv, char** env) {
 #endif
 
 	while (1) {
-		top->sys_resetn = 1;
-		if(sim_time > 1 && sim_time < 5){
-			top->sys_resetn = 0;
-		}
+		// top->sys_resetn = 1;
+		// if(sim_time > 1 && sim_time < 5){
+		// 	top->sys_resetn = 0;
+		// }
 		top->sys_clk ^= 1;
 		top->eval(); 
 #ifdef TRACE_ON

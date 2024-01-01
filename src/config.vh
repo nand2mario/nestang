@@ -22,7 +22,7 @@ localparam AUDIO_BIT_WIDTH = 16;
 
 localparam POWERUPNS = 100000000.0;
 localparam CLKPERNS = (1.0/CLKFRQ)*1000000.0;
-localparam int POWERUPCYCLES = $ceil( POWERUPNS/CLKPERNS );
+localparam int POWERUPCYCLES = $rtoi($ceil( POWERUPNS/CLKPERNS ));
 
 // Main clock frequency
 localparam FREQ=27_000_000;          // at least 10x baudrate

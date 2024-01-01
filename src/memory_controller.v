@@ -32,7 +32,7 @@ module MemoryController(
     // Physical SDRAM interface
 	inout  [SDRAM_DATA_WIDTH-1:0] SDRAM_DQ,   // 16 bit bidirectional data bus
 	output [SDRAM_ROW_WIDTH-1:0] SDRAM_A,    // 13 bit multiplexed address bus
-	output [SDRAM_BANK_WIDTH:0] SDRAM_BA,   // 4 banks
+	output [SDRAM_BANK_WIDTH-1:0] SDRAM_BA,   // 4 banks
 	output SDRAM_nCS,  // a single chip select
 	output SDRAM_nWE,  // write enable
 	output SDRAM_nRAS, // row address select
@@ -51,10 +51,10 @@ reg r_read_a, r_read_b;
 reg [7:0] da, db;
 wire MemBusy, MemDataReady;
 
+`ifndef VERILATOR
+
 assign dout_a = (cycles == 3'd4 && r_read_a) ? MemDout : da;
 assign dout_b = (cycles == 3'd4 && r_read_b) ? MemDout : db;
-
-`ifndef VERILATOR
 
 // SDRAM driver
 sdram #(
@@ -126,14 +126,18 @@ end
 
 // memory model for verilator 
 reg [7:0] SIM_MEM [0:1024*1024*4-1];
+reg [7:0] dout_a_next;
+reg [7:0] dout_b_next;
+assign dout_a = dout_a_next;
+assign dout_b = dout_b_next;
 
 // in verilator model, our memory delay is 1-cycle
 // busy is always 0
 always @(posedge clk) begin
 //    cycles <= cycles == 3'd7 ? 3'd7 : cycles + 3'd1;
 
-    if (read_a) dout_a <= SIM_MEM[addr];
-    if (read_b) dout_b <= SIM_MEM[addr];
+    if (read_a) dout_a_next <= SIM_MEM[addr];
+    if (read_b) dout_b_next <= SIM_MEM[addr];
     if (write) SIM_MEM[addr] <= din;
 
     if (~resetn) begin
