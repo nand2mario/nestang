@@ -33,9 +33,7 @@ module nestang_top (
     inout [SDRAM_DATA_WIDTH-1:0]    IO_sdram_dq,      // bidirectional data bus
     output [SDRAM_ROW_WIDTH-1:0] O_sdram_addr,     // multiplexed address bus
     output [1:0] O_sdram_ba,        // two banks
-  `ifndef P25K
     output [SDRAM_DATA_WIDTH/8-1:0]   O_sdram_dqm,    
-  `endif
 
     // MicroSD
     output sd_clk,
@@ -71,9 +69,6 @@ module nestang_top (
     output [2:0] tmds_d_p
 );
 
-`ifdef P25K
-wire [SDRAM_DATA_WIDTH/8-1:0]   O_sdram_dqm;
-`endif
 
 reg sys_resetn = 0;
 reg [7:0] reset_cnt = 255;      // reset for 255 cycles before start everything
@@ -87,12 +82,12 @@ end
 
 // clk is 27Mhz
 `ifdef P25K
-  wire clk;
-  gowin_pll_27 pll27 (.clkin(sys_clk), .clkout0(clk));      // Primer25K: PLL to generate 27Mhz from 50Mhz
+  wire clk, clk_sdram;
+  gowin_pll_27 pll27 (.clkin(sys_clk), .clkout0(clk), .clkout1(clk_sdram));      // Primer25K: PLL to generate 27Mhz from 50Mhz
 `else
   wire clk = sys_clk;       // Nano20K: native 27Mhz system clock
-`endif
   wire clk_sdram = ~clk;  
+`endif
   wire clk_usb;
 
   // USB clock 12Mhz
