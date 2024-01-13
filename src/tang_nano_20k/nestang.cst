@@ -15,8 +15,6 @@ IO_LOC "tmds_d_p[2]" 39,40;
 IO_PORT "tmds_d_p[2]" PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
 IO_LOC "tmds_clk_p" 33,34;
 IO_PORT "tmds_clk_p" PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
-IO_LOC "NES_gampead_test_pin" 30;
-IO_PORT "NES_gampead_test_pin" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
 IO_LOC "NES_gampepad_data_latch" 29;
 IO_PORT "NES_gampepad_data_latch" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=24 BANK_VCCIO=3.3;
 IO_LOC "NES_gamepad_data_clock" 27;

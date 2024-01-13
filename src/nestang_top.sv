@@ -67,7 +67,6 @@ module nestang_top (
     output NES_gamepad_data_clock,
     output NES_gampepad_data_latch,
     input NES_gampead_serial_data,
-    output NES_gampead_test_pin,
 
     // HDMI TX
     output       tmds_clk_n,
@@ -221,8 +220,7 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
 		.o_data_latch(NES_gampepad_data_latch),
 		.i_serial_data(NES_gampead_serial_data),
 		.o_button_state(NES_gamepad_button_state),
-        .o_data_available(NES_gamepad_data_available),
-        .o_test_pin(NES_gampead_test_pin)
+        .o_data_available(NES_gamepad_data_available)
                         );
 
   // Joypad handling
