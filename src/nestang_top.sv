@@ -67,6 +67,7 @@ module nestang_top (
     output NES_gamepad_data_clock,
     output NES_gampepad_data_latch,
     input NES_gampead_serial_data,
+    output NES_gampead_test_pin,
 
     // HDMI TX
     output       tmds_clk_n,
@@ -198,12 +199,13 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
   wire auto_square, auto_triangle, auto_square2, auto_triangle2;
   // wire [7:0] nes_btn = usb_btn, nes_btn2 = 0;
 
-  wire [7:0] nes_btn = {~joy_rx[0][5], ~joy_rx[0][7], ~joy_rx[0][6], ~joy_rx[0][4], 
-                        ~joy_rx[0][3], ~joy_rx[0][0], ~joy_rx[1][6] | auto_square, ~joy_rx[1][5] | auto_triangle} |
-                         usb_btn | NES_gamepad_button_state;
+  wire [7:0] nes_btn  = {~joy_rx[0][5], ~joy_rx[0][7], ~joy_rx[0][6], ~joy_rx[0][4], 
+                         ~joy_rx[0][3], ~joy_rx[0][0], ~joy_rx[1][6] | auto_square, ~joy_rx[1][5] | auto_triangle}
+                        | usb_btn
+                        | NES_gamepad_button_state;
   wire [7:0] nes_btn2 = {~joy_rx2[0][5], ~joy_rx2[0][7], ~joy_rx2[0][6], ~joy_rx2[0][4], 
-                         ~joy_rx2[0][3], ~joy_rx2[0][0], ~joy_rx2[1][6] | auto_square2, ~joy_rx2[1][5] | auto_triangle2} |
-                         usb_btn2;
+                         ~joy_rx2[0][3], ~joy_rx2[0][0], ~joy_rx2[1][6] | auto_square2, ~joy_rx2[1][5] | auto_triangle2}
+                         | usb_btn2;
 
   // NES gamepad
   wire [7:0]NES_gamepad_button_state;
@@ -219,7 +221,8 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
 		.o_data_latch(NES_gampepad_data_latch),
 		.i_serial_data(NES_gampead_serial_data),
 		.o_button_state(NES_gamepad_button_state),
-        .o_data_available(NES_gamepad_data_available)
+        .o_data_available(NES_gamepad_data_available),
+        .o_test_pin(NES_gampead_test_pin)
                         );
 
   // Joypad handling
