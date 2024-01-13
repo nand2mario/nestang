@@ -1,7 +1,10 @@
 
 ## Version history for NESTang - an NES emulator for Tang Primer 20K
 
-v0.8rc, 10/31/2023 - The Tang Primer 25k release
+v0.8, 1/4/2024
+- Supports the Sipeed Tang SDRAM v1.2 modules (v0.8rc was for MiSTer SDRAM 3.0 modules).
+
+v0.8rc, 11/12/2023 - The Tang Primer 25k release
 - This releases supports the new Tang Primer 25k, along with Tang Nano 20k.
 - For primer 25k, set up the memory module, hdmi pmod, dualshock2 pmod and microsd pmod as shown in [here](doc/images/primer25k_setup.jpg).
 - The primer 25k build supports the on-board USB-A port for P1, and the dualshock2 ports for P1 and P2.
