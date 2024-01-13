@@ -37,7 +37,7 @@ The Tang Nano 20K is a popular FPGA board for putting 20K LUTs and HDMI output i
 * HDMI cable to connect the board to a monitor.
 * Latest NESTang program downloaded from [github](https://github.com/nand2mario/nestang/releases) and transferred to the board using either [openFPGALoader](https://github.com/trabucayre/openFPGALoader) or Gowin programmer.
 * A MicroSD card to hold ROMS, formatted in FAT32. Then put the .nes roms in the root dir.
-  * Windows does not allow FAT32 on cards >32GB, here's a [work-around](https://answers.microsoft.com/en-us/windows/forum/all/format-a-sandisk-extreme-64gb-micro-sd-card-to/ff51be64-75b9-435f-9d39-92299b9d006e). 
+  * **64GB/128GB cards**: Windows does not allow FAT32 on cards >32GB, you can use [Parition Assistant](https://www.diskpart.com/free-partition-manager.html) to force it to FAT32 instead of exFAT.
   * The roms may appear out of order. If you want them to show in alpabetical or other specific order, you can use [DriveSort](http://www.anerty.net/software/file/DriveSort/?lang=en).
 * Insert the MicroSD card and power up the board to start playing your favorite games!
 
