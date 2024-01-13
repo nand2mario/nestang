@@ -1,7 +1,11 @@
 # ToDo:
-🙂
+- Update verilator tests
 
 # Changelog
+
+[13.01.2024]
+- First version working :)
+    - Using 120uS clock instead of 12uS because of slew rate
 
 [29.11.2023]
 - Fix first data bit being at latch state
