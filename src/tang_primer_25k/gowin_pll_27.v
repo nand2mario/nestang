@@ -1,19 +1,19 @@
 //Copyright (C)2014-2023 Gowin Semiconductor Corporation.
 //All rights reserved.
 //File Title: IP file
-//GOWIN Version: V1.9.9 Beta-5
+//GOWIN Version: V1.9.9 Beta-4 Education
 //Part Number: GW5A-LV25MG121NC1/I0
 //Device: GW5A-25
 //Device Version: A
-//Created Time: Sun Oct 22 16:43:06 2023
+//Created Time: Sun Dec 31 00:56:34 2023
 
-module gowin_pll_27 (clkout0, clkin);
+module gowin_pll_27 (clkout0, clkout1, clkin);
 
 output clkout0;
+output clkout1;
 input clkin;
 
 wire lock_o;
-wire clkout1_o;
 wire clkout2_o;
 wire clkout3_o;
 wire clkout4_o;
@@ -28,7 +28,7 @@ assign gw_gnd = 1'b0;
 PLLA PLLA_inst (
     .LOCK(lock_o),
     .CLKOUT0(clkout0),
-    .CLKOUT1(clkout1_o),
+    .CLKOUT1(clkout1),
     .CLKOUT2(clkout2_o),
     .CLKOUT3(clkout3_o),
     .CLKOUT4(clkout4_o),
@@ -61,7 +61,7 @@ defparam PLLA_inst.FBDIV_SEL = 1;
 defparam PLLA_inst.CLKFB_SEL = "INTERNAL";
 defparam PLLA_inst.ODIV0_SEL = 50;
 defparam PLLA_inst.ODIV0_FRAC_SEL = 0;
-defparam PLLA_inst.ODIV1_SEL = 8;
+defparam PLLA_inst.ODIV1_SEL = 50;
 defparam PLLA_inst.ODIV2_SEL = 8;
 defparam PLLA_inst.ODIV3_SEL = 8;
 defparam PLLA_inst.ODIV4_SEL = 8;
@@ -70,7 +70,7 @@ defparam PLLA_inst.ODIV6_SEL = 8;
 defparam PLLA_inst.MDIV_SEL = 27;
 defparam PLLA_inst.MDIV_FRAC_SEL = 0;
 defparam PLLA_inst.CLKOUT0_EN = "TRUE";
-defparam PLLA_inst.CLKOUT1_EN = "FALSE";
+defparam PLLA_inst.CLKOUT1_EN = "TRUE";
 defparam PLLA_inst.CLKOUT2_EN = "FALSE";
 defparam PLLA_inst.CLKOUT3_EN = "FALSE";
 defparam PLLA_inst.CLKOUT4_EN = "FALSE";
@@ -96,7 +96,7 @@ defparam PLLA_inst.CLK6_IN_SEL = 1'b0;
 defparam PLLA_inst.CLK6_OUT_SEL = 1'b0;
 defparam PLLA_inst.CLKOUT0_PE_COARSE = 0;
 defparam PLLA_inst.CLKOUT0_PE_FINE = 0;
-defparam PLLA_inst.CLKOUT1_PE_COARSE = 0;
+defparam PLLA_inst.CLKOUT1_PE_COARSE = 25;
 defparam PLLA_inst.CLKOUT1_PE_FINE = 0;
 defparam PLLA_inst.CLKOUT2_PE_COARSE = 0;
 defparam PLLA_inst.CLKOUT2_PE_FINE = 0;
@@ -133,4 +133,4 @@ defparam PLLA_inst.CLKOUT0_DT_STEP = 0;
 defparam PLLA_inst.CLKOUT1_DT_STEP = 0;
 defparam PLLA_inst.CLKOUT2_DT_STEP = 0;
 defparam PLLA_inst.CLKOUT3_DT_STEP = 0;
-endmodule //Gowin_PLL_27
+endmodule //gowin_pll_27

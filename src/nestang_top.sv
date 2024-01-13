@@ -33,9 +33,7 @@ module nestang_top (
     inout [SDRAM_DATA_WIDTH-1:0]    IO_sdram_dq,      // bidirectional data bus
     output [SDRAM_ROW_WIDTH-1:0] O_sdram_addr,     // multiplexed address bus
     output [1:0] O_sdram_ba,        // two banks
-  `ifndef P25K
     output [SDRAM_DATA_WIDTH/8-1:0]   O_sdram_dqm,    
-  `endif
 
     // MicroSD
     output sd_clk,
@@ -64,6 +62,12 @@ module nestang_top (
 `endif
 //    output clk_usb,
 
+
+    // NES gamepad
+    output NES_gamepad_data_clock,
+    output NES_gampepad_data_latch,
+    input NES_gampead_serial_data,
+
     // HDMI TX
     output       tmds_clk_n,
     output       tmds_clk_p,
@@ -71,9 +75,6 @@ module nestang_top (
     output [2:0] tmds_d_p
 );
 
-`ifdef P25K
-wire [SDRAM_DATA_WIDTH/8-1:0]   O_sdram_dqm;
-`endif
 
 reg sys_resetn = 0;
 reg [7:0] reset_cnt = 255;      // reset for 255 cycles before start everything
@@ -87,12 +88,12 @@ end
 
 // clk is 27Mhz
 `ifdef P25K
-  wire clk;
-  gowin_pll_27 pll27 (.clkin(sys_clk), .clkout0(clk));      // Primer25K: PLL to generate 27Mhz from 50Mhz
+  wire clk, clk_sdram;
+  gowin_pll_27 pll27 (.clkin(sys_clk), .clkout0(clk), .clkout1(clk_sdram));      // Primer25K: PLL to generate 27Mhz from 50Mhz
 `else
   wire clk = sys_clk;       // Nano20K: native 27Mhz system clock
-`endif
   wire clk_sdram = ~clk;  
+`endif
   wire clk_usb;
 
   // USB clock 12Mhz
@@ -197,12 +198,30 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
   wire auto_square, auto_triangle, auto_square2, auto_triangle2;
   // wire [7:0] nes_btn = usb_btn, nes_btn2 = 0;
 
-  wire [7:0] nes_btn = {~joy_rx[0][5], ~joy_rx[0][7], ~joy_rx[0][6], ~joy_rx[0][4], 
-                        ~joy_rx[0][3], ~joy_rx[0][0], ~joy_rx[1][6] | auto_square, ~joy_rx[1][5] | auto_triangle} |
-                         usb_btn;
+  wire [7:0] nes_btn  = {~joy_rx[0][5], ~joy_rx[0][7], ~joy_rx[0][6], ~joy_rx[0][4], 
+                         ~joy_rx[0][3], ~joy_rx[0][0], ~joy_rx[1][6] | auto_square, ~joy_rx[1][5] | auto_triangle}
+                        | usb_btn
+                        | NES_gamepad_button_state;
   wire [7:0] nes_btn2 = {~joy_rx2[0][5], ~joy_rx2[0][7], ~joy_rx2[0][6], ~joy_rx2[0][4], 
-                         ~joy_rx2[0][3], ~joy_rx2[0][0], ~joy_rx2[1][6] | auto_square2, ~joy_rx2[1][5] | auto_triangle2} |
-                         usb_btn2;
+                         ~joy_rx2[0][3], ~joy_rx2[0][0], ~joy_rx2[1][6] | auto_square2, ~joy_rx2[1][5] | auto_triangle2}
+                         | usb_btn2;
+
+  // NES gamepad
+  wire [7:0]NES_gamepad_button_state;
+  wire NES_gamepad_data_available;
+  wire nes_gamepad_reset;
+
+  assign nes_gamepad_reset = ~sys_resetn;
+
+  NESGamepad nes_gamepad(
+		.i_clk(clk),
+        .i_rst(nes_gamepad_reset),
+		.o_data_clock(NES_gamepad_data_clock),
+		.o_data_latch(NES_gampepad_data_latch),
+		.i_serial_data(NES_gampead_serial_data),
+		.o_button_state(NES_gamepad_button_state),
+        .o_data_available(NES_gamepad_data_available)
+                        );
 
   // Joypad handling
   always @(posedge clk) begin
