@@ -4,6 +4,7 @@
 # Changelog
 [25.01.2024]
 - Add 8BitDo Home button support to go back to main menu
+- Add schematic on how to convert two NES joysticks to a FamiCom connector
 
 [13.01.2024]
 - First version working :)
