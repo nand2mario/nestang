@@ -31,3 +31,9 @@ In some cases, although not tested, probably cases such as original NES/Famicom 
 ### Wiring diagram
 
 <img src="images/NESGamepad_wiring_levelShifter.png" width=400>
+
+## NES to FamiCom
+
+There's a way to convert 2 NES joysticks to FamiCom input connector:
+
+<img src="images/NESGamepad_NES2FamiCom.jpg" width=400>
