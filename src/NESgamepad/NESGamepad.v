@@ -10,7 +10,7 @@ module NESGamepad(
 		output o_data_latch,
 		input i_serial_data,
 		// Data output
-		output reg [7:0] o_button_state,
+		output [7:0] o_button_state,
 		output o_data_available
    );
 	parameter NUMBER_OF_STATES = 10;    // Latch -> 2 * 60uS
@@ -41,6 +41,7 @@ module NESGamepad(
 	reg [7:0] data;
 	reg [20:0] clock_counter_60Hz;
 	reg [20:0] clock_counter_120uS;
+    reg [7:0] button_state;
 	wire clock_60Hz;
 	wire clock_120uS;
 
@@ -59,12 +60,13 @@ module NESGamepad(
 	// Generate a clock for generating the data clock and sampling the controller's output
     initial cycle_stage = 1;
 	initial data = 8'h00;
+    initial button_state = 8'h00;
 	initial clock_counter_60Hz = 0;
 	initial clock_counter_120uS = 0;
 
     // Handle 60Hz clock counter
 	always @(posedge i_clk) begin
-        if(i_rst) begin
+        if(!i_rst) begin
 			clock_counter_60Hz <= 0;
 		end else begin
 			if(clock_counter_60Hz < (2 * COUNTER_60Hz)) begin
@@ -75,13 +77,19 @@ module NESGamepad(
 		end
 	end
 
-	// Handle 60Hz clock counter
+    // Handle 60Hz clock
+	assign clock_60Hz = (clock_counter_60Hz < COUNTER_60Hz);
+
+	// Handle 120uS clock counter
 	always @(posedge i_clk) begin
-		if(i_rst) begin
+		if(!i_rst) begin
 			clock_counter_120uS <= 0;
 			cycle_stage <= 1;
+            data <= 8'h00;  
+            button_state <= 8'h00;
 		end else begin
-				if((clock_counter_60Hz > 0) && (clock_counter_60Hz <= (2 * NUMBER_OF_STATES * COUNTER_120uS + NUMBER_OF_STATES))) begin
+            // Counter
+            if((clock_counter_60Hz > 0) && (clock_counter_60Hz <= (2 * NUMBER_OF_STATES * COUNTER_120uS + NUMBER_OF_STATES))) begin
 				if(clock_counter_120uS < (2 * COUNTER_120uS)) begin
 					clock_counter_120uS <= clock_counter_120uS + 1;
 				end else begin
@@ -94,36 +102,31 @@ module NESGamepad(
 			end else begin
 				clock_counter_120uS <= 0;
 			end
-		end
-	end
 
-	// Handle 60Hz clock
-	assign clock_60Hz = (clock_counter_60Hz < COUNTER_60Hz);
-
-	// Handle 120uS clock and button output
-	always @(posedge clock_120uS) begin
-		if(i_rst) begin
-			data <= 0;
-		end else begin
-            if(latch_state) begin
-                data <= 8'h00;
-            end else if(data_state) begin
-				// data <= {!i_serial_data, data[7:1]};
-				// data <= {data[6:0], !i_serial_data};
-                case(cycle_stage)
-                    (1 << 1): data[0] <= !i_serial_data;    // A
-                    (1 << 2): data[1] <= !i_serial_data;    // B
-                    (1 << 3): data[2] <= !i_serial_data;    // Select
-                    (1 << 4): data[3] <= !i_serial_data;    // Start
-                    (1 << 5): data[4] <= !i_serial_data;    // Up
-                    (1 << 6): data[5] <= !i_serial_data;    // Down
-                    (1 << 7): data[6] <= !i_serial_data;    // Left
-                    (1 << 8): data[7] <= !i_serial_data;    // Right
-                endcase
-			end else if(write_state) begin
-				o_button_state <= data;
-				// o_button_state <= 8'b0010_0000;
-			end
+            // Handle button output
+            if(!clock_120uS) begin
+                // data <= 8'h00;  
+                // button_state <= 8'h00;
+            end else begin
+                if(latch_state) begin
+                    data <= 8'h00;
+                end else if(data_state) begin
+                    // data <= {!i_serial_data, data[7:1]};
+                    // data <= {data[6:0], !i_serial_data};
+                    case(cycle_stage)
+                        (1 << 1): data[0] <= !i_serial_data;    // A
+                        (1 << 2): data[1] <= !i_serial_data;    // B
+                        (1 << 3): data[2] <= !i_serial_data;    // Select
+                        (1 << 4): data[3] <= !i_serial_data;    // Start
+                        (1 << 5): data[4] <= !i_serial_data;    // Up
+                        (1 << 6): data[5] <= !i_serial_data;    // Down
+                        (1 << 7): data[6] <= !i_serial_data;    // Left
+                        (1 << 8): data[7] <= !i_serial_data;    // Right
+                    endcase
+                end else if(write_state) begin
+                    button_state <= data;
+                end
+            end
 		end
 	end
 
@@ -135,6 +138,7 @@ module NESGamepad(
 	assign o_data_latch = latch_state;
     assign o_data_clock = clock_60Hz & clock_120uS & !latch_state;
 	assign o_data_available = write_state;
+    assign o_button_state = button_state;
 
 	//
 	// Formal verification

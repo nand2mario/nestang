@@ -67,6 +67,9 @@ module nestang_top (
     output NES_gamepad_data_clock,
     output NES_gampepad_data_latch,
     input NES_gampead_serial_data,
+    output NES_gamepad_data_clock2,
+    output NES_gampepad_data_latch2,
+    input NES_gampead_serial_data2,
 
     // HDMI TX
     output       tmds_clk_n,
@@ -81,7 +84,7 @@ reg [7:0] reset_cnt = 255;      // reset for 255 cycles before start everything
 always @(posedge clk) begin
     reset_cnt <= reset_cnt == 0 ? 0 : reset_cnt - 1;
     if (reset_cnt == 0)
-        sys_resetn <= ~s1 & ~reset2;
+        sys_resetn <= ~s1 & ~reset2 & ~(nes_btn[5] && nes_btn[2]);    // 8BitDo Home button = Select + Down
 end
 
 `ifndef VERILATOR
@@ -204,23 +207,34 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
                         | NES_gamepad_button_state;
   wire [7:0] nes_btn2 = {~joy_rx2[0][5], ~joy_rx2[0][7], ~joy_rx2[0][6], ~joy_rx2[0][4], 
                          ~joy_rx2[0][3], ~joy_rx2[0][0], ~joy_rx2[1][6] | auto_square2, ~joy_rx2[1][5] | auto_triangle2}
-                         | usb_btn2;
+                         | usb_btn2
+                         | NES_gamepad_button_state2;
 
   // NES gamepad
   wire [7:0]NES_gamepad_button_state;
   wire NES_gamepad_data_available;
-  wire nes_gamepad_reset;
+  wire [7:0]NES_gamepad_button_state2;
+  wire NES_gamepad_data_available2;
 
-  assign nes_gamepad_reset = ~sys_resetn;
 
   NESGamepad nes_gamepad(
 		.i_clk(clk),
-        .i_rst(nes_gamepad_reset),
+        .i_rst(sys_resetn),
 		.o_data_clock(NES_gamepad_data_clock),
 		.o_data_latch(NES_gampepad_data_latch),
 		.i_serial_data(NES_gampead_serial_data),
 		.o_button_state(NES_gamepad_button_state),
         .o_data_available(NES_gamepad_data_available)
+                        );
+
+  NESGamepad nes_gamepad2(
+		.i_clk(clk),
+        .i_rst(sys_resetn),
+		.o_data_clock(NES_gamepad_data_clock2),
+		.o_data_latch(NES_gampepad_data_latch2),
+		.i_serial_data(NES_gampead_serial_data2),
+		.o_button_state(NES_gamepad_button_state2),
+        .o_data_available(NES_gamepad_data_available2)
                         );
 
   // Joypad handling

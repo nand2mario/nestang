@@ -5,7 +5,7 @@
 //Part Number: GW2AR-LV18QN88C8/I7
 //Device: GW2AR-18
 //Device Version: C
-//Created Time: Sat 01 13 18:00:44 2024
+//Created Time: Mon 01 22 09:37:57 2024
 
 IO_LOC "tmds_d_p[0]" 35,36;
 IO_PORT "tmds_d_p[0]" PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
@@ -15,7 +15,11 @@ IO_LOC "tmds_d_p[2]" 39,40;
 IO_PORT "tmds_d_p[2]" PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
 IO_LOC "tmds_clk_p" 33,34;
 IO_PORT "tmds_clk_p" PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
-IO_LOC "NES_gampepad_data_latch" 29;
+IO_LOC "NES_gampepad_data_latch2" 29;
+IO_PORT "NES_gampepad_data_latch2" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=24 BANK_VCCIO=3.3;
+IO_LOC "NES_gamepad_data_clock2" 26;
+IO_PORT "NES_gamepad_data_clock2" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=24 BANK_VCCIO=3.3;
+IO_LOC "NES_gampepad_data_latch" 28;
 IO_PORT "NES_gampepad_data_latch" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=24 BANK_VCCIO=3.3;
 IO_LOC "NES_gamepad_data_clock" 27;
 IO_PORT "NES_gamepad_data_clock" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=24 BANK_VCCIO=3.3;
@@ -55,10 +59,14 @@ IO_LOC "usbdm" 41;
 IO_PORT "usbdm" IO_TYPE=LVCMOS33 PULL_MODE=DOWN DRIVE=8 BANK_VCCIO=3.3;
 IO_LOC "sd_cmd" 82;
 IO_PORT "sd_cmd" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
-IO_LOC "NES_gampead_serial_data" 28;
+IO_LOC "NES_gampead_serial_data2" 30;
+IO_PORT "NES_gampead_serial_data2" IO_TYPE=LVCMOS33 PULL_MODE=NONE PCI_CLAMP=OFF BANK_VCCIO=3.3;
+IO_LOC "NES_gampead_serial_data" 25;
 IO_PORT "NES_gampead_serial_data" IO_TYPE=LVCMOS33 PULL_MODE=NONE PCI_CLAMP=OFF BANK_VCCIO=3.3;
 IO_LOC "joystick_miso2" 71;
 IO_PORT "joystick_miso2" IO_TYPE=LVCMOS33 PULL_MODE=UP BANK_VCCIO=3.3;
+IO_LOC "joystick_miso" 19;
+IO_PORT "joystick_miso" IO_TYPE=LVCMOS33 PULL_MODE=UP BANK_VCCIO=3.3;
 IO_LOC "sd_dat0" 84;
 IO_PORT "sd_dat0" IO_TYPE=LVCMOS33 PULL_MODE=NONE BANK_VCCIO=3.3;
 IO_LOC "UART_RXD" 70;
@@ -69,5 +77,3 @@ IO_LOC "s1" 88;
 IO_PORT "s1" PULL_MODE=NONE BANK_VCCIO=3.3;
 IO_LOC "sys_clk" 4;
 IO_PORT "sys_clk" IO_TYPE=LVCMOS33 PULL_MODE=NONE BANK_VCCIO=3.3;
-IO_LOC "joystick_miso" 19;
-IO_PORT "joystick_miso" IO_TYPE=LVCMOS33 PULL_MODE=UP BANK_VCCIO=3.3;

@@ -40,6 +40,7 @@ The Tang Nano 20K is a popular FPGA board for putting 20K LUTs and HDMI output i
   * Windows does not allow FAT32 on cards >32GB, here's a [work-around](https://answers.microsoft.com/en-us/windows/forum/all/format-a-sandisk-extreme-64gb-micro-sd-card-to/ff51be64-75b9-435f-9d39-92299b9d006e). 
   * The roms may appear out of order. If you want them to show in alpabetical or other specific order, you can use [DriveSort](http://www.anerty.net/software/file/DriveSort/?lang=en).
 * Insert the MicroSD card and power up the board to start playing your favorite games!
+* Original NES joysticks are now suported: [documentation](doc/NESGamepad.md)
 
 ## Setup for Tang Primer 20K
 
