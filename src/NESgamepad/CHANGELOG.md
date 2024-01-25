@@ -2,6 +2,8 @@
 - Update verilator tests
 
 # Changelog
+[25.01.2024]
+- Add 8BitDo Home button support to go back to main menu
 
 [13.01.2024]
 - First version working :)

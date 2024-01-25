@@ -84,7 +84,7 @@ reg [7:0] reset_cnt = 255;      // reset for 255 cycles before start everything
 always @(posedge clk) begin
     reset_cnt <= reset_cnt == 0 ? 0 : reset_cnt - 1;
     if (reset_cnt == 0)
-        sys_resetn <= ~s1 & ~reset2;
+        sys_resetn <= ~s1 & ~reset2 & ~(nes_btn[5] && nes_btn[2]);    // 8BitDo Home button = Select + Down
 end
 
 `ifndef VERILATOR
@@ -213,16 +213,13 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
   // NES gamepad
   wire [7:0]NES_gamepad_button_state;
   wire NES_gamepad_data_available;
-  wire nes_gamepad_reset;
   wire [7:0]NES_gamepad_button_state2;
   wire NES_gamepad_data_available2;
-  wire nes_gamepad_reset2;
 
-  assign nes_gamepad_reset = ~sys_resetn;
 
   NESGamepad nes_gamepad(
 		.i_clk(clk),
-        .i_rst(nes_gamepad_reset),
+        .i_rst(sys_resetn),
 		.o_data_clock(NES_gamepad_data_clock),
 		.o_data_latch(NES_gampepad_data_latch),
 		.i_serial_data(NES_gampead_serial_data),
@@ -232,7 +229,7 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
 
   NESGamepad nes_gamepad2(
 		.i_clk(clk),
-        .i_rst(nes_gamepad_reset),
+        .i_rst(sys_resetn),
 		.o_data_clock(NES_gamepad_data_clock2),
 		.o_data_latch(NES_gampepad_data_latch2),
 		.i_serial_data(NES_gampead_serial_data2),

@@ -64,7 +64,7 @@ module NESGamepad(
 
     // Handle 60Hz clock counter
 	always @(posedge i_clk) begin
-        if(i_rst) begin
+        if(!i_rst) begin
 			clock_counter_60Hz <= 0;
 		end else begin
 			if(clock_counter_60Hz < (2 * COUNTER_60Hz)) begin
@@ -77,7 +77,7 @@ module NESGamepad(
 
 	// Handle 60Hz clock counter
 	always @(posedge i_clk) begin
-		if(i_rst) begin
+		if(!i_rst) begin
 			clock_counter_120uS <= 0;
 			cycle_stage <= 1;
 		end else begin
@@ -102,8 +102,9 @@ module NESGamepad(
 
 	// Handle 120uS clock and button output
 	always @(posedge clock_120uS) begin
-		if(i_rst) begin
-			data <= 0;
+		if(!i_rst) begin
+			data <= 0;  
+            o_button_state <= 8'h00;
 		end else begin
             if(latch_state) begin
                 data <= 8'h00;
@@ -121,8 +122,7 @@ module NESGamepad(
                     (1 << 8): data[7] <= !i_serial_data;    // Right
                 endcase
 			end else if(write_state) begin
-				o_button_state <= data;
-				// o_button_state <= 8'b0010_0000;
+                o_button_state <= data;
 			end
 		end
 	end
