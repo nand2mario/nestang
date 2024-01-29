@@ -320,8 +320,15 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
     end
   end
 
+  // VRC6
+  wire NES_int_audio;
+  wire NES_ext_audio;
+  assign NES_int_audio = 1;
+  assign NES_ext_audio = (mapper_flags[7:0] == 24);
+
   // Main NES machine
-  NES nes(clk, reset_nes, run_nes,
+  NES nes(
+          clk, reset_nes, run_nes,
           mapper_flags,
           sample, color,
           joypad_strobe, joypad_clock, {joypad_bits2[0], joypad_bits[0]},
@@ -330,7 +337,10 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
           memory_read_cpu, memory_din_cpu,
           memory_read_ppu, memory_din_ppu,
           memory_write, memory_dout,
-          cycle, scanline
+          cycle, scanline,
+          // VRC6
+          NES_int_audio,
+          NES_ext_audio
         );
 
 /*verilator tracing_off*/
