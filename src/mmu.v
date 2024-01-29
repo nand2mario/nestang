@@ -1557,9 +1557,9 @@ endmodule
 //  VRC6 mapper
 //
 //  Implementation taken from misterFPGA. They mention it was taken from Loopy's Powerpak mappers.
-// I couldn't find the original source yet, will add a link to it when I do.
 //
 // References:
+// - Loopy's PowerPak: https://forums.nesdev.org/viewtopic.php?p=173302#p173302:~:text=in%20these%20sources.-,ATTACHMENTS,-powerpak_loopy_src.zip
 // - https://github.com/MiSTer-devel/NES_MiSTer/pull/8/files
 // - https://github.com/MiSTer-devel/NES_MiSTer/pull/6/files
 // - https://www.nesdev.org/wiki/VRC6
