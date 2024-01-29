@@ -591,22 +591,8 @@ module namco106_sound(
         endcase
     end
 
-  dpram #(.widthad_a(7)) modtable
-    (
-      .clock_a   (clk20),
-      .address_a (ram_ain),
-      .wren_a    (wr & ain[15:11]==5'b01001),
-		.byteena_a (1),
-      .data_a    (din),
-      //.q_a     (),
+  reg [7:0] expansion_ram[0:1023]; // Block RAM, otherwise we need to time multiplex..
 
-      .clock_b   (clk20),
-      .address_b (ram_aout),
-      .wren_b    (0),
-		.byteena_b (1),
-      .data_b    (0),
-      .q_b       (ram_dout)
-    );
 //    RAMB4_S8_S8 n106_ram(
 //        .WEA(wr & ain[15:11]==5'b01001),   //cpu write 4800-4FFF
 //        .ENA(1'b1),
