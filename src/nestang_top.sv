@@ -324,7 +324,7 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
   wire NES_int_audio;
   wire NES_ext_audio;
   assign NES_int_audio = 1;
-  assign NES_ext_audio = (mapper_flags[7:0] == 24);
+  assign NES_ext_audio = (mapper_flags[7:0] == 19) | (mapper_flags[7:0] == 24) | (mapper_flags[7:0] == 26);
 
   // Main NES machine
   NES nes(
