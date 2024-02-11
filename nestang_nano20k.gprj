@@ -6,7 +6,7 @@
     <Device name="GW2AR-18C" pn="GW2AR-LV18QN88C7/I6">gw2ar18c-001</Device>
     <FileList>
         <File path="src/tang_nano_20k/config.sv" type="file.verilog" enable="1"/>
-
+        <File path="src/NESgamepad/NESGamepad.v" type="file.verilog" enable="1"/>
         <File path="src/MicroCode.v" type="file.verilog" enable="1"/>
         <File path="src/apu.v" type="file.verilog" enable="1"/>
         <File path="src/autofire.v" type="file.verilog" enable="1"/>

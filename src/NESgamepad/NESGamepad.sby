@@ -1,0 +1,19 @@
+[tasks]
+cvr
+prf
+
+[options]
+cvr: mode cover
+prf: mode prove
+multiclock on
+vcd on
+
+[engines]
+smtbmc boolector
+
+[script]
+read -formal NESGamepad.v
+prep -top NESGamepad
+
+[files]
+NESGamepad.v

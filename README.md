@@ -22,7 +22,7 @@ The Tang Primer 25K is the latest small-form-factor FPGA board from Sipeed. It f
 * The Tang Primer 25K with 4 modules: sdram, dvi, ds2 and sd, with the modules plugged in as follows (pmod positions are important as pins are fixed), <br><img src="doc/images/primer25k_setup.jpg" width=400 />
 * NESTang program [v0.8rc or later](https://github.com/nand2mario/nestang/releases), downloaded to the board with Gowin programmer.
 * A MicroSD card to hold ROMS, formatted in FAT32. Then put the .nes roms in the root dir.
-  * **64GB/128GB cards**: Windows does not allow FAT32 on cards >32GB, you can use [Parition Assistant](https://www.diskpart.com/free-partition-manager.html) to force it to FAT32 instead of exFAT.
+  * Windows does not allow FAT32 on cards >32GB, here's a [work-around](https://answers.microsoft.com/en-us/windows/forum/all/format-a-sandisk-extreme-64gb-micro-sd-card-to/ff51be64-75b9-435f-9d39-92299b9d006e). 
   * The roms may appear out of order. If you want them to show in alpabetical or other specific order, you can use [DriveSort](http://www.anerty.net/software/file/DriveSort/?lang=en).
 * Connect one or two DualShock2 controllers to the DS2 pmod. Or you can connect one USB gamepad to use the [experimental USB gamepad support](doc/usb_gamepad.md). The board only has one USB port. So use DS2 if you want two players.
 * Insert the MicroSD card, connect an HDMI monitor or TV, and enjoy your games.
@@ -37,9 +37,10 @@ The Tang Nano 20K is a popular FPGA board for putting 20K LUTs and HDMI output i
 * HDMI cable to connect the board to a monitor.
 * Latest NESTang program downloaded from [github](https://github.com/nand2mario/nestang/releases) and transferred to the board using either [openFPGALoader](https://github.com/trabucayre/openFPGALoader) or Gowin programmer.
 * A MicroSD card to hold ROMS, formatted in FAT32. Then put the .nes roms in the root dir.
-  * **64GB/128GB cards**: Windows does not allow FAT32 on cards >32GB, you can use [Parition Assistant](https://www.diskpart.com/free-partition-manager.html) to force it to FAT32 instead of exFAT.
+  * Windows does not allow FAT32 on cards >32GB, here's a [work-around](https://answers.microsoft.com/en-us/windows/forum/all/format-a-sandisk-extreme-64gb-micro-sd-card-to/ff51be64-75b9-435f-9d39-92299b9d006e). 
   * The roms may appear out of order. If you want them to show in alpabetical or other specific order, you can use [DriveSort](http://www.anerty.net/software/file/DriveSort/?lang=en).
 * Insert the MicroSD card and power up the board to start playing your favorite games!
+* Original NES joysticks are now suported: [documentation](doc/NESGamepad.md)
 
 ## Setup for Tang Primer 20K
 

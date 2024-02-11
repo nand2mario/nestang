@@ -1,3 +1,5 @@
 *.o
 impl
 nes.gprj.user
+
+*.vcd

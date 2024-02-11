@@ -62,6 +62,15 @@ module nestang_top (
 `endif
 //    output clk_usb,
 
+
+    // NES gamepad
+    output NES_gamepad_data_clock,
+    output NES_gampepad_data_latch,
+    input NES_gampead_serial_data,
+    output NES_gamepad_data_clock2,
+    output NES_gampepad_data_latch2,
+    input NES_gampead_serial_data2,
+
     // HDMI TX
     output       tmds_clk_n,
     output       tmds_clk_p,
@@ -75,7 +84,7 @@ reg [7:0] reset_cnt = 255;      // reset for 255 cycles before start everything
 always @(posedge clk) begin
     reset_cnt <= reset_cnt == 0 ? 0 : reset_cnt - 1;
     if (reset_cnt == 0)
-        sys_resetn <= ~s1 & ~reset2;
+        sys_resetn <= ~s1 & ~reset2 & ~(nes_btn[5] && nes_btn[2]);    // 8BitDo Home button = Select + Down
 end
 
 `ifndef VERILATOR
@@ -192,12 +201,41 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
   wire auto_square, auto_triangle, auto_square2, auto_triangle2;
   // wire [7:0] nes_btn = usb_btn, nes_btn2 = 0;
 
-  wire [7:0] nes_btn = {~joy_rx[0][5], ~joy_rx[0][7], ~joy_rx[0][6], ~joy_rx[0][4], 
-                        ~joy_rx[0][3], ~joy_rx[0][0], ~joy_rx[1][6] | auto_square, ~joy_rx[1][5] | auto_triangle} |
-                         usb_btn;
+  wire [7:0] nes_btn  = {~joy_rx[0][5], ~joy_rx[0][7], ~joy_rx[0][6], ~joy_rx[0][4], 
+                         ~joy_rx[0][3], ~joy_rx[0][0], ~joy_rx[1][6] | auto_square, ~joy_rx[1][5] | auto_triangle}
+                        | usb_btn
+                        | NES_gamepad_button_state;
   wire [7:0] nes_btn2 = {~joy_rx2[0][5], ~joy_rx2[0][7], ~joy_rx2[0][6], ~joy_rx2[0][4], 
-                         ~joy_rx2[0][3], ~joy_rx2[0][0], ~joy_rx2[1][6] | auto_square2, ~joy_rx2[1][5] | auto_triangle2} |
-                         usb_btn2;
+                         ~joy_rx2[0][3], ~joy_rx2[0][0], ~joy_rx2[1][6] | auto_square2, ~joy_rx2[1][5] | auto_triangle2}
+                         | usb_btn2
+                         | NES_gamepad_button_state2;
+
+  // NES gamepad
+  wire [7:0]NES_gamepad_button_state;
+  wire NES_gamepad_data_available;
+  wire [7:0]NES_gamepad_button_state2;
+  wire NES_gamepad_data_available2;
+
+
+  NESGamepad nes_gamepad(
+		.i_clk(clk),
+        .i_rst(sys_resetn),
+		.o_data_clock(NES_gamepad_data_clock),
+		.o_data_latch(NES_gampepad_data_latch),
+		.i_serial_data(NES_gampead_serial_data),
+		.o_button_state(NES_gamepad_button_state),
+        .o_data_available(NES_gamepad_data_available)
+                        );
+
+  NESGamepad nes_gamepad2(
+		.i_clk(clk),
+        .i_rst(sys_resetn),
+		.o_data_clock(NES_gamepad_data_clock2),
+		.o_data_latch(NES_gampepad_data_latch2),
+		.i_serial_data(NES_gampead_serial_data2),
+		.o_button_state(NES_gamepad_button_state2),
+        .o_data_available(NES_gamepad_data_available2)
+                        );
 
   // Joypad handling
   always @(posedge clk) begin
@@ -282,8 +320,15 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
     end
   end
 
+  // VRC6
+  wire NES_int_audio;
+  wire NES_ext_audio;
+  assign NES_int_audio = 1;
+  assign NES_ext_audio = (mapper_flags[7:0] == 19) | (mapper_flags[7:0] == 24) | (mapper_flags[7:0] == 26);
+
   // Main NES machine
-  NES nes(clk, reset_nes, run_nes,
+  NES nes(
+          clk, reset_nes, run_nes,
           mapper_flags,
           sample, color,
           joypad_strobe, joypad_clock, {joypad_bits2[0], joypad_bits[0]},
@@ -292,7 +337,10 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
           memory_read_cpu, memory_din_cpu,
           memory_read_ppu, memory_din_ppu,
           memory_write, memory_dout,
-          cycle, scanline
+          cycle, scanline,
+          // VRC6
+          NES_int_audio,
+          NES_ext_audio
         );
 
 /*verilator tracing_off*/

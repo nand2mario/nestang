@@ -1,103 +1,79 @@
-IO_LOC "sys_clk" 4;       // crystal
-IO_PORT "sys_clk" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
+//Copyright (C)2014-2023 Gowin Semiconductor Corporation.
+//All rights reserved. 
+//File Title: Physical Constraints file
+//GOWIN Version: 1.9.9 Beta-4 Education
+//Part Number: GW2AR-LV18QN88C8/I7
+//Device: GW2AR-18
+//Device Version: C
+//Created Time: Mon 01 22 09:37:57 2024
 
-// IO_LOC "sys_resetn" T2;
-// IO_PORT "sys_resetn" PULL_MODE=NONE;
-
-// S1 and pin 48 are both resets
-IO_LOC "s1" 88;
-IO_PORT "s1" PULL_MODE=NONE;
-IO_LOC "reset2" 48;
-IO_PORT "reset2" PULL_MODE=DOWN;
-
-// HDMI
-IO_LOC "tmds_clk_p" 33;
-IO_PORT "tmds_clk_p" PULL_MODE=NONE;
-IO_LOC "tmds_clk_n" 34;
-IO_PORT "tmds_clk_n" PULL_MODE=NONE;
-IO_LOC "tmds_d_p[0]" 35;
-IO_PORT "tmds_d_p[0]" PULL_MODE=NONE;
-IO_LOC "tmds_d_n[0]" 36;
-IO_PORT "tmds_d_n[0]" PULL_MODE=NONE;
-IO_LOC "tmds_d_p[1]" 37;
-IO_PORT "tmds_d_p[1]" PULL_MODE=NONE;
-IO_LOC "tmds_d_n[1]" 38;
-IO_PORT "tmds_d_n[1]" PULL_MODE=NONE;
-IO_LOC "tmds_d_p[2]" 39;
-IO_PORT "tmds_d_p[2]" PULL_MODE=NONE;
-IO_LOC "tmds_d_n[2]" 40;
-IO_PORT "tmds_d_n[2]" PULL_MODE=NONE;
-
-// SDCard
-IO_LOC "sd_clk" 83;
-IO_PORT "sd_clk" PULL_MODE=NONE IO_TYPE=LVCMOS33; 
-IO_LOC "sd_cmd" 82;        // MOSI
-IO_PORT "sd_cmd" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "sd_dat0" 84;       // MISO
-IO_PORT "sd_dat0" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "sd_dat1" 85;       // 1
-IO_PORT "sd_dat1" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "sd_dat2" 80;       // 1
-IO_PORT "sd_dat2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "sd_dat3" 81;       // 1
-IO_PORT "sd_dat3" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-
-// Joystick 1
-IO_LOC "joystick_clk" 17;
-IO_PORT "joystick_clk" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "joystick_mosi" 20;
-IO_PORT "joystick_mosi" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "joystick_miso" 19;
-IO_PORT "joystick_miso" PULL_MODE=UP IO_TYPE=LVCMOS33;
-IO_LOC "joystick_cs"  18;
-IO_PORT "joystick_cs" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-
-// Joystick 2
-IO_LOC "joystick_clk2" 52;
-IO_PORT "joystick_clk2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC "tmds_d_p[0]" 35,36;
+IO_PORT "tmds_d_p[0]" PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "tmds_d_p[1]" 37,38;
+IO_PORT "tmds_d_p[1]" PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "tmds_d_p[2]" 39,40;
+IO_PORT "tmds_d_p[2]" PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "tmds_clk_p" 33,34;
+IO_PORT "tmds_clk_p" PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "NES_gampepad_data_latch2" 29;
+IO_PORT "NES_gampepad_data_latch2" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=24 BANK_VCCIO=3.3;
+IO_LOC "NES_gamepad_data_clock2" 26;
+IO_PORT "NES_gamepad_data_clock2" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=24 BANK_VCCIO=3.3;
+IO_LOC "NES_gampepad_data_latch" 28;
+IO_PORT "NES_gampepad_data_latch" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=24 BANK_VCCIO=3.3;
+IO_LOC "NES_gamepad_data_clock" 27;
+IO_PORT "NES_gamepad_data_clock" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=24 BANK_VCCIO=3.3;
+IO_LOC "joystick_cs2" 72;
+IO_PORT "joystick_cs2" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
 IO_LOC "joystick_mosi2" 53;
-IO_PORT "joystick_mosi2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "joystick_miso2" 71;
-IO_PORT "joystick_miso2" PULL_MODE=UP IO_TYPE=LVCMOS33;
-IO_LOC "joystick_cs2"  72;
-IO_PORT "joystick_cs2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-
-// UART through USB-C port
-IO_LOC "UART_RXD" 70;
-IO_LOC "UART_TXD" 69;
-IO_PORT "UART_RXD" IO_TYPE=LVCMOS33;
-IO_PORT "UART_TXD" IO_TYPE=LVCMOS33;
-
-// UART through USB-TTL dongle, this is for pre-production board
-//IO_LOC "UART_TXD" 30;
-//IO_PORT "UART_TXD" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
-//IO_LOC "UART_RXD" 31;
-//IO_PORT "UART_RXD" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
-
-// USB ports
-IO_LOC "usbdp" 42;      
-IO_PORT "usbdp" PULL_MODE=DOWN IO_TYPE=LVCMOS33;
-IO_LOC "usbdm" 41;      
-IO_PORT "usbdm" PULL_MODE=DOWN IO_TYPE=LVCMOS33;
-IO_LOC "usbdp2" 56;     
-IO_PORT "usbdp2" PULL_MODE=DOWN IO_TYPE=LVCMOS33;
-IO_LOC "usbdm2" 54;     
-IO_PORT "usbdm2" PULL_MODE=DOWN IO_TYPE=LVCMOS33;
-
-// USB debug board
-//IO_LOC "usbdp" 41;      // LCD_R4
-//IO_PORT "usbdp" PULL_MODE=DOWN IO_TYPE=LVCMOS33;
-//IO_LOC "usbdm" 42;      // LCD_R3
-//IO_PORT "usbdm" PULL_MODE=DOWN IO_TYPE=LVCMOS33;
-//IO_LOC "clk_usb" 56;    // for logic analyzer
-//IO_PORT "clk_usb" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-
-
-// 2 LEDs for debug
+IO_PORT "joystick_mosi2" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "joystick_clk2" 52;
+IO_PORT "joystick_clk2" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "joystick_cs" 18;
+IO_PORT "joystick_cs" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "joystick_mosi" 20;
+IO_PORT "joystick_mosi" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "joystick_clk" 17;
+IO_PORT "joystick_clk" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "sd_dat3" 81;
+IO_PORT "sd_dat3" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "sd_dat2" 80;
+IO_PORT "sd_dat2" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "sd_dat1" 85;
+IO_PORT "sd_dat1" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "sd_clk" 83;
+IO_PORT "sd_clk" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
 IO_LOC "led[1]" 16;
-IO_PORT "led[1]" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8;
+IO_PORT "led[1]" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8 BANK_VCCIO=3.3;
 IO_LOC "led[0]" 15;
-IO_PORT "led[0]" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8;
-
-
-// pinout: https://wiki.sipeed.com/hardware/zh/tang/tang-nano-20k/assets/nano_20k/tang_nano_20k_pinlabel.png
+IO_PORT "led[0]" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "UART_TXD" 69;
+IO_PORT "UART_TXD" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "usbdp2" 56;
+IO_PORT "usbdp2" IO_TYPE=LVCMOS33 PULL_MODE=DOWN DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "usbdm2" 54;
+IO_PORT "usbdm2" IO_TYPE=LVCMOS33 PULL_MODE=DOWN DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "usbdp" 42;
+IO_PORT "usbdp" IO_TYPE=LVCMOS33 PULL_MODE=DOWN DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "usbdm" 41;
+IO_PORT "usbdm" IO_TYPE=LVCMOS33 PULL_MODE=DOWN DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "sd_cmd" 82;
+IO_PORT "sd_cmd" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "NES_gampead_serial_data2" 30;
+IO_PORT "NES_gampead_serial_data2" IO_TYPE=LVCMOS33 PULL_MODE=NONE PCI_CLAMP=OFF BANK_VCCIO=3.3;
+IO_LOC "NES_gampead_serial_data" 25;
+IO_PORT "NES_gampead_serial_data" IO_TYPE=LVCMOS33 PULL_MODE=NONE PCI_CLAMP=OFF BANK_VCCIO=3.3;
+IO_LOC "joystick_miso2" 71;
+IO_PORT "joystick_miso2" IO_TYPE=LVCMOS33 PULL_MODE=UP BANK_VCCIO=3.3;
+IO_LOC "joystick_miso" 19;
+IO_PORT "joystick_miso" IO_TYPE=LVCMOS33 PULL_MODE=UP BANK_VCCIO=3.3;
+IO_LOC "sd_dat0" 84;
+IO_PORT "sd_dat0" IO_TYPE=LVCMOS33 PULL_MODE=NONE BANK_VCCIO=3.3;
+IO_LOC "UART_RXD" 70;
+IO_PORT "UART_RXD" IO_TYPE=LVCMOS33 PULL_MODE=UP BANK_VCCIO=3.3;
+IO_LOC "reset2" 48;
+IO_PORT "reset2" PULL_MODE=DOWN BANK_VCCIO=3.3;
+IO_LOC "s1" 88;
+IO_PORT "s1" PULL_MODE=NONE BANK_VCCIO=3.3;
+IO_LOC "sys_clk" 4;
+IO_PORT "sys_clk" IO_TYPE=LVCMOS33 PULL_MODE=NONE BANK_VCCIO=3.3;
