@@ -64,12 +64,14 @@ module nestang_top (
 
 
     // NES gamepad
+`ifdef N20K
     output NES_gamepad_data_clock,
     output NES_gampepad_data_latch,
     input NES_gampead_serial_data,
     output NES_gamepad_data_clock2,
     output NES_gampepad_data_latch2,
     input NES_gampead_serial_data2,
+`endif
 
     // HDMI TX
     output       tmds_clk_n,
@@ -216,7 +218,7 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
   wire [7:0]NES_gamepad_button_state2;
   wire NES_gamepad_data_available2;
 
-
+`ifdef N20K
   NESGamepad nes_gamepad(
 		.i_clk(clk),
         .i_rst(sys_resetn),
@@ -236,6 +238,7 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
 		.o_button_state(NES_gamepad_button_state2),
         .o_data_available(NES_gamepad_data_available2)
                         );
+`endif
 
   // Joypad handling
   always @(posedge clk) begin
