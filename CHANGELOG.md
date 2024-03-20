@@ -1,7 +1,7 @@
 # Changes
 
 [20.03.2024]
-- Add CHANGELOG.CHANGELOG.md
+- Add CHANGELOG.md
 - Set device in nestang_nano20k.gprj
 - Add mapLoopy.v to nestang_nano20k.gprj
 - Add mapLoopy.v to nestang_primer25k.gprj
