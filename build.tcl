@@ -33,6 +33,8 @@ add_file -type verilog "src/sdram.v"
 add_file -type verilog "src/uart_tx_V2.v"
 add_file -type verilog "src/usb_hid_host.v"
 add_file -type verilog "src/usb_hid_host_rom.v"
+add_file -type verilog "src/NESGamepad.v"
+add_file -type verilog "src/mapLoopy.v"
 
 if {$dev eq "nano20k"} {
     set_device GW2AR-LV18QN88C8/I7 -device_version C

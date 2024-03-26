@@ -1578,23 +1578,24 @@ module MapperVRC6(input clk, input ce, input reset,
             output vram_a10,                             // Value for A10 address line
             output vram_ce,                              // True if the address should be routed to the internal 2kB VRAM.
             output irq,
-				output [15:0] audio);
-	 wire nesprg_oe;
+                output [15:0] audio);
+    wire nesprg_oe;
     wire [7:0] neschrdout;
-	 wire neschr_oe;
-	 wire wram_oe;
-	 wire wram_we;
-	 wire prgram_we;
-	 wire chrram_oe;
-	 wire prgram_oe;
-	 wire [18:13] ramprgaout;
-	 wire exp6;
-	 reg [7:0] m2;
-	 wire m2_n = 1;//~ce;  //m2_n not used as clk.  Invert m2 (ce).
-  always @(posedge clk) begin
-    m2[7:1] <= m2[6:0];
-	 m2[0] <= ce;
-  end
+    wire neschr_oe;
+    wire wram_oe;
+    wire wram_we;
+    wire prgram_we;
+    wire chrram_oe;
+    wire prgram_oe;
+    wire [18:13] ramprgaout;
+    wire exp6;
+    reg [7:0] m2;
+    wire m2_n = 1;//~ce;  //m2_n not used as clk.  Invert m2 (ce).
+    
+    always @(posedge clk) begin
+        m2[7:1] <= m2[6:0];
+        m2[0] <= ce;
+    end
 
 //module MAPVRC6(              //signal descriptions in powerpak.v
 //    input m2, input m2_n, input clk20, input reset, input nesprg_we, output nesprg_oe, input neschr_rd,
@@ -1605,21 +1606,21 @@ module MapperVRC6(input clk, input ce, input reset,
 //    input ce, output prg_allow, output [11:0] snd_level, input mapper26);
 
     MAPVRC6 vrc6(m2[7], m2_n, clk, reset, prg_write, nesprg_oe, 0, 
-		1, prg_ain, chr_ain, prg_din, 8'b0, prg_dout,
-		neschrdout, neschr_oe, chr_allow, chrram_oe, wram_oe, wram_we, prgram_we,
-		prgram_oe, chr_aout[18:10], ramprgaout, irq, vram_ce, exp6, 
-		0, 7'b1111111, 6'b111111, flags[14], flags[16], flags[15],
-		ce, audio, flags[1]);
+        1, prg_ain, chr_ain, prg_din, 8'b0, prg_dout,
+        neschrdout, neschr_oe, chr_allow, chrram_oe, wram_oe, wram_we, prgram_we,
+        prgram_oe, chr_aout[18:10], ramprgaout, irq, vram_ce, exp6, 
+        0, 7'b1111111, 6'b111111, flags[14], flags[16], flags[15],
+        ce, audio, flags[1]);
 
     assign chr_aout[21:19] = 3'b100;
     assign chr_aout[9:0] = chr_ain[9:0];
-	 assign vram_a10 = chr_aout[10];
-	 wire [21:13] prg_aout_tmp = {3'b00_0, ramprgaout};
-	 wire [21:13] prg_ram = {9'b11_1100_000};
-	 wire prg_is_ram = prg_ain >= 'h6000 && prg_ain < 'h8000;
-	 assign prg_aout[21:13] = prg_is_ram ? prg_ram : prg_aout_tmp;
+    assign vram_a10 = chr_aout[10];
+    wire [21:13] prg_aout_tmp = {3'b00_0, ramprgaout};
+    wire [21:13] prg_ram = {9'b11_1100_000};
+    wire prg_is_ram = prg_ain >= 'h6000 && prg_ain < 'h8000;
+    assign prg_aout[21:13] = prg_is_ram ? prg_ram : prg_aout_tmp;
     assign prg_aout[12:0] = prg_ain[12:0];
-	 assign prg_allow = (prg_ain[15] && !prg_write) || prg_is_ram;
+    assign prg_allow = (prg_ain[15] && !prg_write) || prg_is_ram;
 
 endmodule
 
@@ -1637,23 +1638,25 @@ module MapperN106(input clk, input ce, input reset,
             output vram_a10,                             // Value for A10 address line
             output vram_ce,                              // True if the address should be routed to the internal 2kB VRAM.
             output irq,
-				output [15:0] audio);
-	 wire nesprg_oe;
+            output [15:0] audio);
+    wire nesprg_oe;
     wire [7:0] neschrdout;
-	 wire neschr_oe;
-	 wire wram_oe;
-	 wire wram_we;
-	 wire prgram_we;
-	 wire chrram_oe;
-	 wire prgram_oe;
-	 wire [18:13] ramprgaout;
-	 wire exp6;
-	 reg [7:0] m2;
-	 wire m2_n = 1;//~ce;  //m2_n not used as clk.  Invert m2 (ce).
-  always @(posedge clk) begin
-    m2[7:1] <= m2[6:0];
-	 m2[0] <= ce;
-  end
+    wire neschr_oe;
+    wire wram_oe;
+    wire wram_we;
+    wire prgram_we;
+    wire chrram_oe;
+    wire prgram_oe;
+    wire [18:13] ramprgaout;
+    wire exp6;
+    reg [7:0] m2;
+    wire m2_n = 1;//~ce;  //m2_n not used as clk.  Invert m2 (ce).
+
+    always @(posedge clk) begin
+        m2[7:1] <= m2[6:0];
+        m2[0] <= ce;
+    end
+    
 //module MAPN106(              //signal descriptions in powerpak.v
 //    input m2, input m2_n, input clk20, input reset, input nesprg_we, output nesprg_oe, input neschr_rd,
 //    input neschr_wr, input [15:0] prgain, input [13:0] chrain, input [7:0] nesprgdin, input [7:0] ramprgdin, output reg [7:0] nesprgdout,
@@ -1662,21 +1665,21 @@ module MapperN106(input clk, input ce, input reset,
 //    input cfg_boot, input [18:12] cfg_chrmask, input [18:13] cfg_prgmask, input cfg_vertical, input cfg_fourscreen, input cfg_chrram,
 //    input ce, output prg_allow, output [11:0] snd_level, input mapper26);
     MAPN106 n106(m2[7], m2_n, clk, reset, prg_write, nesprg_oe, 0, 
-		1, prg_ain, chr_ain, prg_din, 8'b0, prg_dout,
-		neschrdout, neschr_oe, chr_allow, chrram_oe, wram_oe, wram_we, prgram_we,
-		prgram_oe, chr_aout[18:10], ramprgaout, irq, vram_ce, exp6, 
-		0, 7'b1111111, 6'b111111, flags[14], flags[16], flags[15],
-		ce, audio[15:5]);
+        1, prg_ain, chr_ain, prg_din, 8'b0, prg_dout,
+        neschrdout, neschr_oe, chr_allow, chrram_oe, wram_oe, wram_we, prgram_we,
+        prgram_oe, chr_aout[18:10], ramprgaout, irq, vram_ce, exp6, 
+        0, 7'b1111111, 6'b111111, flags[14], flags[16], flags[15],
+        ce, audio[15:5]);
 
     assign chr_aout[21:19] = 3'b100;
     assign chr_aout[9:0] = chr_ain[9:0];
-	 assign vram_a10 = chr_aout[10];
-	 wire [21:13] prg_aout_tmp = {3'b00_0, ramprgaout};
-	 wire [21:13] prg_ram = {9'b11_1100_000};
-	 wire prg_is_ram = prg_ain >= 'h6000 && prg_ain < 'h8000;
-	 assign prg_aout[21:13] = prg_is_ram ? prg_ram : prg_aout_tmp;
+    assign vram_a10 = chr_aout[10];
+    wire [21:13] prg_aout_tmp = {3'b00_0, ramprgaout};
+    wire [21:13] prg_ram = {9'b11_1100_000};
+    wire prg_is_ram = prg_ain >= 'h6000 && prg_ain < 'h8000;
+    assign prg_aout[21:13] = prg_is_ram ? prg_ram : prg_aout_tmp;
     assign prg_aout[12:0] = prg_ain[12:0];
-	 assign prg_allow = (prg_ain[15] && !prg_write) || prg_is_ram;
+    assign prg_allow = (prg_ain[15] && !prg_write) || prg_is_ram;
     assign audio[4:0] = 4'b0;
 
 endmodule
@@ -1844,6 +1847,8 @@ module MultiMapper(
     has_chr_dout = 0;
     chr_dout = mmc5_chr_dout;
         
+    audio = 0;      // avoid inferring latches
+
     case(flags[7:0])
     1:  {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow}      = {mmc1_prg_addr, mmc1_prg_allow, mmc1_chr_addr, mmc1_vram_a10, mmc1_vram_ce, mmc1_chr_allow};
     9:  {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow}      = {mmc2_prg_addr, mmc2_prg_allow, mmc2_chr_addr, mmc2_vram_a10, mmc2_vram_ce, mmc2_chr_allow};
@@ -1864,7 +1869,13 @@ module MultiMapper(
     15: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow}      = {map15_prg_addr, map15_prg_allow, map15_chr_addr, map15_vram_a10, map15_vram_ce, map15_chr_allow};
 
 
-    19: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow, prg_dout, irq, audio} = {map19_prg_addr, map19_prg_allow, map19_chr_addr, map19_vram_a10, map19_vram_ce, map19_chr_allow, map19_prg_dout, map19_irq, map19_audio};
+    // disable Namco 106 for now
+//     19: begin
+//         {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow} = {map19_prg_addr, map19_prg_allow, map19_chr_addr, map19_vram_a10, map19_vram_ce, map19_chr_allow};
+//         {irq, audio} = {map19_irq, map19_audio};
+//         prg_dout = map19_prg_dout;        // XXX: this is causing logic loop as our cpu DO is directly linked to DI
+//     end
+
     24, 26: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow, prg_dout, irq, audio} = {vrc6_prg_addr, vrc6_prg_allow, vrc6_chr_addr, vrc6_vram_a10, vrc6_vram_ce, vrc6_chr_allow, vrc6_prg_dout, vrc6_irq, vrc6_audio}; 
 
     34: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow}      = {map34_prg_addr, map34_prg_allow, map34_chr_addr, map34_vram_a10, map34_vram_ce, map34_chr_allow};
