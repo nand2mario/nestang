@@ -1,6 +1,7 @@
 `define RES_720P
 `define GW_IDE
 `define N20K
+`define NANO20K
 
 package configPackage;  
 
@@ -9,7 +10,5 @@ package configPackage;
     localparam SDRAM_ROW_WIDTH = 11;      // 2K rows
     localparam SDRAM_COL_WIDTH = 8;       // 256 cols
     localparam SDRAM_BANK_WIDTH = 2;      // 4 banks
-
-`include "../config.vh"
 
 endpackage

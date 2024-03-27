@@ -1,6 +1,7 @@
 `define RES_720P
 `define GW_IDE
 `define P25K
+`define PRIMER25K
 
 package configPackage;  
 
@@ -9,7 +10,5 @@ package configPackage;
     localparam SDRAM_ROW_WIDTH = 13;      // 8K rows
     localparam SDRAM_COL_WIDTH = 9;       // 512 cols
     localparam SDRAM_BANK_WIDTH = 2;      // 4 banks
-
-`include "../config.vh"
 
 endpackage
