@@ -56,15 +56,14 @@ module nestang_top (
     // USB
     inout usbdm,
     inout usbdp,
-`ifndef P25K
+`ifndef PRIMER
     inout usbdm2,
     inout usbdp2,
 `endif
 //    output clk_usb,
 
-
     // NES gamepad
-`ifdef N20K
+`ifdef NANO
     output NES_gamepad_data_clock,
     output NES_gampepad_data_latch,
     input NES_gampead_serial_data,
@@ -80,6 +79,8 @@ module nestang_top (
     output [2:0] tmds_d_p
 );
 
+wire clk, fclk, clk_sdram, clk_usb;
+assign O_sdram_clk = clk_sdram;
 
 reg sys_resetn = 0;
 reg [7:0] reset_cnt = 255;      // reset for 255 cycles before start everything
@@ -92,20 +93,20 @@ end
 `ifndef VERILATOR
 
 // clk is 27Mhz
-`ifdef P25K
-  wire clk, clk_sdram;
+`ifdef PRIMER
   gowin_pll_27 pll27 (.clkin(sys_clk), .clkout0(clk), .clkout1(clk_sdram));      // Primer25K: PLL to generate 27Mhz from 50Mhz
 `else
+  gowin_pll_nes pll_nes(.clkin(sys_clk), .clkout(fclk), .clkoutp(clk_sdram), .clkoutd3(clk));
+
   wire clk = sys_clk;       // Nano20K: native 27Mhz system clock
   wire clk_sdram = ~clk;  
 `endif
-  wire clk_usb;
 
   // USB clock 12Mhz
-  gowin_pll_usb pll_usb(
-      .clkin(clk),
-      .clkout(clk_usb)       // 12Mhz usb clock
-  );
+//   gowin_pll_usb pll_usb(
+//       .clkin(clk),
+//       .clkout(clk_usb)       // 12Mhz usb clock
+//   );
 
   // HDMI domain clocks
   wire clk_p;     // 720p pixel clock: 74.25 Mhz
@@ -118,78 +119,51 @@ end
     .lock(pll_lock)
   );
 
-  gowin_clkdiv clk_div (
-    .clkout(clk_p),
-    .hclkin(clk_p5),
-    .resetn(sys_resetn & pll_lock)
+  CLKDIV #(.DIV_MODE(5)) div5 (
+    .CLKOUT(clk_p),
+    .HCLKIN(clk_p5),
+    .RESETN(sys_resetn & pll_lock),
+    .CALIB(1'b0)
   );
 `else   // VERILATOR
   // dummy clocks for verilator
-  wire clk = sys_clk;
-  wire clk_sdram = sys_clk;
+  assign clk = sys_clk;
+  assign fclk = sys_clk;
+  assign clk_sdram = sys_clk;
 `endif
 
   wire [5:0] color;
   wire [15:0] sample;
   wire [8:0] scanline;
   wire [8:0] cycle;
-
-  // internal wiring and state
-  wire joypad_strobe;
+  wire [2:0] joypad_out;
+  wire joypad_strobe = joypad_out[0];
   wire [1:0] joypad_clock;
-  wire [21:0] memory_addr;      // 4MB address space
+  wire [4:0] joypad1_data, joypad2_data;
+
+  wire [21:0] memory_addr_cpu, memory_addr_ppu;
   wire memory_read_cpu, memory_read_ppu;
-  wire memory_write;
+  wire memory_write_cpu, memory_write_ppu;
   wire [7:0] memory_din_cpu, memory_din_ppu;
-  wire [7:0] memory_dout;
+  wire [7:0] memory_dout_cpu, memory_dout_ppu;
+
   reg [7:0] joypad_bits, joypad_bits2;
   reg [1:0] last_joypad_clock;
   wire [31:0] dbgadr;
   wire [1:0] dbgctr;
-  reg [3:0] nes_ce = 0;
-  wire [15:0] SW = 16'b1111_1111_1111_1111;   // every switch is on
 
-  wire [7:0] sd_dout;
-  wire sd_dout_valid;
+  wire [1:0] nes_ce;
 
-  // UART
-  wire [7:0] uart_data;
-  wire [7:0] uart_addr;
-  wire       uart_write;
-  wire       uart_error;
-`ifndef VERILATOR
-UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
-    clk, 1'b0, UART_RXD, uart_data, uart_addr, uart_write, uart_error
-);
-`endif
-
-  // ROM loader
-  reg  [7:0] loader_conf;     // bit 0 is reset
-
-`ifdef EMBED_GAME
+  wire loading;                 // from iosys
+  wire [7:0] loader_do;
+  wire loader_do_valid;
+  
+`ifdef VERILATOR
   // Static compiled-in game data 
-  wire [7:0] loader_input;
-  wire loader_clk;
-  wire loader_reset = ~sys_resetn;
   GameData game_data(
         .clk(clk), .reset(~sys_resetn), .start(1'b1), 
-        .odata(loader_input), .odata_clk(loader_clk));
-`else
-  // Dynamic game loading from UART
-  wire [7:0] loader_input = sd_dout_valid ? sd_dout : uart_data;
-  wire       loader_clk   = (uart_addr == 8'h37) && uart_write || sd_dout_valid;
-  wire loader_reset = ~sys_resetn | loader_conf[0];
+        .odata(loader_do), .odata_clk(loader_do_valid));
 `endif
-
-  reg  [7:0] loader_btn, loader_btn_2;
-  always @(posedge clk) begin
-    if (uart_addr == 8'h35 && uart_write)
-      loader_conf <= uart_data;
-    if (uart_addr == 8'h40 && uart_write)
-      loader_btn <= uart_data;
-    if (uart_addr == 8'h41 && uart_write)
-      loader_btn_2 <= uart_data;
-  end
 
   /*
   joy_rx[0:1] dualshock buttons: 0:(L D R U St R3 L3 Se)  1:(□ X O △ R1 L1 R2 L2)
@@ -218,24 +192,24 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
   wire [7:0]NES_gamepad_button_state2;
   wire NES_gamepad_data_available2;
 
-`ifdef N20K
+`ifdef NANO
   NESGamepad nes_gamepad(
-		.i_clk(clk),
+        .i_clk(clk),
         .i_rst(sys_resetn),
-		.o_data_clock(NES_gamepad_data_clock),
-		.o_data_latch(NES_gampepad_data_latch),
-		.i_serial_data(NES_gampead_serial_data),
-		.o_button_state(NES_gamepad_button_state),
+        .o_data_clock(NES_gamepad_data_clock),
+        .o_data_latch(NES_gampepad_data_latch),
+        .i_serial_data(NES_gampead_serial_data),
+        .o_button_state(NES_gamepad_button_state),
         .o_data_available(NES_gamepad_data_available)
                         );
 
   NESGamepad nes_gamepad2(
-		.i_clk(clk),
+        .i_clk(clk),
         .i_rst(sys_resetn),
-		.o_data_clock(NES_gamepad_data_clock2),
-		.o_data_latch(NES_gampepad_data_latch2),
-		.i_serial_data(NES_gampead_serial_data2),
-		.o_button_state(NES_gamepad_button_state2),
+        .o_data_clock(NES_gamepad_data_clock2),
+        .o_data_latch(NES_gampepad_data_latch2),
+        .i_serial_data(NES_gampead_serial_data2),
+        .o_button_state(NES_gamepad_button_state2),
         .o_data_available(NES_gamepad_data_available2)
                         );
 `endif
@@ -243,8 +217,8 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
   // Joypad handling
   always @(posedge clk) begin
     if (joypad_strobe) begin
-      joypad_bits <= loader_btn | nes_btn;
-      joypad_bits2 <= loader_btn_2 | nes_btn2;
+      joypad_bits <= nes_btn;
+      joypad_bits2 <= nes_btn2;
     end
     if (!joypad_clock[0] && last_joypad_clock[0])
       joypad_bits <= {1'b0, joypad_bits[7:1]};
@@ -253,117 +227,93 @@ UartDemux #(.FREQ(FREQ), .BAUDRATE(BAUDRATE)) uart_demux(
     last_joypad_clock <= joypad_clock;
   end
 
+  // Loader
   wire [21:0] loader_addr;
   wire [7:0] loader_write_data;
+  reg loading_r;
+  always @(posedge clk) loading_r <= loading;
+  wire loader_reset = loading & ~loading_r;
   wire loader_write;
-  wire [31:0] mapper_flags;
-  wire loader_done, loader_fail, loader_refresh;
+  wire [63:0] loader_flags;
+  reg  [63:0] mapper_flags;
+  wire loader_done, loader_fail;
+  wire loader_busy, loaded;
+  wire type_nes = 1'b1;  // (menu_index == 0) || (menu_index == {2'd0, 6'h1});
+  wire type_bios = 1'b0; // (menu_index == 2);
+  wire is_bios = 0;      //type_bios;
+  wire type_fds = 1'b0;  // (menu_index == {2'd1, 6'h1});
+  wire type_nsf = 1'b0;  // (menu_index == {2'd2, 6'h1});
 
   // Parses ROM data and store them for MemoryController to access
   GameLoader loader(
-        .clk(clk), .reset(loader_reset), .indata(loader_input), .indata_clk(loader_clk),
-        .mem_addr(loader_addr), .mem_data(loader_write_data), .mem_write(loader_write),
-        .mem_refresh(loader_refresh), .mapper_flags(mapper_flags), 
-        .done(loader_done), .error(loader_fail), .loader_state(), .loader_bytes_left());
+    .clk(clk), .reset(loader_reset), .downloading(loading), 
+    .filetype({4'b0000, type_nsf, type_fds, type_nes, type_bios}),
+    .is_bios(is_bios), .invert_mirroring(1'b0),
+    .indata(loader_do), .indata_clk(loader_do_valid),
 
-  // The NES machine
-  // nes_ce  / 0 \___/ 1 \___/ 2 \___/ 3 \___/ 4 \___/ 0 \___
-  // MemCtrl |mem_cmd|ACTIVE | RD/WR |       |  Dout |run_mem|
-  // NES                                     |run_nes|
-  //                 `-------- read delay = 4 -------'
-  wire reset_nes = !loader_done;
-  wire run_mem = (nes_ce == 0) && !reset_nes;       // memory runs at clock cycle #0
-  wire run_nes = (nes_ce == 4) && !reset_nes;       // nes runs at clock cycle #4
-
-  // For debug
-  reg [21:0] last_addr;
-  reg [7:0] last_din;
-  reg [7:0] last_dout;
-  reg last_write;   // if 0, then we did a read
-  reg last_idle;
-
-  reg tick_seen;
-
-  // NES is clocked at every 5th cycle.
-  always @(posedge clk) begin
-`ifdef VERILATOR
-    nes_ce <= nes_ce == 4'd4 ? 0 : nes_ce + 1;
-`else
-  `ifndef STEP_TRACING
-    nes_ce <= nes_ce == 4'd4 ? 0 : nes_ce + 1;    
-  `else
-    // single stepping every 0.01 second
-    // - when waiting for a tick, nes_ce loops between 7 and 13 and 
-    //   issues memory refresh on #7
-    // - when a tick is seen, nes_ce goes back to 0
-    nes_ce <= nes_ce == 4'd13 ? 4'd7 : nes_ce + 1;
-    if (tick) tick_seen <= 1'b1;
-    if (nes_ce == 4'd13 && tick_seen) begin
-        nes_ce <= 0;
-        tick_seen <= 1'b0;
-    end
-  `endif
-`endif
-    // log memory access result for debug
-    if (nes_ce == 4'd4 && !reset_nes) begin
-        if (memory_write || memory_read_cpu || memory_read_ppu) begin
-            last_addr <= memory_addr;
-            last_dout <= memory_read_cpu ? memory_din_cpu : memory_din_ppu;
-            last_din <= memory_dout;
-            last_write <= memory_write;
-            last_idle <= 1'b0;
-        end else begin
-            // memory is idle this cycle
-            last_idle <= 1'b1;
-        end
-    end else if (loader_write) begin
-        last_write <= 1'b1;
-        last_addr <= loader_addr;
-        last_din <= loader_write_data;
-    end
-  end
+    .mem_addr(loader_addr), .mem_data(loader_write_data), .mem_write(loader_write),
+    .bios_download(),
+    .mapper_flags(loader_flags), .busy(loader_busy), .done(loader_done),
+    .error(loader_fail), .rom_loaded(loaded)
+  );
 
   // VRC6
-  wire NES_int_audio;
-  wire NES_ext_audio;
-  assign NES_int_audio = 1;
-  assign NES_ext_audio = (mapper_flags[7:0] == 19) | (mapper_flags[7:0] == 24) | (mapper_flags[7:0] == 26);
+  wire int_audio;
+  wire ext_audio;
+  assign int_audio = 1;
+  assign ext_audio = (mapper_flags[7:0] == 19) | (mapper_flags[7:0] == 24) | (mapper_flags[7:0] == 26);
 
   // Main NES machine
   NES nes(
-          clk, reset_nes, run_nes,
-          mapper_flags,
-          sample, color,
-          joypad_strobe, joypad_clock, {joypad_bits2[0], joypad_bits[0]},
-          SW[4:0],
-          memory_addr,
-          memory_read_cpu, memory_din_cpu,
-          memory_read_ppu, memory_din_ppu,
-          memory_write, memory_dout,
-          cycle, scanline,
-          // VRC6
-          NES_int_audio,
-          NES_ext_audio
-        );
+    .clk(clk), .reset_nes(reset_nes), .cold_reset(1'b0),
+    .sys_type(system_type), .nes_div(nes_ce),
+    .mapper_flags(mapper_flags),
+    .sample(sample), .color(color),
+    .joypad_out(joypad_out), .joypad_clock(joypad_clock), 
+    .joypad1_data(joypad1_data), .joypad2_data(joypad2_data),
+
+    .fds_busy(), .fds_eject(), .diskside_req(), .diskside(),        // disk system
+	.audio_channels(5'b11111),  // enable all channels
+    
+	.cpumem_addr(memory_addr_cpu),
+	.cpumem_read(memory_read_cpu),
+	.cpumem_din(memory_din_cpu),
+	.cpumem_write(memory_write_cpu),
+	.cpumem_dout(memory_dout_cpu),
+	.ppumem_addr(memory_addr_ppu),
+	.ppumem_read(memory_read_ppu),
+	.ppumem_write(memory_write_ppu),
+	.ppumem_din(memory_din_ppu),
+	.ppumem_dout(memory_dout_ppu),
+
+    .cycle(cycle), .scanline(scanline),
+    .int_audio(int_audio),    // VRC6
+    .ext_audio(ext_audio)
+  );
 
 /*verilator tracing_off*/
-  // Combine RAM and ROM data to a single address space for NES to access
-  wire ram_busy, ram_fail;
-  wire [19:0] ram_total_written;
-  MemoryController memory(.clk(clk), .clk_sdram(clk_sdram), .resetn(sys_resetn),
-        .read_a(memory_read_cpu && run_mem), 
-        .read_b(memory_read_ppu && run_mem),
-        .write(memory_write && run_mem || loader_write),
-        .refresh((~memory_read_cpu && ~memory_read_ppu && ~memory_write && ~loader_write) && run_mem || nes_ce == 4'd7 || (loader_refresh && ~loader_write)),
-        .addr(loader_write ? loader_addr : memory_addr),
-        .din(loader_write ? loader_write_data : memory_dout),
-        .dout_a(memory_din_cpu), .dout_b(memory_din_ppu),
-        .busy(ram_busy), .fail(ram_fail), .total_written(ram_total_written),
 
-        .SDRAM_DQ(IO_sdram_dq), .SDRAM_A(O_sdram_addr), .SDRAM_BA(O_sdram_ba), .SDRAM_nCS(O_sdram_cs_n),
-        .SDRAM_nWE(O_sdram_wen_n), .SDRAM_nRAS(O_sdram_ras_n), .SDRAM_nCAS(O_sdram_cas_n), 
-        .SDRAM_CLK(O_sdram_clk), .SDRAM_CKE(O_sdram_cke), .SDRAM_DQM(O_sdram_dqm)
+sdram_nes sdram (
+    .clk(fclk), .resetn(sys_resetn), .busy(sdram_busy),
+
+    .SDRAM_DQ(IO_sdram_dq), .SDRAM_A(O_sdram_addr), .SDRAM_BA(O_sdram_ba), 
+    .SDRAM_nCS(O_sdram_cs_n), .SDRAM_nWE(O_sdram_wen_n), .SDRAM_nRAS(O_sdram_ras_n), 
+    .SDRAM_nCAS(O_sdram_cas_n), .SDRAM_CKE(O_sdram_cke), .SDRAM_DQM(O_sdram_dqm), 
+
+    // PPU
+    .addrA(memory_addr_ppu), .weA(memory_write_ppu), .dinA(memory_dout_ppu),
+    .oeA(memory_read_ppu), .doutA(memory_din_ppu),
+
+    // CPU
+    .addrB(loading ? loader_addr_mem : memory_addr_cpu), .weB(loader_write_mem || memory_write_cpu),
+    .dinB(loading ? loader_write_data_mem : memory_dout_cpu),
+    .oeB(~loading & memory_read_cpu), .doutB(memory_din_cpu),
+
+    // IOSys risc-v softcore
+    .rv_addr({rv_addr[20:2], rv_word}), .rv_din(rv_word ? rv_wdata[31:16] : rv_wdata[15:0]), 
+    .rv_ds(rv_ds), .rv_dout(rv_dout), .rv_req(rv_req), .rv_req_ack(rv_req_ack), .rv_we(rv_wstrb != 0)
 );
+
 /*verilator tracing_on*/
 
 `ifndef VERILATOR
@@ -382,19 +332,125 @@ nes2hdmi u_hdmi (
     .tmds_d_n(tmds_d_n), .tmds_d_p(tmds_d_p)
 );
 
-reg [7:0] sd_debug_reg;
-wire [7:0] sd_debug_out;
+// IOSys for menu, rom loading...
+localparam RV_IDLE_REQ0 = 3'd0;
+localparam RV_WAIT0_REQ1 = 3'd1;
+localparam RV_DATA0 = 3'd2;
+localparam RV_WAIT1 = 3'd3;
+localparam RV_DATA1 = 3'd4;
+reg [2:0]   rvst;
 
-SDLoader #(.FREQ(FREQ)) sd_loader (
-    .clk(clk), .resetn(sys_resetn),
-    .overlay(menu_overlay), .color(menu_color), .scanline(menu_scanline),
-    .cycle(menu_cycle),
-    .nes_btn(loader_btn | nes_btn | loader_btn_2 | nes_btn2), 
-    .dout(sd_dout), .dout_valid(sd_dout_valid),
+wire        rv_valid;
+reg         rv_ready;
+wire [22:0] rv_addr;
+wire [31:0] rv_wdata;
+wire [3:0]  rv_wstrb;
+reg  [15:0] rv_dout0;
+wire [31:0] rv_rdata = {rv_dout, rv_dout0};
+reg         rv_valid_r;
+reg         rv_word;           // which word
+reg         rv_req;
+wire        rv_req_ack;
+wire [15:0] rv_dout;
+reg [1:0]   rv_ds;
+reg         rv_new_req;
+
+always @(posedge mclk) begin            // RV
+    if (~resetn) begin
+        rvst <= RV_IDLE_REQ0;
+        rv_ready <= 0;
+    end else begin
+        reg write = rv_wstrb != 0;
+        reg rv_new_req_t = rv_valid & ~rv_valid_r;
+        if (rv_new_req_t) rv_new_req <= 1;
+
+        rv_ready <= 0;
+        rv_valid_r <= rv_valid;
+
+        case (rvst)
+        RV_IDLE_REQ0: if (rv_new_req || rv_new_req_t) begin
+            rv_new_req <= 0;
+            rv_req <= ~rv_req;
+            if (write && rv_wstrb[1:0] == 2'b0) begin
+                // shortcut for only writing the upper word
+                rv_word <= 1;
+                rv_ds <= rv_wstrb[3:2];
+                rvst <= RV_WAIT1;
+            end else begin
+                rv_word <= 0;
+                if (write)
+                    rv_ds <= rv_wstrb[1:0];
+                else
+                    rv_ds <= 2'b11;
+                rvst <= RV_WAIT0_REQ1;
+            end
+        end
+
+        RV_WAIT0_REQ1: begin
+            if (rv_req == rv_req_ack) begin
+                rv_req <= ~rv_req;      // request 1
+                rv_word <= 1;
+                if (write) begin
+                    rvst <= RV_WAIT1;
+                    if (rv_wstrb[3:2] == 2'b0) begin
+                        // shortcut for only writing the lower word
+                        rv_req <= rv_req;
+                        rv_ready <= 1;
+                        rvst <= RV_IDLE_REQ0;
+                    end
+                    rv_ds <= rv_wstrb[3:2];
+                end else begin
+                    rv_ds <= 2'b11;
+                    rvst <= RV_DATA0;
+                end
+            end
+        end
+
+        RV_DATA0: begin
+            rv_dout0 <= rv_dout;
+            rvst <= RV_WAIT1;
+        end
+            
+        RV_WAIT1: 
+            if (rv_req == rv_req_ack) begin
+                if (write)  begin
+                    rv_ready <= 1;
+                    rvst <= RV_IDLE_REQ0;
+                end else
+                    rvst <= RV_DATA1;
+            end
+
+        RV_DATA1: begin
+            rv_ready <= 1;
+            rvst <= RV_IDLE_REQ0;
+        end
+
+        default:;
+        endcase
+    end
+end
+
+iosys iosys (
+    .clk(mclk), .hclk(hclk), /*.clkref(DOTCLK),*/ .resetn(resetn),
+
+    .overlay(overlay), .overlay_x(overlay_x), .overlay_y(overlay_y),
+    .overlay_color(overlay_color),
+    .joy1(joy1_btns), .joy2(joy2_btns),
+
+    .rom_loading(loading), .rom_do(loader_do), .rom_do_valid(loader_do_valid), 
+    .ram_busy(sdram_busy),
+
+    .rv_valid(rv_valid), .rv_ready(rv_ready), .rv_addr(rv_addr),
+    .rv_wdata(rv_wdata), .rv_wstrb(rv_wstrb), .rv_rdata(rv_rdata),
+
+    .flash_spi_cs_n(flash_spi_cs_n), .flash_spi_miso(flash_spi_miso),
+    .flash_spi_mosi(flash_spi_mosi), .flash_spi_clk(flash_spi_clk),
+    .flash_spi_wp_n(flash_spi_wp_n), .flash_spi_hold_n(flash_spi_hold_n),
+
+    .uart_tx(UART_TXD), .uart_rx(UART_RXD),
+
     .sd_clk(sd_clk), .sd_cmd(sd_cmd), .sd_dat0(sd_dat0), .sd_dat1(sd_dat1),
-    .sd_dat2(sd_dat2), .sd_dat3(sd_dat3),
-
-    .debug_reg(sd_debug_reg), .debug_out(sd_debug_out)
+    .sd_dat2(sd_dat2), .sd_dat3(sd_dat3)
 );
 
 // Dualshock controller
@@ -403,10 +459,7 @@ dualshock_controller controller (
     .O_psCLK(joystick_clk), .O_psSEL(joystick_cs), .O_psTXD(joystick_mosi),
     .I_psRXD(joystick_miso),
     .O_RXD_1(joy_rx[0]), .O_RXD_2(joy_rx[1]), .O_RXD_3(),
-    .O_RXD_4(), .O_RXD_5(), .O_RXD_6(),
-    // config=1, mode=1(analog), mode_en=1
-    .I_CONF_SW(1'b0), .I_MODE_SW(1'b1), .I_MODE_EN(1'b0),
-    .I_VIB_SW(2'b00)     // no vibration
+    .O_RXD_4(), .O_RXD_5(), .O_RXD_6()
 );
 
 dualshock_controller controller2 (
@@ -414,9 +467,7 @@ dualshock_controller controller2 (
     .O_psCLK(joystick_clk2), .O_psSEL(joystick_cs2), .O_psTXD(joystick_mosi2),
     .I_psRXD(joystick_miso2),
     .O_RXD_1(joy_rx2[0]), .O_RXD_2(joy_rx2[1]), 
-    .O_RXD_3(), .O_RXD_4(), .O_RXD_5(), .O_RXD_6(),
-    .I_CONF_SW(1'b0), .I_MODE_SW(1'b1), .I_MODE_EN(1'b0),
-    .I_VIB_SW(2'b00)     // no vibration
+    .O_RXD_3(), .O_RXD_4(), .O_RXD_5(), .O_RXD_6()
 );
 
 Autofire af_square (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx[1][7] | usb_btn_y), .out(auto_square));            // B
@@ -439,7 +490,7 @@ usb_hid_host usb_controller (
     .dbg_hid_report()
 );
 
-`ifndef P25K
+`ifndef PRIMER
 usb_hid_host usb_controller2 (
     .usbclk(clk_usb), .usbrst_n(sys_resetn),
     .usb_dm(usbdm2), .usb_dp(usbdp2),	.typ(usb_type2), .report(usb_report2), 
@@ -452,219 +503,6 @@ usb_hid_host usb_controller2 (
     .dbg_hid_report()
 );
 `endif
-
-//
-// Print control
-//
-`include "print.v"
-defparam tx.uart_freq=BAUDRATE;
-defparam tx.clk_freq=FREQ;
-assign print_clk = clk;
-assign UART_TXD = uart_txp;
-
-reg[3:0] state_0;
-reg[3:0] state_1;
-reg[3:0] state_old = 3'd7;
-wire[3:0] state_new = state_1;
-
-reg [7:0] print_counters = 0, print_counters_p;
-
-reg tick;       // pulse every 0.01 second
-reg print_stat; // pulse every 2 seconds
-
-reg [15:0] recv_packets = 0;
-reg [15:0] indata_clk_count = 0;
-
-reg [3:0] sd_state0 = 0;
-
-reg [19:0] timer;           // 37 times per second
-always @(posedge clk) timer <= timer + 1;
-reg [7:0] debug_cnt = 0;
-
-// `define SD_REPORT
-// `define DS2_REPORT
-
-always@(posedge clk)begin
-    state_0<={2'b0, loader_done};
-    state_1<=state_0;
-
-    // status for SD file browsing
-`ifdef SD_REPORT
-    if (debug_cnt < 100) begin
-        case (timer)
-        20'h00000: begin
-          debug_cnt <= debug_cnt + 1;
-          `print("sd: file_total=", STR);
-          sd_debug_reg = 2;
-        end
-        20'h10000: begin 
-          `print(sd_debug_out, 1);
-          sd_debug_reg = 1;
-        end
-        20'h20000: `print(sd_debug_out, 1);
-        20'h30000: begin
-          `print(", file_start=", STR);
-          sd_debug_reg = 3;      
-        end
-        20'h40000: `print(sd_debug_out, 1);
-        20'h50000: begin
-          `print(", active=", STR);
-          sd_debug_reg = 4;      
-        end
-        20'h60000: `print(sd_debug_out, 1);
-        20'h70000: begin
-          `print(", total=", STR);
-          sd_debug_reg = 5;      
-        end
-        20'h80000: `print(sd_debug_out, 1);
-        20'h80000: begin
-          `print(", state=", STR);
-          sd_debug_reg = 6;      
-        end
-        20'ha0000: `print(sd_debug_out, 1);
-        20'hb0000: `print(", buttons=", STR);
-        20'hc0000: `print({nes_btn, nes_btn2}, 2);
-        20'hf0000: `print("\n", STR);
-        endcase
-    end
-`endif
-
-`ifdef DS2_REPORT
-//  joy_rx[0:1] dualshock buttons: 0:(L D R U St R3 L3 Se)  1:(□ X O △ R1 L1 R2 L2)
-
-    case (timer)
-    20'h00000: `print("controller1=", STR);
-    20'h10000: `print({joy_rx[0], joy_rx[1]}, 2);
-    20'h20000: `print(", controller2=", STR);
-    20'h30000: `print({joy_rx2[0], joy_rx2[1]}, 2);
-    20'h40000: `print(", usb_btn=", STR);
-    20'h50000: `print(usb_btn, 1);
-    20'hf0000: `print("\n", STR);
-    endcase
-
-`endif
-
-    if (uart_demux.write)
-        recv_packets <= recv_packets + 1;        
-
-    if(state_0==state_1) begin //stable value
-        state_old<=state_new;
-
-        if(state_old!=state_new)begin//state changes
-            if(state_new==3'd0) `print("NES_Tang starting...\n", STR);
-            if(state_new==3'd1) `print("Game loading done.\n", STR);
-        end
-    end
-
-`ifdef HID_REPORT
-    if (timer == 20'h00000)
-      `print("hid=", STR);
-    if (timer == 20'h10000)
-      `print(dbg_hid_report, 8);
-    if (timer == 20'h20000)
-      `print(", vidpid=", STR);
-    if (timer == 20'h30000)
-      `print({dbg_vid, dbg_pid}, 4);
-    if (timer == 20'h40000)
-      `print(", dev=", STR);
-    if (timer == 20'h50000)
-      `print({4'b0, dbg_dev}, 1);
-    if (timer == 20'h60000)
-      `print(", ds2[2]=", STR);
-    if (timer == 20'h70000)
-      `print({joy_rx[0], joy_rx[1], joy_rx2[0], joy_rx2[1]}, 4);
-    if (timer == 20'h80000)
-      `print(", usb_btn[2]=", STR);
-    if (timer == 20'h90000)
-      `print({usb_btn, usb_btn2}, 2);
-
-    if (timer == 20'hf0000)
-      `print("\n", STR);
-`endif
-
-`ifdef PRINT_SD
-    if (sd_state != sd_state0) begin
-        if (sd_state == SD_READ_META) begin
-            `print("Reading SDcard\n", STR);
-        end
-        if (sd_state == SD_START_SECTOR) begin
-            if (sd_rsector[15:0] == 16'b0) begin
-                `print(sd_romlen, 3);
-            end else 
-                `print(sd_rsector[15:0], 2);
-        end
-        sd_state0 <= sd_state;
-    end
-`endif
-
-`ifdef COLOR_TRACING
-    // print some color values
-    if (loader_done && tick)
-        print_counters <= 8'd1;
-    print_counters_p <= print_counters;
-    if (print_state == PRINT_IDLE_STATE && print_counters == print_counters_p && print_counters != 0) begin
-        case (print_counters)
-        8'd1: `print({7'b0, scanline}, 2);
-        8'd2: `print("  ", STR);
-        8'd3: `print({7'b0, cycle}, 2);
-        8'd4: `print("  ", STR);
-        8'd5: `print({2'b0, color}, 1);
-        8'd6: `print("  ", STR);
-        8'd255: `print("\n", STR);
-        endcase
-        print_counters <= print_counters == 8'd255 ? 0 : print_counters + 1;
-    end
-`endif
-
-    // print stats every 2 seconds normally, or every 0.01 second before game data is ready
-`ifdef STEP_TRACING
-    if (tick)
-        print_counters <= 8'd1;
-    print_counters_p <= print_counters;
-    if (print_state == PRINT_IDLE_STATE && print_counters == print_counters_p && print_counters != 0) begin
-        case (print_counters)
-        8'd1: `print("loader_done=", STR);
-        8'd2: `print({7'b0, loader_done}, 1);
-        8'd3: if (~last_idle) `print(", last memory operation: <write=", STR);
-        8'd6: if (~last_idle) `print({7'b0, last_write}, 1);
-        8'd7: if (~last_idle) `print(", addr=", STR);
-        8'd8: if (~last_idle) `print({2'b0, last_addr}, 3);
-        8'd9: if (~last_idle) `print(", din=", STR);
-        8'd10: if (~last_idle) `print(last_din, 1);
-        8'd11: if (~last_idle) `print(", dout=", STR);
-        8'd12: if (~last_idle) `print(last_dout, 1);
-        8'd13: if (~last_idle) `print(">", STR);
-        8'd14: `print(", total_written=", STR);
-        8'd15: `print({4'b0, ram_total_written}, 3);
-        8'd16: `print(", ram_busy=", STR);
-        8'd17: `print({7'b0, ram_busy}, 1);
-        8'd18: `print(", ram_fail=", STR);
-        8'd19: `print({7'b0, ram_fail}, 1);
-
-        8'd255: `print("\n\n", STR);
-        endcase
-        print_counters <= print_counters == 8'd255 ? 0 : print_counters + 1;
-    end
-`endif
-
-    if(~sys_resetn) begin
-       `print("System Reset\nWelcome to NESTang\n",STR);
-        debug_cnt <= 0;
-    end
-end
-
-reg [19:0] tick_counter;
-reg [9:0] stat_counter;
-always @(posedge clk) begin
-    tick <= tick_counter == 0;
-    tick_counter <= tick_counter == 0 ? FREQ/100 : tick_counter - 1;
-
-    print_stat <= 0;
-    if (tick) begin
-        print_stat <= stat_counter == 0;
-        stat_counter <= stat_counter == 0 ? 200 : stat_counter - 1;
-    end
-end
 
 `endif
 

@@ -1,7 +1,6 @@
 `define RES_720P
 `define GW_IDE
-`define P25K
-`define PRIMER25K
+`define PRIMER
 
 package configPackage;  
 

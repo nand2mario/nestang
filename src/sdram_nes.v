@@ -39,8 +39,8 @@ module sdram_nes #(
     output            SDRAM_CKE,
 
 	// cpu/chipset interface
-	input             init_n,     // init signal after FPGA config to initialize RAM
 	input             clk,        // sdram clock
+	input             resetn,
     input             clkref,
 
 	input [20:0]      addrA,      // 21 bit byte address, bank 0

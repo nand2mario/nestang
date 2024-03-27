@@ -128,10 +128,10 @@ module ClockGen(
 reg even_frame_toggle = 0;
 
 // Dendy is 291 to 310
-wire [8:0] vblank_start_sl;
-wire [8:0] vblank_end_sl;
+reg [8:0] vblank_start_sl;
+reg [8:0] vblank_end_sl;
 wire [8:0] last_sl;
-wire skip_en;
+reg skip_en;
 
 always_comb begin
     case (sys_type)
@@ -719,7 +719,7 @@ wire [3:0] bg_pixel = {bg_pixel_noblank[3:2], show_bg_on_pixel ? bg_pixel_noblan
 
 // This will set oam_ptr to 0 right before the scanline 240 and keep it there throughout vblank.
 // this is triggered on the first tick after vblank is ended
-wire before_line;
+reg before_line;
 
 always_comb begin
     before_line = 0;

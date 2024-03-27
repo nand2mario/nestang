@@ -1,7 +1,6 @@
 `define RES_720P
 `define GW_IDE
-`define N20K
-`define NANO20K
+`define NANO
 
 package configPackage;  
 
