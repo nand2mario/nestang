@@ -8,7 +8,7 @@ module Autofire #(
     input clk,
     input resetn,
     input btn,
-    input reg out
+    output reg out
 );
 
 localparam DELAY = FREQ / FIRERATE / 2;
