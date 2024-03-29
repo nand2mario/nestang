@@ -42,6 +42,7 @@ module sdram_nes #(
 	input             clk,        // sdram clock
 	input             resetn,
     input             clkref,
+    output reg busy,
 
 	input [20:0]      addrA,      // 21 bit byte address, bank 0
 	input             weA,        // ppu requests write
@@ -69,13 +70,13 @@ localparam DQM_SIZE = SDRAM_DATA_WIDTH / 8;
 
 // Tri-state DQ input/output
 reg dq_oen;        // 0 means output
-reg [15:0] dq_out;
-assign SDRAM_DQ = dq_oen ? {16{1'bz}} : dq_out;
-wire [15:0] dq_in = SDRAM_DQ;     // DQ input
+reg [SDRAM_DATA_WIDTH-1:0] dq_out;
+assign SDRAM_DQ = dq_oen ? {SDRAM_DATA_WIDTH{1'bz}} : dq_out;
+wire [SDRAM_DATA_WIDTH-1:0] dq_in = SDRAM_DQ;     // DQ input
 reg [3:0] cmd;
 reg [12:0] a;
 assign {SDRAM_nCS, SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} = cmd;
-assign SDRAM_A = a;
+assign SDRAM_A = SDRAM_ROW_WIDTH'(a);
 
 assign SDRAM_CKE = 1'b1;
 
@@ -254,7 +255,7 @@ always @(posedge clk) begin
                 { we_latch[1], oe_latch[1] } <= { next_we[1], next_oe[1] };
                 addr_latch[1] <= next_addr[1];
                 a <= next_addr[1][20:10];
-                SDRAM_BA <= 2'b01;
+                SDRAM_BA <= 2'd1;
                 din_latch[1] <= next_din[1];
                 ds[1] <= next_ds[1];
                 if (next_port[1] != PORT_NONE) begin 
@@ -262,7 +263,7 @@ always @(posedge clk) begin
                 end else if (!we_latch[0] && !oe_latch[0] && !we_latch[1] && !oe_latch[1] && need_refresh) begin
                     refresh_cnt <= 0;
                     cmd <= CMD_AutoRefresh;
-                    total_refresh <= total_refresh + 1;
+//                    total_refresh <= total_refresh + 1;
                 end
             end
 
@@ -270,7 +271,7 @@ always @(posedge clk) begin
             // CPU, PPU
             if (cycle[1] && (oe_latch[0] || we_latch[0])) begin
                 cmd <= we_latch[0]?CMD_Write:CMD_Read;
-                SDRAM_BA <= addr_latch[0][24:23];              
+                SDRAM_BA <= 2'd0;              
 `ifdef NANO  
                 a <= addr_latch[0][9:2];
 `else
@@ -308,22 +309,39 @@ always @(posedge clk) begin
 `endif
                 end else
                     SDRAM_DQM <= 0;
-			    SDRAM_BA <= 2'b10;
+			    SDRAM_BA <= 2'd1;
                 rv_req_ack <= rv_req;       // ack request
             end
 
             // read
             // CPU, PPU
             if (cycle[4] && oe_latch[0]) begin
+                reg [7:0] dq_byte;
+`ifdef NANO
+                case (addr_latch[0][1:0])
+                2'd0: dq_byte = dq_in[7:0];
+                2'd1: dq_byte = dq_in[15:8];
+                2'd2: dq_byte = dq_in[23:16];
+                2'd3: dq_byte = dq_in[31:24];
+                endcase
+`else
+                dq_byte = addr_latch[0][0] ? dq_in[15:8] : dq_in[7:0];
+`endif
+
                 case (port[0])
-                PORT_A: doutA <= addr_latch[0][0] ? dq_in[15:8] : dq_in[7:0];
-                PORT_B: doutA <= addr_latch[0][0] ? dq_in[15:8] : dq_in[7:0];
+                PORT_A: doutA <= dq_byte;
+                PORT_B: doutA <= dq_byte;
                 default: ;
                 endcase
             end
 
             // RV
-            if (cycle[1] && oe_latch[1]) rv_dout <= dq_in;
+            if (cycle[1] && oe_latch[1]) 
+`ifdef NANO
+                rv_dout <= addr_latch[1][1] ? dq_in[31:16] : dq_in[15:0];
+`else
+                rv_dout <= dq_in;
+`endif
         end
     end
 end

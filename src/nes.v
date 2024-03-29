@@ -78,7 +78,7 @@ module NES(
 	output  [2:0] nes_div,
 	input  [63:0] mapper_flags,
 	output [15:0] sample,         // sample generated from APU
-	output  [5:0] color,          // pixel generated from PPU
+	output  [5:0] color /* verilator public */,          // pixel generated from PPU
 	output  [2:0] joypad_out,     // Set to 1 to strobe joypads. Then set to zero to keep the value (bit0)
 	output  [1:0] joypad_clock,   // Set to 1 for each joypad to clock it.
 	input   [4:0] joypad1_data,   // Port1
@@ -108,8 +108,8 @@ module NES(
 	output        bram_write,     // is a write operation
 	output        bram_override,
 
-	output  [8:0] cycle,
-	output  [8:0] scanline,
+	output  [8:0] cycle/* verilator public */,
+	output  [8:0] scanline/* verilator public */,
 	input         int_audio,
 	input         ext_audio,
 	output        apu_ce,
@@ -269,21 +269,26 @@ wire apu_irq;
 // of M2, which corresponds with CPU ce, so no latches needed.
 
 T65 cpu(
-	.mode   (0),
+	.Mode   (0),
 	.BCD_en (0),
 
-	.res_n  (~reset),
-	.clk    (clk),
-	.enable (cpu_ce),
-	.rdy    (~pause_cpu),
+	.Res_n  (~reset),
+	.Clk    (clk),
+	.Enable (cpu_ce),
+	.Rdy    (~pause_cpu),
+	.Abort_n(1'b1),
 
 	.IRQ_n  (~(apu_irq | mapper_irq)),
 	.NMI_n  (~nmi),
+	.SO_n   (1'b1),
 	.R_W_n  (cpu_rnw),
+	.Sync(), .EF(), .MF(), .XF(), .ML_n(), .VP_n(), .VDA(), .VPA(),
 
 	.A      (cpu_addr),
 	.DI     (cpu_rnw ? from_data_bus : cpu_dout),
-	.DO     (cpu_dout)
+	.DO     (cpu_dout),
+
+	.Regs(), .DEBUG(), .NMI_ack()
 );
 
 wire [15:0] dma_aout;
@@ -347,7 +352,8 @@ APU apu(
 	.DmaAddr        (apu_dma_addr),
 	.DmaData        (from_data_bus),
 	.odd_or_even    (odd_or_even),
-	.IRQ            (apu_irq)
+	.IRQ            (apu_irq),
+	.allow_us(1'b0)
 );
 
 assign sample = sample_a;

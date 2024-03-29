@@ -211,7 +211,7 @@ module SquareChan (
 
         if (aclk1_d) begin
             if (TimerCtr == 0) begin
-                TimerCtr <= Period;
+                TimerCtr <= {1'b0, Period};
                 SeqPos <= SeqPos - 1'd1;
             end else begin
                 TimerCtr <= TimerCtr - 1'd1;
@@ -537,10 +537,10 @@ module DmcChan (
     assign dma_req = ~have_buffer & enable & enable_3;
     logic dmc_clock;
 
-    assign dma_address[15] = 1;
 
     logic reload_next;
     always_ff @(posedge clk) begin
+        dma_address[15] <= 1;
         if (write) begin
             case (ain)
                 0: begin  // $4010
@@ -711,7 +711,7 @@ module FrameCtr (
     logic DisableFrameInterrupt;
     logic FrameSeqMode;
 
-    assign frame_int_disabled = DisableFrameInterrupt | (write && addr == 5'h17 && din[6]);
+    assign frame_int_disabled = DisableFrameInterrupt; // | (write && addr == 5'h17 && din[6]);
     assign irq = FrameInterrupt && ~DisableFrameInterrupt;
     assign irq_flag = frame_interrupt_buffer;
 
@@ -920,6 +920,7 @@ module APU (
         .aclk1_d      (aclk1_delayed),
         .reset        (reset),
         .cold_reset   (cold_reset),
+        .allow_us     (allow_us),       // nand2mario
         .sq2          (1'b1),
         .Addr         (ADDR[1:0]),
         .DIN          (DIN),
@@ -1146,7 +1147,7 @@ assign mix_lut = '{
 
 wire [4:0] squares = square1 + square2;
 wire [15:0] ch1 = pulse_lut[squares];
-wire [8:0] mix = tri_lut[triangle] + noise_lut[noise] + dmc_lut[dmc];
+wire [8:0] mix = 9'(tri_lut[triangle]) + 9'(noise_lut[noise]) + 9'(dmc_lut[dmc]);
 wire [15:0] ch2 = mix_lut[mix];
 
 assign sample = ch1 + ch2;

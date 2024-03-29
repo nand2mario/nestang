@@ -595,7 +595,7 @@ module PPU(
     input         clk,
     input         ce,
     input         reset,            // input clock  21.48 MHz / 4. 1 clock cycle = 1 pixel
-    inout   [1:0] sys_type,         // System type. 0 = NTSC 1 = PAL 2 = Dendy 3 = Vs.
+    input   [1:0] sys_type,         // System type. 0 = NTSC 1 = PAL 2 = Dendy 3 = Vs.
     output  [5:0] color,            // output color value, one pixel outputted every clock
     input   [7:0] din,              // input data from bus
     output  [7:0] dout,             // output data to CPU
@@ -913,22 +913,22 @@ reg refresh_high, refresh_low;
 
 always @(posedge clk) begin
     if (refresh_high) begin
-        decay_high = 3221590; // aprox 600ms decay rate
+        decay_high <= 3221590; // aprox 600ms decay rate
         refresh_high <= 0;
     end
 
     if (refresh_low) begin
-        decay_low = 3221590;
+        decay_low <= 3221590;
         refresh_low <= 0;
     end
 
     if (ce) begin
-        if (decay_high)
+        if (decay_high != 0)
             decay_high <= decay_high - 1'b1;
         else
             latched_dout[7:5] <= 3'b000;
 
-        if (decay_low)
+        if (decay_low != 0)
             decay_low <= decay_low - 1'b1;
         else
             latched_dout[4:0] <= 5'b00000;

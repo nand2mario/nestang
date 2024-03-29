@@ -5,11 +5,13 @@
     <Version>5</Version>
     <Device name="GW2AR-18C" pn="GW2AR-LV18QN88C8/I7">gw2ar18c-000</Device>
     <FileList>
+        <File path="src/EEPROM_24C0x.sv" type="file.verilog" enable="1"/>
         <File path="src/NESGamepad.v" type="file.verilog" enable="1"/>
         <File path="src/apu.v" type="file.verilog" enable="1"/>
         <File path="src/autofire.v" type="file.verilog" enable="1"/>
+        <File path="src/cart.sv" type="file.verilog" enable="1"/>
         <File path="src/compat.v" type="file.verilog" enable="1"/>
-        <File path="src/cpu.v" type="file.verilog" enable="1"/>
+        <File path="src/dpram.v" type="file.verilog" enable="1"/>
         <File path="src/dualshock_controller.v" type="file.verilog" enable="1"/>
         <File path="src/game_loader.v" type="file.verilog" enable="1"/>
         <File path="src/hdmi2/audio_clock_regeneration_packet.sv" type="file.verilog" enable="1"/>
@@ -23,6 +25,26 @@
         <File path="src/hdmi2/source_product_description_info_frame.sv" type="file.verilog" enable="1"/>
         <File path="src/hdmi2/tmds_channel.sv" type="file.verilog" enable="1"/>
         <File path="src/hw_uart.v" type="file.verilog" enable="1"/>
+        <File path="src/iosys/gowin_dpb_menu.v" type="file.verilog" enable="1"/>
+        <File path="src/iosys/iosys.v" type="file.verilog" enable="1"/>
+        <File path="src/iosys/picorv32.v" type="file.verilog" enable="1"/>
+        <File path="src/iosys/simplespimaster.v" type="file.verilog" enable="1"/>
+        <File path="src/iosys/simpleuart.v" type="file.verilog" enable="1"/>
+        <File path="src/iosys/spi_master.v" type="file.verilog" enable="1"/>
+        <File path="src/iosys/spiflash.v" type="file.verilog" enable="1"/>
+        <File path="src/iosys/textdisp.v" type="file.verilog" enable="1"/>
+        <File path="src/mappers/FDS.sv" type="file.verilog" enable="1"/>
+        <File path="src/mappers/JYCompany.sv" type="file.verilog" enable="1"/>
+        <File path="src/mappers/MMC1.sv" type="file.verilog" enable="1"/>
+        <File path="src/mappers/MMC2.sv" type="file.verilog" enable="1"/>
+        <File path="src/mappers/MMC3.sv" type="file.verilog" enable="1"/>
+        <File path="src/mappers/MMC5.sv" type="file.verilog" enable="1"/>
+        <File path="src/mappers/Namco.sv" type="file.verilog" enable="1"/>
+        <File path="src/mappers/Sachen.sv" type="file.verilog" enable="1"/>
+        <File path="src/mappers/Sunsoft.sv" type="file.verilog" enable="1"/>
+        <File path="src/mappers/generic.sv" type="file.verilog" enable="1"/>
+        <File path="src/mappers/iir_filter.v" type="file.verilog" enable="1"/>
+        <File path="src/mappers/misc.sv" type="file.verilog" enable="1"/>
         <File path="src/nes.v" type="file.verilog" enable="1"/>
         <File path="src/nes2hdmi.sv" type="file.verilog" enable="1"/>
         <File path="src/nestang_top.sv" type="file.verilog" enable="1"/>

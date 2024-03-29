@@ -5,10 +5,10 @@ module GameData (input clk, input reset, input start,
     );
 
     // 24KB+ buffer for ROM
-    reg [7:0] INES[131088:0];
-    reg [21:0] INES_SIZE = 131088;
-    initial $readmemh("game.nes.hex", INES);
+    localparam INES_SIZE = 28688; // 28KB + 16
+    initial $readmemh("roms/nes15.hex", INES);
 
+    reg [7:0] INES[INES_SIZE:0];
     reg [1:0] state = 0;
     reg [21:0] addr = 0;
     reg out_clk = 0;
