@@ -31,13 +31,13 @@ typedef struct Pixel {  // for SDL texture
 
 Pixel screenbuffer[H_RES*V_RES];
 
-// 10 million clock cycles
-long long max_sim_time = 10000000LL;
-vluint64_t sim_time;
+bool trace = false;
+long long max_sim_time = 10000000LL;		// 10 million clock cycles
+long long start_trace_time = 0;
 
 void usage() {
 	printf("Usage: sim [-t] [-c T]\n");
-	printf("  -t     output trace file waveform.vcd\n");
+	printf("  -t     output trace file waveform.fst\n");
 	printf("  -s T0  start tracing from time T0\n");
 	printf("  -c T   limit simulate lenght to T time steps. T=0 means infinite.\n");
 }
@@ -51,6 +51,7 @@ long long parse_num(string s);
 void trace_on();
 void trace_off();
 
+vluint64_t sim_time;
 int main(int argc, char** argv, char** env) {
 	Verilated::commandArgs(argc, argv);
 	Vnestang_top_NES *nes = top->nestang_top->nes;
@@ -112,6 +113,7 @@ int main(int argc, char** argv, char** env) {
 	if (trace)
 		trace_on();
 
+	bool done = false;
 	while (!done) {
 		while (max_sim_time == 0 || sim_time < max_sim_time) {
 			// top->sys_resetn = 1;
@@ -156,6 +158,7 @@ int main(int argc, char** argv, char** env) {
 				frame_updated = false;
 
 			sim_time++;
+			if (sim_time % 1000000 == 0) printf("Time: %ld million\n", sim_time / 1000000);
 		}	
 		printf("Simulation done, time=%lu\n", sim_time);
 		printf("Choose: (S)imulate, (E)nd, (T)race On, or (O)ff\n");

@@ -21,23 +21,21 @@ module nestang_top (
     // LEDs
     output [1:0] led,
 
-    // SDRAM
-    // For Primer 25K: https://github.com/MiSTer-devel/Hardware_MiSTer/blob/master/releases/sdram_xsds_3.0.pdf
-    // For Nano 20K: 8MB 32-bit SDRAM
+    // SDRAM - Tang SDRAM pmod 1.2 for primer 25k, on-chip 32-bit 8MB SDRAM for nano 20k
     output O_sdram_clk,
     output O_sdram_cke,
     output O_sdram_cs_n,            // chip select
     output O_sdram_cas_n,           // columns address select
     output O_sdram_ras_n,           // row address select
     output O_sdram_wen_n,           // write enable
-    inout [SDRAM_DATA_WIDTH-1:0]    IO_sdram_dq,      // bidirectional data bus
+    inout [SDRAM_DATA_WIDTH-1:0] IO_sdram_dq,      // bidirectional data bus
     output [SDRAM_ROW_WIDTH-1:0] O_sdram_addr,     // multiplexed address bus
     output [1:0] O_sdram_ba,        // two banks
-    output [SDRAM_DATA_WIDTH/8-1:0]   O_sdram_dqm,    
+    output [SDRAM_DATA_WIDTH/8-1:0] O_sdram_dqm,    
 
     // MicroSD
     output sd_clk,
-    inout sd_cmd,      // MOSI
+    inout  sd_cmd,      // MOSI
     input  sd_dat0,     // MISO
     output sd_dat1,     // 1
     output sd_dat2,     // 1
@@ -46,11 +44,11 @@ module nestang_top (
     // Dualshock game controller
     output joystick_clk,
     output joystick_mosi,
-    input joystick_miso,
+    input  joystick_miso,
     output reg joystick_cs,
     output joystick_clk2,
     output joystick_mosi2,
-    input joystick_miso2,
+    input  joystick_miso2,
     output reg joystick_cs2,
 
     // USB
@@ -60,7 +58,6 @@ module nestang_top (
     inout usbdm2,
     inout usbdp2,
 `endif
-//    output clk_usb,
 
     // NES gamepad
 `ifdef NANO
@@ -79,64 +76,7 @@ module nestang_top (
     output [2:0] tmds_d_p
 );
 
-wire clk, fclk, clk_sdram, clk_usb;
-assign O_sdram_clk = clk_sdram;
-
-reg sys_resetn = 0;
-reg [7:0] reset_cnt = 255;      // reset for 255 cycles before start everything
-always @(posedge clk) begin
-    reset_cnt <= reset_cnt == 0 ? 0 : reset_cnt - 1;
-    if (reset_cnt == 0)
-        sys_resetn <= ~s1 & ~reset2 & ~(nes_btn[5] && nes_btn[2]);    // 8BitDo Home button = Select + Down
-end
-
-`ifndef VERILATOR
-
-localparam FREQ = 21_477_000;
-
-// clk is 27Mhz
-`ifdef PRIMER
-gowin_pll_27 pll27 (.clkin(sys_clk), .clkout0(clk), .clkout1(clk_sdram));      // Primer25K: PLL to generate 27Mhz from 50Mhz
-`else
-gowin_pll_nes pll_nes(.clkin(sys_clk), .clkout(fclk), .clkoutp(clk_sdram), .clkoutd3(clk));
-
-wire clk = sys_clk;       // Nano20K: native 27Mhz system clock
-wire clk_sdram = ~clk;  
-`endif
-
-// USB clock 12Mhz
-//   gowin_pll_usb pll_usb(
-//       .clkin(clk),
-//       .clkout(clk_usb)       // 12Mhz usb clock
-//   );
-
-// HDMI domain clocks
-wire clk_p;     // 720p pixel clock: 74.25 Mhz
-wire clk_p5;    // 5x pixel clock: 371.25 Mhz
-wire pll_lock;
-
-gowin_pll_hdmi pll_hdmi (
-    .clkin(clk),
-    .clkout(clk_p5),
-    .lock(pll_lock)
-);
-
-CLKDIV #(.DIV_MODE(5)) div5 (
-    .CLKOUT(clk_p),
-    .HCLKIN(clk_p5),
-    .RESETN(sys_resetn & pll_lock),
-    .CALIB(1'b0)
-);
-`else   // VERILATOR
-// dummy clocks for verilator
-assign clk = sys_clk;
-assign fclk = sys_clk;
-assign clk_sdram = sys_clk;
-`endif
-
-wire [31:0] status;
-
-// Settings
+// Core settings
 wire arm_reset = 0;
 wire [1:0] system_type = 2'b0;
 wire pal_video = 0;
@@ -174,10 +114,11 @@ wire [1:0] dbgctr;
 
 wire [1:0] nes_ce;
 
-wire loading;                 // from iosys
+wire loading;                 // from iosys or game_data
 wire [7:0] loader_do;
 wire loader_do_valid;
 
+// iosys softcore
 wire        rv_valid;
 reg         rv_ready;
 wire [22:0] rv_addr;
@@ -193,74 +134,19 @@ wire [15:0] rv_dout;
 reg [1:0]   rv_ds;
 reg         rv_new_req;
 
-`ifdef VERILATOR
-// Static compiled-in game data 
-GameData game_data(
-    .clk(clk), .reset(~sys_resetn), .start(1'b1), 
-    .odata(loader_do), .odata_clk(loader_do_valid));
-`endif
-
-/*
-joy_rx[0:1] dualshock buttons: 0:(L D R U St R3 L3 Se)  1:(□ X O △ R1 L1 R2 L2)
-nes_btn[0:1] NES buttons:      (R L D U START SELECT B A)
-O is A, X is B
-*/
+// Controller
 wire [7:0] joy_rx[0:1], joy_rx2[0:1];     // 6 RX bytes for all button/axis state
 wire [7:0] usb_btn, usb_btn2;
 wire usb_btn_x, usb_btn_y, usb_btn_x2, usb_btn_y2;
 wire usb_conerr, usb_conerr2;
 wire auto_square, auto_triangle, auto_square2, auto_triangle2;
-// wire [7:0] nes_btn = usb_btn, nes_btn2 = 0;
-
-wire [7:0] nes_btn  = {~joy_rx[0][5], ~joy_rx[0][7], ~joy_rx[0][6], ~joy_rx[0][4], 
-                        ~joy_rx[0][3], ~joy_rx[0][0], ~joy_rx[1][6] | auto_square, ~joy_rx[1][5] | auto_triangle}
-                        | usb_btn
-                        | NES_gamepad_button_state;
-wire [7:0] nes_btn2 = {~joy_rx2[0][5], ~joy_rx2[0][7], ~joy_rx2[0][6], ~joy_rx2[0][4], 
-                        ~joy_rx2[0][3], ~joy_rx2[0][0], ~joy_rx2[1][6] | auto_square2, ~joy_rx2[1][5] | auto_triangle2}
-                        | usb_btn2
-                        | NES_gamepad_button_state2;
+wire [7:0] nes_btn, nes_btn2;
 
 // NES gamepad
 wire [7:0]NES_gamepad_button_state;
 wire NES_gamepad_data_available;
 wire [7:0]NES_gamepad_button_state2;
 wire NES_gamepad_data_available2;
-
-`ifdef NANO
-NESGamepad nes_gamepad(
-        .i_clk(clk),
-        .i_rst(sys_resetn),
-        .o_data_clock(NES_gamepad_data_clock),
-        .o_data_latch(NES_gampepad_data_latch),
-        .i_serial_data(NES_gampead_serial_data),
-        .o_button_state(NES_gamepad_button_state),
-        .o_data_available(NES_gamepad_data_available)
-                        );
-
-NESGamepad nes_gamepad2(
-        .i_clk(clk),
-        .i_rst(sys_resetn),
-        .o_data_clock(NES_gamepad_data_clock2),
-        .o_data_latch(NES_gampepad_data_latch2),
-        .i_serial_data(NES_gampead_serial_data2),
-        .o_button_state(NES_gamepad_button_state2),
-        .o_data_available(NES_gamepad_data_available2)
-                        );
-`endif
-
-  // Joypad handling
-always @(posedge clk) begin
-    if (joypad_strobe) begin
-        joypad_bits <= nes_btn;
-        joypad_bits2 <= nes_btn2;
-    end
-    if (!joypad_clock[0] && last_joypad_clock[0])
-        joypad_bits <= {1'b0, joypad_bits[7:1]};
-    if (!joypad_clock[1] && last_joypad_clock[1])
-        joypad_bits2 <= {1'b0, joypad_bits2[7:1]};
-    last_joypad_clock <= joypad_clock;
-end
 
 // Loader
 wire [21:0] loader_addr;
@@ -279,32 +165,73 @@ wire is_bios = 0;      //type_bios;
 wire type_fds = 1'b0;  // (menu_index == {2'd1, 6'h1});
 wire type_nsf = 1'b0;  // (menu_index == {2'd2, 6'h1});
 
-  // Parses ROM data and store them for MemoryController to access
-GameLoader loader(
-    .clk(clk), .reset(loader_reset), .downloading(loading), 
-    .filetype({4'b0000, type_nsf, type_fds, type_nes, type_bios}),
-    .is_bios(is_bios), .invert_mirroring(1'b0),
-    .indata(loader_do), .indata_clk(loader_do_valid),
+wire int_audio;         // for VCR6
+wire ext_audio;
 
-    .mem_addr(loader_addr), .mem_data(loader_write_data), .mem_write(loader_write),
-    .bios_download(),
-    .mapper_flags(loader_flags), .busy(loader_busy), .done(loader_done),
-    .error(loader_fail), .rom_loaded(loaded)
+///////////////////////////
+// Clocks
+///////////////////////////
+
+wire clk, fclk, clk_sdram, clk_usb;
+assign O_sdram_clk = clk_sdram;
+
+reg sys_resetn = 0;
+reg [7:0] reset_cnt = 255;      // reset for 255 cycles before start everything
+always @(posedge clk) begin
+    reset_cnt <= reset_cnt == 0 ? 0 : reset_cnt - 1;
+    if (reset_cnt == 0)
+        sys_resetn <= ~s1 & ~reset2 & ~(nes_btn[5] && nes_btn[2]);    // 8BitDo Home button = Select + Down
+end
+
+`ifndef VERILATOR
+
+localparam FREQ = 21_477_000;
+
+// clk is 27Mhz
+`ifdef PRIMER
+gowin_pll_27 pll27 (.clkin(sys_clk), .clkout0(clk), .clkout1(clk_sdram));      // Primer25K: PLL to generate 27Mhz from 50Mhz
+`else
+gowin_pll_nes pll_nes(.clkin(sys_clk), .clkout(fclk), .clkoutp(clk_sdram), .clkoutd3(clk));
+
+wire clk = sys_clk;       // Nano20K: native 27Mhz system clock
+wire clk_sdram = ~clk;  
+`endif  // PRIMER
+
+// USB clock 12Mhz
+//   gowin_pll_usb pll_usb(
+//       .clkin(clk),
+//       .clkout(clk_usb)       // 12Mhz usb clock
+//   );
+
+// HDMI domain clocks
+wire clk_p;     // 720p pixel clock: 74.25 Mhz
+wire clk_p5;    // 5x pixel clock: 371.25 Mhz
+wire pll_lock;
+
+gowin_pll_hdmi pll_hdmi (
+    .clkin(clk),
+    .clkout(clk_p5),
+    .lock(pll_lock)
 );
 
-// VRC6
-wire int_audio;
-wire ext_audio;
-assign int_audio = 1;
-assign ext_audio = (mapper_flags[7:0] == 19) | (mapper_flags[7:0] == 24) | (mapper_flags[7:0] == 26);
+CLKDIV #(.DIV_MODE(5)) div5 (
+    .CLKOUT(clk_p),
+    .HCLKIN(clk_p5),
+    .RESETN(sys_resetn & pll_lock),
+    .CALIB(1'b0)
+);
 
-reg reset_nes = 1;
-always @(posedge clk) begin
-    if (~loading && loading_r)
-        reset_nes <= 0;
-    else if (loading && ~loading_r)
-        reset_nes <= 1;
-end
+`else   // verilator
+
+// dummy clocks for verilator
+assign clk = sys_clk;
+assign fclk = sys_clk;
+assign clk_sdram = sys_clk;
+
+`endif  // verilator
+
+wire [31:0] status;
+
 
 // Main NES machine
 NES nes(
@@ -342,25 +269,27 @@ NES nes(
 reg loader_write_mem;
 reg [7:0] loader_write_data_mem;
 reg [21:0] loader_addr_mem;
-
-reg loader_write_triggered;
+reg loader_write_r;
 
 always @(posedge clk) begin
-	if(loader_write) begin
-		loader_write_triggered <= 1'b1;
+    loader_write_mem <= 0;
+    loader_write_r <= loader_write;
+
+    loader_write_mem <= loader_write || loader_write_r;   // width 2
+	if (loader_write) begin
 		loader_addr_mem <= loader_addr;
 		loader_write_data_mem <= loader_write_data;
 	end
 
 	// signal write in the PPU memory phase
-	if(nes_ce == 3) begin
-		loader_write_mem <= loader_write_triggered;
-		if(loader_write_triggered)
-			loader_write_triggered <= 1'b0;
-	end
+	// if(nes_ce == 3) begin
+	// 	loader_write_mem <= loader_write_triggered;
+	// 	if(loader_write_triggered)
+	// 		loader_write_triggered <= 1'b0;
+	// end
 end
 
-/*verilator tracing_off*/
+// From sdram_nes.v or sdram_sim.v
 sdram_nes sdram (
     .clk(fclk), .clkref(clk), .resetn(sys_resetn), .busy(sdram_busy),
 
@@ -369,11 +298,11 @@ sdram_nes sdram (
     .SDRAM_nCAS(O_sdram_cas_n), .SDRAM_CKE(O_sdram_cke), .SDRAM_DQM(O_sdram_dqm), 
 
     // PPU
-    .addrA(memory_addr_ppu[20:0]), .weA(memory_write_ppu), .dinA(memory_dout_ppu),
+    .addrA(memory_addr_ppu), .weA(memory_write_ppu), .dinA(memory_dout_ppu),
     .oeA(memory_read_ppu), .doutA(memory_din_ppu),
 
     // CPU
-    .addrB(loading ? loader_addr_mem[20:0] : memory_addr_cpu[20:0]), .weB(loader_write_mem || memory_write_cpu),
+    .addrB(loading ? loader_addr_mem : memory_addr_cpu), .weB(loader_write_mem || memory_write_cpu),
     .dinB(loading ? loader_write_data_mem : memory_dout_cpu),
     .oeB(~loading & memory_read_cpu), .doutB(memory_din_cpu),
 
@@ -382,10 +311,44 @@ sdram_nes sdram (
     .rv_ds(rv_ds), .rv_dout(rv_dout), .rv_req(rv_req), .rv_req_ack(rv_req_ack), .rv_we(rv_wstrb != 0)
 );
 
-/*verilator tracing_on*/
+// ROM parser
+GameLoader loader(
+    .clk(clk), .reset(~sys_resetn), .downloading(loading), 
+    .filetype({4'b0000, type_nsf, type_fds, type_nes, type_bios}),
+    .is_bios(is_bios), .invert_mirroring(1'b0),
+    .indata(loader_do), .indata_clk(loader_do_valid),
 
-`ifndef VERILATOR
+    .mem_addr(loader_addr), .mem_data(loader_write_data), .mem_write(loader_write),
+    .bios_download(),
+    .mapper_flags(loader_flags), .busy(loader_busy), .done(loader_done),
+    .error(loader_fail), .rom_loaded()
+);
 
+assign int_audio = 1;
+assign ext_audio = (mapper_flags[7:0] == 19) | (mapper_flags[7:0] == 24) | (mapper_flags[7:0] == 26);
+
+reg reset_nes = 1;
+always @(posedge clk) begin
+    if (~loading && loading_r)
+        reset_nes <= 0;
+    else if (loading && ~loading_r)
+        reset_nes <= 1;
+end
+
+///////////////////////////
+// Peripherals
+///////////////////////////
+
+`ifdef VERILATOR
+
+// For verilator, the only peripheral is the compiled-in game data 
+GameData game_data(
+    .clk(clk), .reset(~sys_resetn), .downloading(loading), 
+    .odata(loader_do), .odata_clk(loader_do_valid));
+
+`else
+
+// For physical board, there's HDMI, iosys, joypads, and USB
 wire menu_overlay;
 wire [5:0] menu_color;
 wire [7:0] menu_scanline, menu_cycle;
@@ -507,6 +470,9 @@ iosys iosys (
 );
 
 // Dualshock controller
+// joy_rx[0:1] dualshock buttons: 0:(L D R U St R3 L3 Se)  1:(□ X O △ R1 L1 R2 L2)
+// nes_btn[0:1] NES buttons:      (R L D U START SELECT B A)
+// O is A, X is B
 dualshock_controller controller (
     .clk(clk), .I_RSTn(1'b1),
     .O_psCLK(joystick_clk), .O_psSEL(joystick_cs), .O_psTXD(joystick_mosi),
@@ -527,6 +493,28 @@ Autofire af_square (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx[1][7] | usb_btn
 Autofire af_triangle (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx[1][4] | usb_btn_x), .out(auto_triangle));        // A
 Autofire af_square2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][7] | usb_btn_y2), .out(auto_square2));
 Autofire af_triangle2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][4] | usb_btn_x2), .out(auto_triangle2));
+
+assign nes_btn  =   {~joy_rx[0][5], ~joy_rx[0][7], ~joy_rx[0][6], ~joy_rx[0][4], 
+                    ~joy_rx[0][3], ~joy_rx[0][0], ~joy_rx[1][6] | auto_square, ~joy_rx[1][5] | auto_triangle}
+                    | usb_btn
+                    | NES_gamepad_button_state;
+assign nes_btn2 =   {~joy_rx2[0][5], ~joy_rx2[0][7], ~joy_rx2[0][6], ~joy_rx2[0][4], 
+                    ~joy_rx2[0][3], ~joy_rx2[0][0], ~joy_rx2[1][6] | auto_square2, ~joy_rx2[1][5] | auto_triangle2}
+                    | usb_btn2
+                    | NES_gamepad_button_state2;
+
+// Joypad handling
+always @(posedge clk) begin
+    if (joypad_strobe) begin
+        joypad_bits <= nes_btn;
+        joypad_bits2 <= nes_btn2;
+    end
+    if (!joypad_clock[0] && last_joypad_clock[0])
+        joypad_bits <= {1'b0, joypad_bits[7:1]};
+    if (!joypad_clock[1] && last_joypad_clock[1])
+        joypad_bits2 <= {1'b0, joypad_bits2[7:1]};
+    last_joypad_clock <= joypad_clock;
+end
 
 //   usb_btn:      (R L D U START SELECT B A)
 wire [1:0] usb_type, usb_type2;
@@ -555,6 +543,28 @@ usb_hid_host usb_controller2 (
     .mouse_btn(), .mouse_dx(), .mouse_dy(),
     .dbg_hid_report()
 );
+`endif
+
+`ifdef NANO
+NESGamepad nes_gamepad(
+        .i_clk(clk),
+        .i_rst(sys_resetn),
+        .o_data_clock(NES_gamepad_data_clock),
+        .o_data_latch(NES_gampepad_data_latch),
+        .i_serial_data(NES_gampead_serial_data),
+        .o_button_state(NES_gamepad_button_state),
+        .o_data_available(NES_gamepad_data_available)
+                        );
+
+NESGamepad nes_gamepad2(
+        .i_clk(clk),
+        .i_rst(sys_resetn),
+        .o_data_clock(NES_gamepad_data_clock2),
+        .o_data_latch(NES_gampepad_data_latch2),
+        .i_serial_data(NES_gampead_serial_data2),
+        .o_button_state(NES_gamepad_button_state2),
+        .o_data_available(NES_gamepad_data_available2)
+                        );
 `endif
 
 `endif

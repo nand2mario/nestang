@@ -8,7 +8,7 @@
 
 import configPackage::*;
 
-module sdram_snes
+module sdram_nes
 (
 	inout  reg [SDRAM_DATA_WIDTH-1:0] SDRAM_DQ,   // 16 bit bidirectional data bus
 	output     [SDRAM_ROW_WIDTH-1:0] SDRAM_A,    // 13 bit multiplexed address bus
@@ -26,20 +26,20 @@ module sdram_snes
     input             clkref,
     output reg busy,
 
-	input [20:0]      addrA,      // 21 bit byte address, bank 0
+	input [21:0]      addrA,      // 22 bit byte address, bank 0/1
 	input             weA,        // ppu requests write
 	input [7:0]       dinA,       // data input from cpu
 	input             oeA,        // ppu requests data
 	output reg [7:0]  doutA,      // data output to cpu
 
-	input [20:0]      addrB,      // 21 bit byte address, also bank 0
+	input [21:0]      addrB,      // 21 bit byte address, also bank 0/1
 	input             weB,        // cpu requests write
 	input [7:0]       dinB,       // data input from ppu
 	input             oeB,        // cpu requests data
 	output reg [7:0]  doutB,      // data output to ppu
 
     // RISC-V softcore
-    input      [20:1] rv_addr,      // 2MB RV memory space, bank 1
+    input      [20:1] rv_addr,      // 2MB RV memory space, bank 2
     input      [15:0] rv_din,       // 16-bit accesses
     input      [1:0]  rv_ds,
     output reg [15:0] rv_dout,
@@ -50,7 +50,7 @@ module sdram_snes
 
 assign busy = 0;
 
-reg [7:0] mem_cpu [2*1024*1024];       // 2MB
+reg [7:0] mem_cpu [4*1024*1024];       // 4MB
 reg [15:0] mem_rv [1*1024*1024];       // 2MB
 
 reg cycle;       

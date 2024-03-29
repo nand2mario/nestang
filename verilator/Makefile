@@ -23,7 +23,7 @@ verilate: ./obj_dir/V$N.cpp
 	@echo
 	@echo "### VERILATE ####"
 	mkdir -p obj_dir
-	verilator --top-module $N -Wno-WIDTHEXPAND -Wno-CASEOVERLAP --trace -cc -O3 --exe -CFLAGS "$(CFLAGS_SDL)" -LDFLAGS "$(LIBS_SDL)" $(INCLUDES) $(SRCS) sim_main.cpp
+	verilator --top-module $N -Wno-WIDTHEXPAND -Wno-CASEOVERLAP --trace-fst -cc -O3 --exe -CFLAGS "$(CFLAGS_SDL)" -LDFLAGS "$(LIBS_SDL)" $(INCLUDES) $(SRCS) sim_main.cpp
 
 ./obj_dir/V$N: verilate
 	@echo
@@ -35,7 +35,12 @@ verilate: ./obj_dir/V$N.cpp
 sim: ./obj_dir/V$N
 	@echo
 	@echo "### SIMULATION ###"
-	@cd obj_dir && ./V$N
+	@cd obj_dir && ./V$N -c 400000000
+
+trace: ./obj_dir/V$N
+	@echo
+	@echo "### SIMULATION (trace) ###"
+	@cd obj_dir && ./V$N -t -c 10000000 -s 0
 
 clean:
 	rm -rf obj_dir
