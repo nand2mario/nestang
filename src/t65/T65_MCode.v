@@ -196,15 +196,15 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
     end
 
     3'b110 : begin      // covers $Cx,$Dx
-      case (IR[1:0])
-      2'b00 : begin     // IR: $C0,$C4,$C8,$CC,$D0,$D4,$D8,$DC
-        if (IR[4] == 1'b0)  //only for $Cx
-            LDY = 1'b1;
-        Set_BusA_To = Set_BusA_To_Y;
-      end
-      default :         // IR: $C1,$C5,$C9,$CD,$D1,$D5,$D9,$DD, $C2,$C6,$CA,$CE,$D2,$D6,$DA,$DE, $C3,$C7,$CB,$CF,$D3,$D7,$DB,$DF
-        Set_BusA_To = Set_BusA_To_ABC;
-      endcase
+        case (IR[1:0])
+        2'b00 : begin     // IR: $C0,$C4,$C8,$CC,$D0,$D4,$D8,$DC
+            if (IR[4] == 1'b0)  //only for $Cx
+                LDY = 1'b1;
+            Set_BusA_To = Set_BusA_To_Y;
+        end
+        default :         // IR: $C1,$C5,$C9,$CD,$D1,$D5,$D9,$DD, $C2,$C6,$CA,$CE,$D2,$D6,$DA,$DE, $C3,$C7,$CB,$CF,$D3,$D7,$DB,$DF
+            Set_BusA_To = Set_BusA_To_ABC;
+        endcase
     end
 
     3'b111 : begin      // covers $Ex,$Fx

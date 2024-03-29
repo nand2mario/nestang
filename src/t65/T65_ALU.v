@@ -53,7 +53,7 @@
 import t65::*;
 
 module T65_ALU(
-    input [1:0] Mode,
+    input [1:0] Mode,   // "00" => 6502, "01" => 65C02, "10" => 65816
     input BCD_en,
     input T_ALU_OP Op,
     input [7:0] BusA,
@@ -62,11 +62,6 @@ module T65_ALU(
     output [7:0] P_Out,
     output [7:0] Q
 );
-
-// "00" => 6502, "01" => 65C02, "10" => 65816
-// T_ALU_OP;
-
-
 
 // AddSub variables (temporary signals)
 reg ADC_Z;
@@ -80,61 +75,38 @@ reg SBC_V;
 reg SBC_N;
 reg [7:0] SBC_Q;
 reg [7:0] SBX_Q;
-parameter ALU_OP_OR = 5'b00000;
-parameter ALU_OP_AND = 5'b00001;
-parameter ALU_OP_EOR = 5'b00010;
-parameter ALU_OP_ADC = 5'b00011;
-parameter ALU_OP_EQ1 = 5'b00100;  // EQ1 does not change N,Z flags, EQ2/3 does.
-parameter ALU_OP_EQ2 = 5'b00101;  // Not sure yet whats the difference between EQ2&3. They seem to do the same ALU op
-parameter ALU_OP_CMP = 5'b00110;
-parameter ALU_OP_SBC = 5'b00111;
-parameter ALU_OP_ASL = 5'b01000;
-parameter ALU_OP_ROL = 5'b01001;
-parameter ALU_OP_LSR = 5'b01010;
-parameter ALU_OP_ROR = 5'b01011;
-parameter ALU_OP_BIT = 5'b01100;  //    ALU_OP_EQ3,  --"1101"
-parameter ALU_OP_DEC = 5'b01110;
-parameter ALU_OP_INC = 5'b01111;
-parameter ALU_OP_ARR = 5'b10000;
-parameter ALU_OP_ANC = 5'b10001;
-parameter ALU_OP_SAX = 5'b10010;
-parameter ALU_OP_XAA = 5'b10011;
 
-  always @(P_In, BusA, BusB, BCD_en) begin : P3
+always @(P_In, BusA, BusB, BCD_en) begin : P3
     reg [6:0] AL;
     reg [6:0] AH;
     reg C;
 
-    AL = ({BusA[3:0],P_In[Flag_C]}) + ({BusB[3:0],1'b1});
-    AH = ({BusA[7:4],AL[5]}) + ({BusB[7:4],1'b1});
+    AL = {BusA[3:0], P_In[Flag_C]} + {BusB[3:0], 1'b1};
+    AH = {BusA[7:4], AL[5]} + {BusB[7:4], 1'b1};
     // pragma translate_off
     // if is_x(std_logic_vector(AL)) then AL := "0000000"; end if;
     // if is_x(std_logic_vector(AH)) then AH := "0000000"; end if;
     // pragma translate_on
-    if(AL[4:1] == 0 && AH[4:1] == 0) begin
-      ADC_Z <= 1'b1;
-    end
-    else begin
-      ADC_Z <= 1'b0;
-    end
-    if(AL[5:1] > 9 && P_In[Flag_D] == 1'b1 && BCD_en == 1'b1) begin
-      AL[6:1] = AL[6:1] + 6;
-    end
+    if (AL[4:1] == 0 && AH[4:1] == 0) 
+        ADC_Z = 1'b1;
+    else 
+        ADC_Z = 1'b0;
+    if (AL[5:1] > 9 && P_In[Flag_D] && BCD_en) 
+        AL[6:1] = AL[6:1] + 6;
     C = AL[6] | AL[5];
     AH = ({BusA[7:4],C}) + ({BusB[7:4],1'b1});
-    ADC_N <= AH[4];
-    ADC_V <= (AH[4] ^ BusA[7]) &  ~(BusA[7] ^ BusB[7]);
+    ADC_N = AH[4];
+    ADC_V = (AH[4] ^ BusA[7]) &  ~(BusA[7] ^ BusB[7]);
     // pragma translate_off
     // if is_x(std_logic_vector(AH)) then AH := "0000000"; end if;
     // pragma translate_on
-    if(AH[5:1] > 9 && P_In[Flag_D] == 1'b1 && BCD_en == 1'b1) begin
-      AH[6:1] = AH[6:1] + 6;
-    end
-    ADC_C <= AH[6] | AH[5];
-    ADC_Q <= {AH[4:1],AL[4:1]};
-  end
+    if (AH[5:1] > 9 && P_In[Flag_D] && BCD_en) 
+        AH[6:1] = AH[6:1] + 6;
+    ADC_C = AH[6] | AH[5];
+    ADC_Q = {AH[4:1],AL[4:1]};
+end
 
-  always @(Op, P_In, BusA, BusB, BCD_en) begin : P2
+always @(Op, P_In, BusA, BusB, BCD_en) begin : P2
     reg [6:0] AL;
     reg [5:0] AH;
     reg C;
@@ -142,175 +114,151 @@ parameter ALU_OP_XAA = 5'b10011;
 
     CT = 1'b0;
     // "0001" These OpCodes used to have LSB set
-    if((Op == ALU_OP_AND || Op == ALU_OP_ADC || Op == ALU_OP_EQ2 || Op == ALU_OP_SBC || Op == ALU_OP_ROL || Op == ALU_OP_ROR || Op == ALU_OP_INC)) begin
-      CT = 1'b1;
-    end
-    C = P_In[Flag_C] |  ~CT;
-    //was: or not Op(0);
-    AL = ({BusA[3:0],C}) - ({BusB[3:0],1'b1});
-    AH = ({BusA[7:4],1'b0}) - ({BusB[7:4],AL[5]});
+    if (Op == ALU_OP_AND || Op == ALU_OP_ADC || Op == ALU_OP_EQ2 || Op == ALU_OP_SBC 
+            || Op == ALU_OP_ROL || Op == ALU_OP_ROR || Op == ALU_OP_INC) 
+        CT = 1'b1;
+
+    C = P_In[Flag_C] | ~CT;    //was: or not Op(0);
+    AL = {BusA[3:0], C} - {BusB[3:0], 1'b1};
+    AH = {BusA[7:4], 1'b0} - {BusB[7:4], AL[5]};
+
     // pragma translate_off
     // if is_x(std_logic_vector(AL)) then AL := "0000000"; end if;
     // if is_x(std_logic_vector(AH)) then AH := "000000"; end if;
     // pragma translate_on
-    if(AL[4:1] == 0 && AH[4:1] == 0) begin
-      SBC_Z <= 1'b1;
-    end
-    else begin
-      SBC_Z <= 1'b0;
-    end
-    SBC_C <=  ~AH[5];
-    SBC_V <= (AH[4] ^ BusA[7]) & (BusA[7] ^ BusB[7]);
-    SBC_N <= AH[4];
-    SBX_Q <= {AH[4:1],AL[4:1]};
-    if(P_In[Flag_D] == 1'b1 && BCD_en == 1'b1) begin
-      if(AL[5] == 1'b1) begin
-        AL[5:1] = AL[5:1] - 6;
-      end
-      AH = ({BusA[7:4],1'b0}) - ({BusB[7:4],AL[6]});
-      if(AH[5] == 1'b1) begin
-        AH[5:1] = AH[5:1] - 6;
-      end
-    end
-    SBC_Q <= {AH[4:1],AL[4:1]};
-  end
 
-  always @(Op, P_In, BusA, BusB, ADC_Z, ADC_C, ADC_V, ADC_N, ADC_Q, SBC_Z, SBC_C, SBC_V, SBC_N, SBC_Q, SBX_Q, BCD_en) begin : P1
+    if (AL[4:1] == 0 && AH[4:1] == 0) 
+        SBC_Z = 1'b1;
+    else 
+        SBC_Z = 1'b0;
+
+    SBC_C = ~AH[5];
+    SBC_V = (AH[4] ^ BusA[7]) & (BusA[7] ^ BusB[7]);
+    SBC_N = AH[4];
+
+    SBX_Q = {AH[4:1], AL[4:1]};
+
+    if (P_In[Flag_D] && BCD_en) begin
+        if (AL[5]) 
+            AL[5:1] = AL[5:1] - 6;
+        AH = {BusA[7:4], 1'b0} - {BusB[7:4], AL[6]};
+        if (AH[5]) 
+            AH[5:1] = AH[5:1] - 6;
+    end
+    SBC_Q = {AH[4:1],AL[4:1]};
+end
+
+always @* begin 
     reg [7:0] Q_t;
     reg [7:0] Q2_t;
 
     // ORA, AND, EOR, ADC, NOP, LD, CMP, SBC
     // ASL, ROL, LSR, ROR, BIT, LD, DEC, INC
-    P_Out <= P_In;
+    P_Out = P_In;
     Q_t = BusA;
     Q2_t = BusA;
-    case(Op)
-    ALU_OP_OR : begin
-      Q_t = BusA | BusB;
-    end
-    ALU_OP_AND : begin
-      Q_t = BusA & BusB;
-    end
-    ALU_OP_EOR : begin
-      Q_t = BusA ^ BusB;
-    end
+    case (Op)
+    ALU_OP_OR : 
+        Q_t = BusA | BusB;
+    ALU_OP_AND : 
+        Q_t = BusA & BusB;
+    ALU_OP_EOR : 
+        Q_t = BusA ^ BusB;
     ALU_OP_ADC : begin
-      P_Out[Flag_V] <= ADC_V;
-      P_Out[Flag_C] <= ADC_C;
-      Q_t = ADC_Q;
+        P_Out[Flag_V] = ADC_V;
+        P_Out[Flag_C] = ADC_C;
+        Q_t = ADC_Q;
     end
-    ALU_OP_CMP : begin
-      P_Out[Flag_C] <= SBC_C;
-    end
+    ALU_OP_CMP : 
+        P_Out[Flag_C] = SBC_C;
     ALU_OP_SAX : begin
-      P_Out[Flag_C] <= SBC_C;
-      Q_t = SBX_Q;
-      // undoc: subtract (A & X) - (immediate)
+        P_Out[Flag_C] = SBC_C;
+        Q_t = SBX_Q;            // undoc: subtract (A & X) - (immediate)
     end
     ALU_OP_SBC : begin
-      P_Out[Flag_V] <= SBC_V;
-      P_Out[Flag_C] <= SBC_C;
-      Q_t = SBC_Q;
-      // undoc: subtract  (A & X) - (immediate), then decimal correction
+        P_Out[Flag_V] = SBC_V;
+        P_Out[Flag_C] = SBC_C;
+        Q_t = SBC_Q;            // undoc: subtract  (A & X) - (immediate), then decimal correction
     end
     ALU_OP_ASL : begin
-      Q_t = {BusA[6:0],1'b0};
-      P_Out[Flag_C] <= BusA[7];
+        Q_t = {BusA[6:0], 1'b0};
+        P_Out[Flag_C] = BusA[7];
     end
     ALU_OP_ROL : begin
-      Q_t = {BusA[6:0],P_In[Flag_C]};
-      P_Out[Flag_C] <= BusA[7];
+        Q_t = {BusA[6:0], P_In[Flag_C]};
+        P_Out[Flag_C] = BusA[7];
     end
     ALU_OP_LSR : begin
-      Q_t = {1'b0,BusA[7:1]};
-      P_Out[Flag_C] <= BusA[0];
+        Q_t = {1'b0, BusA[7:1]};
+        P_Out[Flag_C] = BusA[0];
     end
     ALU_OP_ROR : begin
-      Q_t = {P_In[Flag_C],BusA[7:1]};
-      P_Out[Flag_C] <= BusA[0];
+        Q_t = {P_In[Flag_C], BusA[7:1]};
+        P_Out[Flag_C] = BusA[0];
     end
     ALU_OP_ARR : begin
-      Q_t = {P_In[Flag_C],BusA[7:1] & BusB[7:1]};
-      P_Out[Flag_V] <= Q_t[5] ^ Q_t[6];
-      Q2_t = Q_t;
-      if(P_In[Flag_D] == 1'b1 && BCD_en == 1'b1) begin
-        if((BusA[3:0] & BusB[3:0]) > 4'b0100) begin
-          Q2_t[3:0] = (Q_t[3:0]) + 4'h6;
-        end
-        if((BusA[7:4] & BusB[7:4]) > 4'b0100) begin
-          Q2_t[7:4] = (Q_t[7:4]) + 4'h6;
-          P_Out[Flag_C] <= 1'b1;
-        end
-        else begin
-          P_Out[Flag_C] <= 1'b0;
-        end
-      end
-      else begin
-        P_Out[Flag_C] <= Q_t[6];
-      end
+        Q_t = {P_In[Flag_C], BusA[7:1] & BusB[7:1]};
+        P_Out[Flag_V] = Q_t[5] ^ Q_t[6];
+        Q2_t = Q_t;
+        if (P_In[Flag_D] && BCD_en) begin
+            if ((BusA[3:0] & BusB[3:0]) > 4'b0100) 
+                Q2_t[3:0] = (Q_t[3:0]) + 4'h6;
+            if ((BusA[7:4] & BusB[7:4]) > 4'b0100) begin
+                Q2_t[7:4] = (Q_t[7:4]) + 4'h6;
+                P_Out[Flag_C] = 1'b1;
+            end else 
+                P_Out[Flag_C] = 1'b0;
+        end else 
+            P_Out[Flag_C] = Q_t[6];
     end
-    ALU_OP_BIT : begin
-      P_Out[Flag_V] <= BusB[6];
-    end
-    ALU_OP_DEC : begin
-      Q_t = (BusA) - 1;
-    end
-    ALU_OP_INC : begin
-      Q_t = (BusA) + 1;
-    end
-    default : begin
-      //EQ1,EQ2,EQ3 passes BusA to Q_t and P_in to P_out
-    end
+    ALU_OP_BIT : 
+        P_Out[Flag_V] = BusB[6];
+    ALU_OP_DEC : 
+        Q_t = BusA - 1;
+    ALU_OP_INC : 
+      Q_t = BusA + 1;
+    default : ;     //EQ1,EQ2,EQ3 passes BusA to Q_t and P_in to P_out
     endcase
-    case(Op)
+
+    case (Op)
     ALU_OP_ADC : begin
-      P_Out[Flag_N] <= ADC_N;
-      P_Out[Flag_Z] <= ADC_Z;
+        P_Out[Flag_N] = ADC_N;
+        P_Out[Flag_Z] = ADC_Z;
     end
     ALU_OP_CMP,ALU_OP_SBC,ALU_OP_SAX : begin
-      P_Out[Flag_N] <= SBC_N;
-      P_Out[Flag_Z] <= SBC_Z;
+        P_Out[Flag_N] = SBC_N;
+        P_Out[Flag_Z] = SBC_Z;
     end
-    ALU_OP_EQ1 : begin
-      //dont touch P
-    end
+    ALU_OP_EQ1 : ;      //dont touch P
     ALU_OP_BIT : begin
-      P_Out[Flag_N] <= BusB[7];
-      if((BusA & BusB) == 8'b00000000) begin
-        P_Out[Flag_Z] <= 1'b1;
-      end
-      else begin
-        P_Out[Flag_Z] <= 1'b0;
-      end
+        P_Out[Flag_N] = BusB[7];
+        if ((BusA & BusB) == 8'b0) 
+            P_Out[Flag_Z] = 1'b1;
+        else 
+            P_Out[Flag_Z] = 1'b0;
     end
     ALU_OP_ANC : begin
-      P_Out[Flag_N] <= Q_t[7];
-      P_Out[Flag_C] <= Q_t[7];
-      if(Q_t == 8'b00000000) begin
-        P_Out[Flag_Z] <= 1'b1;
-      end
-      else begin
-        P_Out[Flag_Z] <= 1'b0;
-      end
+        P_Out[Flag_N] = Q_t[7];
+        P_Out[Flag_C] = Q_t[7];
+        if (Q_t == 8'b0) 
+            P_Out[Flag_Z] = 1'b1;
+        else 
+            P_Out[Flag_Z] = 1'b0;
     end
     default : begin
-      P_Out[Flag_N] <= Q_t[7];
-      if(Q_t == 8'b00000000) begin
-        P_Out[Flag_Z] <= 1'b1;
-      end
-      else begin
-        P_Out[Flag_Z] <= 1'b0;
-      end
+        P_Out[Flag_N] = Q_t[7];
+        if (Q_t == 8'b0) 
+            P_Out[Flag_Z] = 1'b1;
+        else 
+            P_Out[Flag_Z] = 1'b0;
     end
     endcase
-    if(Op == ALU_OP_ARR) begin
-      // handled above in ARR code
-      Q <= Q2_t;
-    end
-    else begin
-      Q <= Q_t;
-    end
-  end
 
+    if (Op == ALU_OP_ARR) 
+        // handled above in ARR code
+        Q = Q2_t;
+    else 
+        Q = Q_t;
+end
 
 endmodule
