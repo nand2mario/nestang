@@ -22,16 +22,7 @@ module MMC2(
 	inout        irq_b,       // IRQ
 	input [15:0] audio_in,    // Inverted audio from APU
 	inout [15:0] audio_b,     // Mixed audio output
-	inout [15:0] flags_out_b, // flags {0, 0, 0, 0, has_savestate, prg_conflict, prg_bus_write, has_chr_dout}
-	input [13:0] chr_ain_o,
-	input        paused,
-	// savestates              
-	input       [63:0]  SaveStateBus_Din,
-	input       [ 9:0]  SaveStateBus_Adr,
-	input               SaveStateBus_wren,
-	input               SaveStateBus_rst,
-	input               SaveStateBus_load,
-	output      [63:0]  SaveStateBus_Dout
+	inout [15:0] flags_out_b  // flags {0, 0, 0, 0, 0, prg_conflict, prg_bus_write, has_chr_dout}
 );
 
 assign prg_aout_b   = enable ? prg_aout : 22'hZ;
@@ -51,7 +42,7 @@ wire chr_allow;
 wire vram_a10;
 wire vram_ce;
 
-reg [15:0] flags_out = {12'h0, 1'b1, 3'b0};
+reg [15:0] flags_out = 0;
 
 // PRG ROM bank select ($A000-$AFFF)
 // 7  bit  0
@@ -109,16 +100,9 @@ reg latch_0, latch_1;
 	
 // Update registers
 always @(posedge clk)
-if (~enable) begin
+if (~enable)
 	{prg_bank, chr_bank_0a, chr_bank_0b, chr_bank_1a, chr_bank_1b, mirroring} <= 0;
-end else if (SaveStateBus_load) begin
-	prg_bank    <= SS_MAP1[ 3: 0];
-	chr_bank_0a <= SS_MAP1[ 8: 4];
-	chr_bank_0b <= SS_MAP1[13: 9];
-	chr_bank_1a <= SS_MAP1[18:14];
-	chr_bank_1b <= SS_MAP1[23:19];
-	mirroring   <= SS_MAP1[   24];
-end else if (ce) begin
+else if (ce) begin
 	if (prg_write && prg_ain[15]) begin
 		case(prg_ain[14:12])
 			2: prg_bank <= prg_din[3:0];     // $A000
@@ -136,25 +120,12 @@ end
 // PPU reads $1FD8 through $1FDF: latch 1 is set to $FD for subsequent reads
 // PPU reads $1FE8 through $1FEF: latch 1 is set to $FE for subsequent reads
 always @(posedge clk)
-if (~enable) begin
+if (~enable)
 	{latch_0, latch_1} <= 0;
-end else if (SaveStateBus_load) begin
-	latch_0 <= SS_MAP1[   25];
-	latch_1 <= SS_MAP1[   26];
-end else if (~paused && chr_read) begin
-	latch_0 <= (chr_ain_o & 14'h3fff) == 14'h0fd8 ? 1'd0 : (chr_ain_o & 14'h3fff) == 14'h0fe8 ? 1'd1 : latch_0;
-	latch_1 <= (chr_ain_o & 14'h3ff8) == 14'h1fd8 ? 1'd0 : (chr_ain_o & 14'h3ff8) == 14'h1fe8 ? 1'd1 : latch_1;
+else if (ce && chr_read) begin
+	latch_0 <= (chr_ain & 14'h3fff) == 14'h0fd8 ? 1'd0 : (chr_ain & 14'h3fff) == 14'h0fe8 ? 1'd1 : latch_0;
+	latch_1 <= (chr_ain & 14'h3ff8) == 14'h1fd8 ? 1'd0 : (chr_ain & 14'h3ff8) == 14'h1fe8 ? 1'd1 : latch_1;
 end
-
-assign SS_MAP1_BACK[ 3: 0] = prg_bank;
-assign SS_MAP1_BACK[ 8: 4] = chr_bank_0a;
-assign SS_MAP1_BACK[13: 9] = chr_bank_0b;
-assign SS_MAP1_BACK[18:14] = chr_bank_1a;
-assign SS_MAP1_BACK[23:19] = chr_bank_1b;
-assign SS_MAP1_BACK[   24] = mirroring;
-assign SS_MAP1_BACK[   25] = latch_0;
-assign SS_MAP1_BACK[   26] = latch_1;
-assign SS_MAP1_BACK[63:27] = 37'b0; // free to be used
 
 // The PRG bank to load. Each increment here is 8kb. So valid values are 0..15.
 reg [3:0] prgsel;
@@ -187,14 +158,6 @@ assign vram_ce = chr_ain[13];
 assign prg_allow = prg_ain[15] && !prg_write;
 assign chr_allow = flags[15];
 
-// savestate
-wire [63:0] SS_MAP1;
-wire [63:0] SS_MAP1_BACK;	
-wire [63:0] SaveStateBus_Dout_active;	
-eReg_SavestateV #(SSREG_INDEX_MAP1, 64'h0000000000000000) iREG_SAVESTATE_MAP1 (clk, SaveStateBus_Din, SaveStateBus_Adr, SaveStateBus_wren, SaveStateBus_rst, SaveStateBus_Dout_active, SS_MAP1_BACK, SS_MAP1);  
-
-assign SaveStateBus_Dout = enable ? SaveStateBus_Dout_active : 64'h0000000000000000;
-
 endmodule
 
 // MMC4 mapper chip. PRG ROM: 256kB. Bank Size: 16kB. CHR ROM: 128kB
@@ -219,16 +182,7 @@ module MMC4(
 	inout        irq_b,       // IRQ
 	input [15:0] audio_in,    // Inverted audio from APU
 	inout [15:0] audio_b,     // Mixed audio output
-	inout [15:0] flags_out_b, // flags {0, 0, 0, 0, has_savestate, prg_conflict, prg_bus_write, has_chr_dout}
-	input [13:0] chr_ain_o,
-	input        paused,
-	// savestates              
-	input       [63:0]  SaveStateBus_Din,
-	input       [ 9:0]  SaveStateBus_Adr,
-	input               SaveStateBus_wren,
-	input               SaveStateBus_rst,
-	input               SaveStateBus_load,
-	output      [63:0]  SaveStateBus_Dout
+	inout [15:0] flags_out_b  // flags {0, 0, 0, 0, 0, prg_conflict, prg_bus_write, has_chr_dout}
 );
 
 assign prg_aout_b   = enable ? prg_aout : 22'hZ;
@@ -248,7 +202,7 @@ wire prg_allow;
 wire chr_allow;
 wire vram_a10;
 wire vram_ce;
-reg [15:0] flags_out = {12'h0, 1'b1, 3'b0};
+reg [15:0] flags_out = 0;
 
 // PRG ROM bank select ($A000-$AFFF)
 // 7  bit  0
@@ -306,17 +260,10 @@ reg latch_0, latch_1;
 
 // Update registers
 always @(posedge clk) 
-if (SaveStateBus_load) begin
-	prg_bank    <= SS_MAP1[ 3: 0];
-	chr_bank_0a <= SS_MAP1[ 8: 4];
-	chr_bank_0b <= SS_MAP1[13: 9];
-	chr_bank_1a <= SS_MAP1[18:14];
-	chr_bank_1b <= SS_MAP1[23:19];
-	mirroring   <= SS_MAP1[   24];
-end else if (ce) begin
-	if (~enable) begin
+if (ce) begin
+	if (~enable)
 		prg_bank <= 4'b1110;
-	end else if (prg_write && prg_ain[15]) begin
+	else if (prg_write && prg_ain[15]) begin
 		case(prg_ain[14:12])
 			2: prg_bank <= prg_din[3:0];     // $A000
 			3: chr_bank_0a <= prg_din[4:0];  // $B000
@@ -333,23 +280,10 @@ end
 // PPU reads $1FD8 through $1FDF: latch 1 is set to $FD for subsequent reads
 // PPU reads $1FE8 through $1FEF: latch 1 is set to $FE for subsequent reads
 always @(posedge clk)
-if (SaveStateBus_load) begin
-	latch_0 <= SS_MAP1[   25];
-	latch_1 <= SS_MAP1[   26];
-end else if (~paused & chr_read) begin
-	latch_0 <= (chr_ain_o & 14'h3ff8) == 14'h0fd8 ? 1'd0 : (chr_ain_o & 14'h3ff8) == 14'h0fe8 ? 1'd1 : latch_0;
-	latch_1 <= (chr_ain_o & 14'h3ff8) == 14'h1fd8 ? 1'd0 : (chr_ain_o & 14'h3ff8) == 14'h1fe8 ? 1'd1 : latch_1;
+if (ce & chr_read) begin
+	latch_0 <= (chr_ain & 14'h3ff8) == 14'h0fd8 ? 1'd0 : (chr_ain & 14'h3ff8) == 14'h0fe8 ? 1'd1 : latch_0;
+	latch_1 <= (chr_ain & 14'h3ff8) == 14'h1fd8 ? 1'd0 : (chr_ain & 14'h3ff8) == 14'h1fe8 ? 1'd1 : latch_1;
 end
-
-assign SS_MAP1_BACK[ 3: 0] = prg_bank;
-assign SS_MAP1_BACK[ 8: 4] = chr_bank_0a;
-assign SS_MAP1_BACK[13: 9] = chr_bank_0b;
-assign SS_MAP1_BACK[18:14] = chr_bank_1a;
-assign SS_MAP1_BACK[23:19] = chr_bank_1b;
-assign SS_MAP1_BACK[   24] = mirroring;
-assign SS_MAP1_BACK[   25] = latch_0;
-assign SS_MAP1_BACK[   26] = latch_1;
-assign SS_MAP1_BACK[63:27] = 37'b0; // free to be used
 
 // The PRG bank to load. Each increment here is 16kb. So valid values are 0..15.
 reg [3:0] prgsel;
@@ -385,13 +319,5 @@ wire prg_is_ram = prg_ain >= 'h6000 && prg_ain < 'h8000;
 assign prg_allow = prg_ain[15] && !prg_write || prg_is_ram;
 wire [21:0] prg_ram = {9'b11_1100_000, prg_ain[12:0]};
 assign prg_aout = prg_is_ram ? prg_ram : prg_aout_tmp;
-
-// savestate
-wire [63:0] SS_MAP1;
-wire [63:0] SS_MAP1_BACK;	
-wire [63:0] SaveStateBus_Dout_active;	
-eReg_SavestateV #(SSREG_INDEX_MAP1, 64'h0000000000000000) iREG_SAVESTATE_MAP1 (clk, SaveStateBus_Din, SaveStateBus_Adr, SaveStateBus_wren, SaveStateBus_rst, SaveStateBus_Dout_active, SS_MAP1_BACK, SS_MAP1);  
-
-assign SaveStateBus_Dout = enable ? SaveStateBus_Dout_active : 64'h0000000000000000;
 
 endmodule

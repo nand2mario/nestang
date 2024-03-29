@@ -23,14 +23,7 @@ module Sachen8259(
 	inout        irq_b,       // IRQ
 	input [15:0] audio_in,    // Inverted audio from APU
 	inout [15:0] audio_b,     // Mixed audio output
-	inout [15:0] flags_out_b, // flags {0, 0, 0, 0, has_savestate, prg_conflict, prg_bus_write, has_chr_dout}
-	// savestates              
-	input       [63:0]  SaveStateBus_Din,
-	input       [ 9:0]  SaveStateBus_Adr,
-	input               SaveStateBus_wren,
-	input               SaveStateBus_rst,
-	input               SaveStateBus_load,
-	output      [63:0]  SaveStateBus_Dout
+	inout [15:0] flags_out_b  // flags {0, 0, 0, 0, 0, prg_conflict, prg_bus_write, has_chr_dout}
 );
 
 assign prg_aout_b   = enable ? prg_aout : 22'hZ;
@@ -47,9 +40,9 @@ assign audio_b      = enable ? {1'b0, audio_in[15:1]} : 16'hZ;
 wire [21:0] prg_aout, chr_aout;
 wire prg_allow;
 wire chr_allow;
-wire vram_a10;
+reg vram_a10;
 wire vram_ce;
-wire [15:0] flags_out = {12'd0, 1'b1, 1'b0, prg_bus_write, 1'b0};
+wire [15:0] flags_out = {14'd0, prg_bus_write, 1'b0};
 
 // 0x4100
 wire [7:0] prg_dout = {5'b00111, (~register)}; // ^ (counter & 0x1)
@@ -70,16 +63,6 @@ reg [2:0] mirroring;
 always @(posedge clk)
 if (~enable) begin
 	//any resets?
-end else if (SaveStateBus_load) begin
-	register   <= SS_MAP1[ 2: 0];
-	prg_bank   <= SS_MAP1[ 5: 3];
-	chr_bank_0 <= SS_MAP1[ 8: 6];
-	chr_bank_1 <= SS_MAP1[11: 9];
-	chr_bank_2 <= SS_MAP1[14:12];
-	chr_bank_3 <= SS_MAP1[17:15];
-	chr_bank_o <= SS_MAP1[20:18];
-	chr_bank_p <= SS_MAP1[23:21];
-	mirroring  <= SS_MAP1[26:24];
 end else if (ce && prg_write) begin
 	if ({prg_ain[15:14], prg_ain[8], prg_ain[0]} == 4'b0110) begin
 		register <= prg_din[2:0];
@@ -103,20 +86,9 @@ end else if (ce && prg_write) begin
 	end
 end
 
-assign SS_MAP1_BACK[ 2: 0] = register;
-assign SS_MAP1_BACK[ 5: 3] = prg_bank;
-assign SS_MAP1_BACK[ 8: 6] = chr_bank_0;
-assign SS_MAP1_BACK[11: 9] = chr_bank_1;
-assign SS_MAP1_BACK[14:12] = chr_bank_2;
-assign SS_MAP1_BACK[17:15] = chr_bank_3;
-assign SS_MAP1_BACK[20:18] = chr_bank_o;
-assign SS_MAP1_BACK[23:21] = chr_bank_p;
-assign SS_MAP1_BACK[26:24] = mirroring;
-assign SS_MAP1_BACK[63:27] = 37'b0; // free to be used
-
 // The CHR bank to load. Each increment here is 1kb. So valid values are 0..255.
-wire [2:0] chr_bank;
-wire [2:0] chr_banko;
+reg [2:0] chr_bank;
+reg [2:0] chr_banko;
 reg [8:0] chrsel;
 always @* begin
 	casez({mirroring[0], mapper137 ? chr_ain[11:10] : chr_ain[12:11]})
@@ -166,14 +138,6 @@ assign vram_ce = chr_ain[13];
 //assign vram_a10 = ; //done above
 assign prg_allow = prg_ain[15] && !prg_write;
 
-// savestate
-wire [63:0] SS_MAP1;
-wire [63:0] SS_MAP1_BACK;	
-wire [63:0] SaveStateBus_Dout_active;	
-eReg_SavestateV #(SSREG_INDEX_MAP1, 64'h0000000000000000) iREG_SAVESTATE_MAP1 (clk, SaveStateBus_Din, SaveStateBus_Adr, SaveStateBus_wren, SaveStateBus_rst, SaveStateBus_Dout_active, SS_MAP1_BACK, SS_MAP1);  
-
-assign SaveStateBus_Dout = enable ? SaveStateBus_Dout_active : 64'h0000000000000000;
-
 endmodule
 
 // #136,#147 - Sachen JV001
@@ -201,14 +165,7 @@ module SachenJV001(
 	inout        irq_b,       // IRQ
 	input [15:0] audio_in,    // Inverted audio from APU
 	inout [15:0] audio_b,     // Mixed audio output
-	inout [15:0] flags_out_b, // flags {0, 0, 0, 0, has_savestate, prg_conflict, prg_bus_write, has_chr_dout}
-	// savestates              
-	input       [63:0]  SaveStateBus_Din,
-	input       [ 9:0]  SaveStateBus_Adr,
-	input               SaveStateBus_wren,
-	input               SaveStateBus_rst,
-	input               SaveStateBus_load,
-	output      [63:0]  SaveStateBus_Dout
+	inout [15:0] flags_out_b  // flags {0, 0, 0, 0, 0, prg_conflict, prg_bus_write, has_chr_dout}
 );
 
 assign prg_aout_b   = enable ? prg_aout : 22'hZ;
@@ -227,7 +184,7 @@ wire prg_allow;
 wire chr_allow;
 wire vram_a10;
 wire vram_ce;
-wire [15:0] flags_out = {12'd0, 1'b1, 1'b0, prg_bus_write, 1'b0};
+wire [15:0] flags_out = {14'd0, prg_bus_write, 1'b0};
 
 reg [5:0] input_reg; //s_reg = input_reg[3]
 reg [5:0] output_reg;
@@ -254,14 +211,6 @@ wire prg_bus_write = (prg_ain[15:13] == 3'b010 && prg_ain[8]); //0x4100-3
 always @(posedge clk)
 if (~enable) begin
 	//
-end else if (SaveStateBus_load) begin
-	input_reg   <= SS_MAP1[ 5: 0];
-	output_reg  <= SS_MAP1[11: 6];
-	register_reg<= SS_MAP1[17:12];
-	inc_reg     <= SS_MAP1[   18];
-	invert_reg  <= SS_MAP1[   19];
-	alt_chr     <= SS_MAP1[23:20];
-	mirroring   <= SS_MAP1[   24];
 end else if (ce) begin
 	if (prg_ain[15:13] == 3'b010 && prg_ain[8] && prg_write) //0x4100-3
 		case (prg_ain[1:0])
@@ -282,15 +231,6 @@ end else if (ce) begin
 		mirroring <= invert_reg;
 	end
 end
-
-assign SS_MAP1_BACK[ 5: 0] = input_reg;
-assign SS_MAP1_BACK[11: 6] = output_reg;
-assign SS_MAP1_BACK[17:12] = register_reg;
-assign SS_MAP1_BACK[   18] = inc_reg;
-assign SS_MAP1_BACK[   19] = invert_reg;
-assign SS_MAP1_BACK[23:20] = alt_chr;
-assign SS_MAP1_BACK[   24] = mirroring;
-assign SS_MAP1_BACK[63:25] = 39'b0; // free to be used
 
 // 0x4100-3
 wire use_s = mapper132 | mapper173;
@@ -318,14 +258,6 @@ assign chr_aout = {5'b10_000, chr_sel, chr_ain[12:0]};
 assign vram_ce = chr_ain[13];
 assign vram_a10 = (mapper172 ? mirroring : flags[14]) ? chr_ain[10] : chr_ain[11]; // 0: horiz, 1: vert
 
-// savestate
-wire [63:0] SS_MAP1;
-wire [63:0] SS_MAP1_BACK;	
-wire [63:0] SaveStateBus_Dout_active;	
-eReg_SavestateV #(SSREG_INDEX_MAP1, 64'h0000000000000000) iREG_SAVESTATE_MAP1 (clk, SaveStateBus_Din, SaveStateBus_Adr, SaveStateBus_wren, SaveStateBus_rst, SaveStateBus_Dout_active, SS_MAP1_BACK, SS_MAP1);  
-
-assign SaveStateBus_Dout = enable ? SaveStateBus_Dout_active : 64'h0000000000000000;
-
 endmodule
 
 // #143 - Sachen NROM with protection
@@ -350,9 +282,7 @@ module SachenNROM(
 	inout        irq_b,       // IRQ
 	input [15:0] audio_in,    // Inverted audio from APU
 	inout [15:0] audio_b,     // Mixed audio output
-	inout [15:0] flags_out_b  // flags {0, 0, 0, 0, has_savestate, prg_conflict, prg_bus_write, has_chr_dout}
-	// savestates              
-	// savestates support - but no state in mapper needs saving
+	inout [15:0] flags_out_b  // flags {0, 0, 0, 0, 0, prg_conflict, prg_bus_write, has_chr_dout}
 );
 
 assign prg_aout_b   = enable ? prg_aout : 22'hZ;
@@ -372,7 +302,7 @@ wire chr_allow;
 wire vram_a10;
 wire vram_ce;
 wire prg_bus_write;
-wire [15:0] flags_out = {12'h0, 1'b1, 1'b0, prg_bus_write, 1'b0};
+wire [15:0] flags_out = {14'h0, prg_bus_write, 1'b0};
 
 // 0x4100
 wire [7:0] prg_dout = {2'b01, ~prg_ain[5:0]}; // top 2 bits are actually open bus

@@ -56,11 +56,11 @@ module T65_MCode(
     input [1:0] Mode,                   // "00" => 6502, "01" => 65C02, "10" => 65816
     input BCD_en,
     input [7:0] IR,
-    input T_Lcycle MCycle,
+    input T_LCycle MCycle,
     input [7:0] P,
     input Rdy_mod,
-    output T_Lcycle LCycle,
-    output T_ALU_Op ALU_Op,
+    output T_LCycle LCycle,
+    output T_ALU_OP ALU_Op,
     output T_Set_BusA_To Set_BusA_To,   // DI,A,X,Y,S,P,DA,DAO,DAX,AAX
     output T_Set_Addr_To Set_Addr_To,   // PC Adder,S,AD,BA
     output T_Write_Data Write_Data,     // DL,A,X,Y,S,P,PCL,PCH,AX,AXB,XB,YB
@@ -104,7 +104,7 @@ always @(*) begin
 end
 
 always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
-    lCycle <= Cycle_1;
+    LCycle <= Cycle_1;
     Set_BusA_To <= Set_BusA_To_ABC;
     Set_Addr_To <= Set_Addr_To_PBR;
     Write_Data <= Write_Data_DL;
@@ -221,7 +221,7 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
     default : ;
     endcase
 
-    if (IR[7:6] != 2'b10 && IR[1] && (mode == 2'b00 || ~IR[0])) begin   //covers $0x-$7x, $Cx-$Fx x=2,3,6,7,A,B,E,F, for 6502 undocs
+    if (IR[7:6] != 2'b10 && IR[1] && (Mode == 2'b00 || ~IR[0])) begin   //covers $0x-$7x, $Cx-$Fx x=2,3,6,7,A,B,E,F, for 6502 undocs
         if (IR == 8'heb) 
             Set_BusA_To <= Set_BusA_To_ABC;     // alternate SBC ($EB)
         else 
@@ -238,7 +238,7 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
         // Implied
         case (IR)
         8'h00 : begin       // BRK ($00)
-            lCycle <= Cycle_6;
+            LCycle <= Cycle_6;
             case (MCycle)
             Cycle_1 : begin
                 Set_Addr_To <= Set_Addr_To_SP;
@@ -272,7 +272,7 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
         end
 
         8'h20 : begin       // JSR ($20)
-            lCycle <= Cycle_5;
+            LCycle <= Cycle_5;
             case (MCycle)
             Cycle_1 : begin
                 Jump <= 2'b01;
@@ -299,7 +299,7 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
         end
 
         8'h40 : begin       // RTI ($40)
-            lCycle <= Cycle_5;
+            LCycle <= Cycle_5;
             case (MCycle)
             Cycle_1 : 
                 Set_Addr_To <= Set_Addr_To_SP;
@@ -324,7 +324,7 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
             endcase
         end
         8'h60 : begin       // RTS ($60)
-            lCycle <= Cycle_5;
+            LCycle <= Cycle_5;
             case (MCycle)
             Cycle_1 : 
                 Set_Addr_To <= Set_Addr_To_SP;
@@ -346,12 +346,12 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
         end
 
         8'h08,8'h48,8'h5a,8'hda : begin     // PHP, PHA, PHY*, PHX*  ($08,$48,$5A,$DA)
-            lCycle <= Cycle_2;
+            LCycle <= Cycle_2;
             if (Mode == 2'b00 && IR[1])     //2 cycle nop
-                lCycle <= Cycle_1;
+                LCycle <= Cycle_1;
             case (MCycle)
             Cycle_1 : begin
-                if (mode != 2'b00 || ~IR[1]) begin  //wrong on 6502
+                if (Mode != 2'b00 || ~IR[1]) begin  //wrong on 6502
                     Write <= 1'b1;
                     case (IR[7:4])
                     4'b0000 : 
@@ -382,9 +382,9 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
         end
 
         8'h28,8'h68,8'h7a,8'hfa : begin     // PLP, PLA, PLY*, PLX* ($28,$68,$7A,$FA)
-            lCycle <= Cycle_3;
+            LCycle <= Cycle_3;
             if (Mode == 2'b00 && IR[1])     //2 cycle nop
-                lCycle <= Cycle_1;
+                LCycle <= Cycle_1;
             case (IR[7:4])
             4'b0010 :           //plp
                 LDP <= 1'b1;
@@ -454,7 +454,7 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
             if (Mode != 2'b00) 
                 LDA <= 1'b1;            // A
             else
-                lCycle <= Cycle_1;      //undoc 2 cycle nop
+                LCycle <= Cycle_1;      //undoc 2 cycle nop
             case (MCycle)
             Cycle_sync : ;
             Cycle_1 : 
@@ -526,11 +526,11 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
     end
 
     5'b00001,5'b00011 : begin           // Zero Page Indexed Indirect (d,x)
-        lCycle <= Cycle_5;
+        LCycle <= Cycle_5;
         if (IR[7:6] != 2'b10) begin     // ($01,$21,$41,$61,$C1,$E1,$03,$23,$43,$63,$C3,$E3)
             LDA <= 1'b1;
             if (Mode == 2'b00 && IR[1]) 
-                lCycle <= Cycle_7;
+                LCycle <= Cycle_7;
         end
         case (MCycle)
         Cycle_1 : begin
@@ -641,7 +641,7 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
 
     5'b00100 : begin            // IR: $04,$24,$44,$64,$84,$A4,$C4,$E4
         // Zero Page
-        lCycle <= Cycle_2;
+        LCycle <= Cycle_2;
         case (MCycle)
         Cycle_sync : 
             if (IR[7:5] == 3'b001)  //24=BIT zpg
@@ -663,9 +663,9 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
     //     $07,$27,$47,$67,$87,$A7,$C7,$E7
     5'b00101,5'b00110,5'b00111 : begin
         // Zero Page
-        if (IR[7:6] != 2'b10 && IR[1] && (mode == 2'b00 || ~IR[0])) begin   //covers 0x-7x,cx-fx x=2,3,6,7,a,b,e,f, for 6502 undocs
+        if (IR[7:6] != 2'b10 && IR[1] && (Mode == 2'b00 || ~IR[0])) begin   //covers 0x-7x,cx-fx x=2,3,6,7,a,b,e,f, for 6502 undocs
             // Read-Modify-Write
-            lCycle <= Cycle_4;
+            LCycle <= Cycle_4;
             if (Mode == 2'b00 && IR[0]) 
                 LDA <= 1'b1;
             case (MCycle)
@@ -696,7 +696,7 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
             default : ;
             endcase
         end else begin
-            lCycle <= Cycle_2;
+            LCycle <= Cycle_2;
             if (IR[7:6] != 2'b10) 
                 LDA <= 1'b1;
             case (MCycle)
@@ -718,7 +718,7 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
         // Absolute
         if (IR[7:6] == 2'b01 && IR[4:0] == 5'b01100) begin      // JMP ($4C,$6C)
             if (IR[5] == 1'b0) begin
-                lCycle <= Cycle_2;
+                LCycle <= Cycle_2;
                 case (MCycle)
                 Cycle_1 : begin
                     Jump <= 2'b01;
@@ -729,7 +729,7 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
                 default : ;
                 endcase
             end else begin
-                lCycle <= Cycle_4;
+                LCycle <= Cycle_4;
                 case (MCycle)
                 Cycle_1 : begin
                     Jump <= 2'b01;
@@ -757,7 +757,7 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
                 endcase
             end
         end else begin
-            lCycle <= Cycle_3;
+            LCycle <= Cycle_3;
             case (MCycle)
             Cycle_sync : 
                 if (IR[7:5] == 3'b001)      //2c-BIT
@@ -784,9 +784,9 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
     //     $0F,$2F,$4F,$6F,$8F,$AF,$CF,$EF
     5'b01101,5'b01110,5'b01111 : begin
         // Absolute
-        if (IR[7:6] != 2'b10 && IR[1] && (mode == 2'b00 || IR[0] == 1'b0)) begin    // ($0E,$2E,$4E,$6E,$CE,$EE, $0F,$2F,$4F,$6F,$CF,$EF)
+        if (IR[7:6] != 2'b10 && IR[1] && (Mode == 2'b00 || IR[0] == 1'b0)) begin    // ($0E,$2E,$4E,$6E,$CE,$EE, $0F,$2F,$4F,$6F,$CF,$EF)
             // Read-Modify-Write
-            lCycle <= Cycle_5;
+            LCycle <= Cycle_5;
             if (Mode == 2'b00 && IR[0]) 
                 LDA <= 1'b1;
             case (MCycle)
@@ -820,7 +820,7 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
             default : ;
             endcase
         end else begin
-            lCycle <= Cycle_3;
+            LCycle <= Cycle_3;
             if (IR[7:6] != 2'b10)       // all but $8D, $8E, $8F, $AD, $AE, $AF ($AD does set LDA in an earlier case statement)
                 LDA <= 1'b1;
             case (MCycle)
@@ -849,11 +849,11 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
         // whether or not the branch is taken and if a page
         // is crossed...
         if (Branch)
-            lCycle <= Cycle_3;  // We're done @ T3 if branching...upper
+            LCycle <= Cycle_3;  // We're done @ T3 if branching...upper
                                 // level logic will stop at T2 if no page cross
                                 // (See the Break signal)
         else 
-            lCycle <= Cycle_1;
+            LCycle <= Cycle_1;
 
         // This decodes the current microcycle and takes the
         // proper course of action...
@@ -892,11 +892,11 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
     // IR: $11,$31,$51,$71,$91,$B1,$D1,$F1
     //     $13,$33,$53,$73,$93,$B3,$D3,$F3
     5'b10001,5'b10011 : begin
-        lCycle <= Cycle_5;
+        LCycle <= Cycle_5;
         if (IR[7:6] != 2'b10) begin // ($11,$31,$51,$71,$D1,$F1,$13,$33,$53,$73,$D3,$F3)
             LDA <= 1'b1;
             if (Mode == 2'b00 && IR[1]) 
-                lCycle <= Cycle_7;
+                LCycle <= Cycle_7;
         end
         case (MCycle)
         Cycle_1 : begin
@@ -956,7 +956,7 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
             // Read-Modify-Write
             if (Mode == 2'b00 && IR[0]) 
                 LDA <= 1'b1;
-            lCycle <= Cycle_5;
+            LCycle <= Cycle_5;
             case (MCycle)
             Cycle_1 : begin
                 Jump <= 2'b01;
@@ -989,7 +989,7 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
             default : ;
             endcase
         end else begin
-            lCycle <= Cycle_3;
+            LCycle <= Cycle_3;
             if (IR[7:6] != 2'b10 && IR[0])  // dont LDA on undoc skip
                 LDA <= 1'b1;
             case (MCycle)
@@ -1018,11 +1018,11 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
     //     $1B,$3B,$5B,$7B,$9B,$BB,$DB,$FB
     5'b11001,5'b11011 : begin
         // Absolute Y
-        lCycle <= Cycle_4;
+        LCycle <= Cycle_4;
         if (IR[7:6] != 2'b10) begin
             LDA <= 1'b1;
             if (Mode == 2'b00 && IR[1]) 
-                lCycle <= Cycle_6;
+                LCycle <= Cycle_6;
         end
         case (MCycle)
         Cycle_1 : begin
@@ -1075,7 +1075,7 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
         // Absolute X
         if (IR[7:6] != 2'b10 && IR[1] && (Mode == 2'b00 || ~IR[0])) begin    // ($1E,$3E,$5E,$7E,$DE,$FE, $1F,$3F,$5F,$7F,$DF,$FF)
             // Read-Modify-Write
-            lCycle <= Cycle_6;
+            LCycle <= Cycle_6;
             if (Mode == 2'b00 && IR[0]) 
                 LDA <= 1'b1;
             case (MCycle)
@@ -1115,7 +1115,7 @@ always @(IR, MCycle, P, Branch, Mode, Rdy_mod, BCD_en) begin
             default : ;
             endcase
         end else begin  // ($1C,$3C,$5C,$7C,$9C,$BC,$DC,$FC, $1D,$3D,$5D,$7D,$9D,$BD,$DD,$FD, $9E,$BE,$9F,$BF)
-            lCycle <= Cycle_4;  //Or 3 if not page crossing
+            LCycle <= Cycle_4;  //Or 3 if not page crossing
             if (IR[7:6] != 2'b10) begin
                 if (Mode != 2'b00 || ~IR[4] || IR[1:0] != 2'b00) 
                     LDA <= 1'b1;

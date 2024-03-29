@@ -21,15 +21,13 @@ module MapperFDS(
 	inout        irq_b,       // IRQ
 	input [15:0] audio_in,    // Inverted audio from APU
 	inout [15:0] audio_b,     // Mixed audio output
-	inout [15:0] flags_out_b, // flags {0, 0, 0, 0, has_savestate, prg_conflict, prg_bus_write, has_chr_dout}
+	inout [15:0] flags_out_b, // flags {0, 0, 0, 0, 0, prg_conflict, prg_bus_write, has_chr_dout}
 	// Special ports
-	input [7:0] prg_dbus,     // For getting data during disk reads
 	input [7:0] audio_dout,
-	inout [1:0] diskside_b,
-	input [1:0] max_diskside,
+	inout [1:0] diskside_auto_b,
+	input [1:0] diskside,
 	input       fds_busy,
-	input       fds_eject_btn,
-	input       fds_auto_eject_en
+	input       fds_eject
 );
 
 assign prg_aout_b      = enable ? prg_aout : 22'hZ;
@@ -42,7 +40,7 @@ assign vram_ce_b       = enable ? vram_ce : 1'hZ;
 assign irq_b           = enable ? irq : 1'hZ;
 assign flags_out_b     = enable ? flags_out : 16'hZ;
 assign audio_b         = enable ? audio[15:0] : 16'hZ;
-assign diskside_b      = enable ? diskside : 2'hZ;
+assign diskside_auto_b = enable ? diskside_auto : 2'hZ;
 
 wire [21:0] prg_aout, chr_aout;
 wire prg_allow;
@@ -53,88 +51,230 @@ wire [7:0] prg_dout;
 wire [15:0] flags_out = {14'd0, prg_bus_write, 1'b0};
 wire prg_bus_write;
 wire irq;
-
+wire [1:0] diskside_auto;
 wire [15:0] audio = audio_in;
 
-reg fds_prg_bus_write;
-wire fds_audio_prg_bus_write = (prg_ain >= 16'h4040 && prg_ain < 16'h4080) | (prg_ain >= 16'h4090 && prg_ain <= 16'h4097);
-assign prg_bus_write = (fds_prg_bus_write | fds_audio_prg_bus_write);
+wire nesprg_oe;
+wire [7:0] neschrdout;
+wire neschr_oe;
+wire wram_oe;
+wire wram_we;
+wire prgram_we;
+wire chrram_oe;
+wire prgram_oe;
+wire exp6;
+reg [7:0] m2;
+wire m2_n = 1;//~ce;  //m2_n not used as clk.  Invert m2 (ce).
 
-reg vertical;
+always @(posedge clk) begin
+	m2[7:1] <= m2[6:0];
+	m2[0] <= ce;
+end
 
-reg timer_irq;
-reg timer_irq_en;
-reg timer_irq_repeat;
-reg [15:0] timerlatch;
-reg [15:0] timer;
+MAPFDS fds(m2[7], m2_n, clk, ~enable, prg_write, nesprg_oe, 0,
+	1, prg_ain, chr_ain, prg_din, 8'b0, prg_dout, prg_bus_write,
+	neschrdout, neschr_oe, chr_allow, chrram_oe, wram_oe, wram_we, prgram_we,
+	prgram_oe, chr_aout[18:10], prg_aout[18:0], irq, vram_ce, exp6,
+	0, 7'b1111111, 6'b111111, flags[14], flags[16], flags[15],
+	ce, prg_allow, audio_dout, diskside_auto, diskside, fds_busy, fds_eject);
 
-reg write_en;
-reg diskreset;
-reg disk_reg_en;
-reg disk_irq_en;
-reg motor_on;
-reg byte_transfer_flag;
-reg new_byte;
-reg byte_transfer;
-reg got_start_byte, got_start_byte_d;
-reg after_pre_gap;
-reg read_4030;
-reg [15:0] transfer_cnt;
-reg [15:0] byte_cnt;
-reg [15:0] file_size;
-reg [2:0] block_type;
-reg block_end;
+assign chr_aout[21:19] = 3'b100;
+assign chr_aout[9:0] = chr_ain[9:0];
+assign vram_a10 = chr_aout[10];
+assign prg_aout[21:19] = prg_aout[18] ? 3'b111 : 3'b000;  //Switch to Cart Ram for Disk access
+//assign prg_aout[12:0] = prg_ain[12:0];
 
-wire disk_eject;
-reg disk_eject_auto, disk_eject_wait;
-reg [1:0] diskside;
-reg [15:0] diskpos;
-reg [17:0] sideoffset;
-wire [17:0] romoffset;
-reg [4:0] read_4032_cnt;
-reg [22:0] cpu_clk_cnt;
-reg old_eject_btn;
+endmodule
 
-reg read_disk_d, write_disk_d;
-wire read_disk = (prg_read & prg_ain == 16'h4031);
-wire write_disk = (prg_write & prg_ain == 16'h4024 & write_en & byte_transfer & got_start_byte_d & motor_on & ~diskreset & ~block_end);
-wire disk_ready = (~disk_eject & ~diskreset & motor_on & ~diskend);
-wire [7:0] disk_data = write_disk ? prg_din : prg_dbus;
-wire disk_irq = (byte_transfer_flag & disk_irq_en);
+// Loopy's FDS mapper for the Power Pak mapFDS.v
+//PRG 00000-01FFF = bios
+//PRG 08000-0FFFF = wram
+//PRG 40000-7FFFF = disk image
+module MAPFDS(              //signal descriptions in powerpak.v
+	input m2,
+	input m2_n,
+	input clk20,
 
-// The FDS transfer rate is around 96.4kHz which is 10.37 microseconds per bit.
-// The gap at the start of the disk is typically 28300 bits long and gaps between blocks 976 bits.
-// A byte takes 82.99 microseconds which is around 149 CPU cycles.
-// We can use shorter delays here.
-localparam PRE_GAP_DELAY = 16'd65535; // 525420
-localparam BYTE_DELAY    = 16'd99;  // 149
-localparam EJECT_DELAY   = 80 * 23'd22335;
+	input reset,
+	input nesprg_we,
+	output nesprg_oe,
+	input neschr_rd,
+	input neschr_wr,
+	input [15:0] prgain,
+	input [13:0] chrain,
+	input [7:0] nesprgdin,
+	input [7:0] ramprgdin,
+	output reg [7:0] nesprgdout,
+	output prg_bus_write,
 
-always@(posedge clk) begin
-	if(~enable) begin
-		diskside <= 0;
-		timer_irq_en <= 0;
-		timer_irq <= 0;
-		disk_reg_en <= 0;
-		disk_irq_en <= 0;
-		write_en <= 0;
-		byte_transfer <= 0;
-		byte_transfer_flag <= 0;
-		new_byte <= 0;
-		got_start_byte <= 0;
-		got_start_byte_d <= 0;
-		after_pre_gap <= 0;
-		read_4030 <= 0;
-		byte_cnt <= 0;
-		transfer_cnt <= 0;
-		block_end <= 0;
-		disk_eject_auto <= 0;
-		disk_eject_wait <= 0;
-		read_4032_cnt <= 0;
-		cpu_clk_cnt <= 0;
-		read_disk_d <= 0;
-		write_disk_d <= 0;
-	end else begin
+	output [7:0] neschrdout,
+	output neschr_oe,
+
+	output chrram_we,
+	output chrram_oe,
+	output wram_oe,
+	output wram_we,
+	output prgram_we,
+	output prgram_oe,
+	output [18:10] ramchraout,
+	output [18:0] ramprgaout,
+	output irq,
+	output ciram_ce,
+	output exp6,
+
+	input cfg_boot,
+	input [18:12] cfg_chrmask,
+	input [18:13] cfg_prgmask,
+	input cfg_vertical,
+	input cfg_fourscreen,
+	input cfg_chrram,
+
+	input ce,// add
+	output prg_allow,
+	input [7:0] audio_dout,
+	//output [11:0] snd_level,
+	output reg [1:0] diskside_auto,
+	input [1:0] diskside,
+	input fds_busy,
+	input fds_eject
+);
+
+	localparam WRITE_LO=16'hF4CD, WRITE_HI=16'hF4CE, READ_LO=16'hF4D0, READ_HI=16'hF4D1;
+
+	assign neschrdout = 0;
+	assign neschr_oe = 0;
+	assign exp6 = 0;
+
+	wire disk_eject;
+	reg timer_irq;
+	reg [1:0] Wstate;
+	reg [1:0] Rstate;
+
+	assign chrram_we=!chrain[13] & neschr_wr;
+	assign chrram_oe=!chrain[13] & neschr_rd;
+
+	assign wram_we=0; //use main ram for everything
+	assign wram_oe=0;
+
+	assign prgram_we=~cfg_boot & m2_n &  nesprg_we & (Wstate==2 | (prgain[15]^(&prgain[14:13])));       //6000-DFFF or disk write
+	assign prgram_oe=~cfg_boot & m2_n & ~nesprg_we & (prgain[15] | prgain[15:13]==3);                   //6000-FFFF
+	wire   fds_oe=               m2_n & ~nesprg_we & (prgain[15:12]==4) & (|prgain[7:5] | prgain[9]);   //$4xxx (except 00-1F) or 42xx
+
+	assign nesprg_oe=prgram_oe | fds_oe;
+
+	reg saved=0;
+	reg [15:0] diskpos;
+	reg [17:0] sideoffset;
+	wire [17:0] romoffset;
+
+	assign prg_bus_write = (fds_prg_bus_write | fds_audio_prg_bus_write);
+	reg fds_prg_bus_write;
+	wire fds_audio_prg_bus_write = (prgain >= 16'h4040 && prgain < 16'h4080) | (prgain >= 16'h4090 && prgain <= 16'h4097);
+
+// Loopy's patched bios use a trick to catch requested diskside for games
+// using standard bios load process.
+// Unlicensed games sometimes doesn't use standard bios load process. This
+// break automatic diskside trick.
+// diskside_manual to be manage from OSD user input allow to add diskswap capabilities.
+// (automatic fds_eject should be preferably stopped before changing diskside_manual)
+
+//	reg [1:0] diskside_auto;
+//	wire[1:0] diskside;
+//	assign diskside = diskside_auto + diskside_manual;
+	wire diskend=(diskpos==65499);
+	always@* case(diskside) //16+65500*diskside
+		0:sideoffset=18'h00010;
+		1:sideoffset=18'h0ffec;
+		2:sideoffset=18'h1ffc8;
+		3:sideoffset=18'h2ffa4;
+	endcase
+	assign romoffset=diskpos + sideoffset;
+
+// Unlicensed fds games use NMI trick to skip protection. Rationale is to load
+// a file starting @$2000 with $90 or $80 to enable NMI. This file should be at
+// least 256 bytes length to allow NMI to occure before end of load. PC is then
+// transfered to a special loader. This is ok with real hardware.
+// But with loopy's patched bios the 256 bytes file is loaded too fast and no NMI
+// occure early enough.
+// Here proposed solution is to create an infinite loop at the end of normal
+// load subroutine if @$2000 was written during load subroutine. Infinite loop
+// give enough time for NMI to occure. (Generaly observed NMI enabling file is
+// the last file of 'normal' loading process to be loaded). @2000.7 is checked to
+// ensure the NMI is being turned on ($90 or $80 mentioned above).
+
+	// manage infinite loop trap at the end ($E233) of LoadFiles subroutine
+//	 reg previous_is_E1F9;
+	reg infinite_loop_on_E233 = 0;
+	reg within_loader = 0;
+//	 reg loader_write_in_2000 = 0;
+always@(posedge clk20)
+		if(reset) begin
+			// on reset activate infinite loop trap
+		end
+		else begin
+				if ((m2) && (ramprgaout[18]==1'b0))begin
+
+					// detect enter / leave LoadFile subroutine
+					if(prgain==16'hE1FA) within_loader <= 1;
+					if(prgain==16'hE235) within_loader <= 0;
+
+					// deactivate infinite loop at LoadFile subroutine
+					if(prgain==16'hE1FA) infinite_loop_on_E233 <= 0;
+
+					// activate infinite loop if @$2000 is written with NMI (bit 7) high during FileLoad subroutine
+					if((prgain==16'h2000) && (within_loader == 1) && (nesprgdin[7])) infinite_loop_on_E233 <= 1;
+				end
+
+		end
+
+//NES data out
+wire match0=prgain==16'h4030;       //IRQ status
+wire match1=prgain==16'h4032;       //drive status
+wire match2=prgain==16'h4033;       //power / exp
+wire match3=((prgain==READ_LO)|(prgain==WRITE_LO))&!(Wstate==2 | Rstate==2);
+wire match4=((prgain==READ_HI)|(prgain==WRITE_HI))&!(Wstate==2 | Rstate==2);
+wire match5=prgain==16'h4208;       //powerpak save flag
+wire match6=prgain[15:8]==8'h40 && |prgain[7:6];    //4040..40FF
+wire match7=(prgain==16'hE233) & infinite_loop_on_E233 & (ramprgaout[18]==1'b0);
+wire match8=(prgain==16'hE234) & infinite_loop_on_E233 & (ramprgaout[18]==1'b0);
+wire match9=(prgain==16'hE235) & infinite_loop_on_E233 & (ramprgaout[18]==1'b0);
+wire match10=prgain==16'h4029;      //MiSTer Busy
+always @* begin
+	fds_prg_bus_write = 1'b1;
+	case(1)
+		match0: nesprgdout={7'd0, timer_irq};
+		match1: nesprgdout={5'd0, disk_eject, diskend, disk_eject};
+		match2: nesprgdout=8'b10000000;
+		match3: nesprgdout=romoffset[7:0];
+		match4: nesprgdout={3'b111,romoffset[12:8]};
+		match5: nesprgdout={7'd0,saved};
+		match6: nesprgdout=audio_dout;
+		match7: nesprgdout=8'h4C;  // when infinite loop is active replace jsr $E778 with jmp $E233
+		match8: nesprgdout=8'h33;
+		match9: nesprgdout=8'hE2;
+		match10:nesprgdout={7'd0,~fds_busy};//MiSTer busy (zero = busy)
+		default: begin
+			nesprgdout=ramprgdin;
+			fds_prg_bus_write = 0;
+		end
+	endcase
+end
+
+assign prg_allow = (nesprg_we & (Wstate==2 | (prgain[15]^(&prgain[14:13]))))
+				| (~nesprg_we & ((prgain[15] & !match3 & !match4 & !match7 & !match8 & !match9) | prgain[15:13]==3));
+
+	reg write_en;
+	reg vertical;
+	reg timer_irq_en;
+	reg timer_irq_repeat;
+	reg diskreset;
+	reg disk_reg_en;
+	reg [15:0] timerlatch;
+	reg [15:0] timer;
+	always@(posedge clk20) begin
+		if(reset) begin
+			diskside_auto <= 2'd0;
+		end
 
 		if (ce) begin
 			if (timer_irq_en) begin
@@ -147,301 +287,121 @@ always@(posedge clk) begin
 				end else begin
 					timer <= timer - 1'd1;
 				end
-			end
-
-			if(prg_write) begin
-				case(prg_ain)
-					16'h4020: timerlatch[7:0] <= prg_din;
-
-					16'h4021: timerlatch[15:8] <= prg_din;
-
-					16'h4022: begin
-						timer_irq_repeat <= prg_din[0];
-						timer_irq_en <= prg_din[1] & disk_reg_en;
-
-						if (prg_din[1] & disk_reg_en) begin
-							timer <= timerlatch;
-						end else begin
-							timer_irq <= 0;
-						end
-					end
-
-					16'h4023: begin
-						disk_reg_en <= prg_din[0];
-						if (~prg_din[0]) begin
-							timer_irq_en <= 0;
-							timer_irq <= 0;
-						end
-					end
-
-					16'h4024: begin //disk data write
-						byte_transfer_flag <= 0;
-						if (write_en & byte_transfer & prg_din == 8'h80) begin
-							got_start_byte <= 1;
-						end
-					end
-
-					16'h4025: begin // disk control
-						motor_on      <= prg_din[0];
-						diskreset     <= prg_din[1];
-						write_en      <= !prg_din[2];
-						vertical      <= !prg_din[3];
-						//crc_en        <= prg_din[4];
-						byte_transfer <= prg_din[6];
-						disk_irq_en   <= prg_din[7];
-
-						if (~byte_transfer & prg_din[6]) begin // new transfer start
-							byte_transfer_flag <= write_en;
-							new_byte <= 0;
-							got_start_byte <= 0;
-							got_start_byte_d <= 0;
-							byte_cnt <= 0;
-							block_end <= 0;
-							block_type <= 0;
-							if (after_pre_gap) begin
-								transfer_cnt <= 0;
-							end
-						end
-					end
-
-					16'h4027:   //powerpak extra: disk side
-						if (fds_auto_eject_en)
-							diskside <= prg_din[1:0];
-				endcase
-			end
-
-			got_start_byte_d <= got_start_byte;
-
-
-			// ---- Disk switching
-			cpu_clk_cnt <= cpu_clk_cnt + 1'b1;
-
-			if (~fds_auto_eject_en) begin
-				old_eject_btn <= fds_eject_btn;
-				if (~old_eject_btn & fds_eject_btn & ~write_en) begin
-					diskside <= (max_diskside == diskside) ? 2'd0 : (diskside + 1'b1);
-					disk_eject_auto <= 1; // Minimum eject time
-					cpu_clk_cnt <= 0;
-				end
-			end
-
-			if (fds_auto_eject_en) begin
-				if (diskreset) begin // Diskreset is usually on when the game is waiting for disk swap
-					if (~disk_eject_auto) begin
-						if (prg_read & prg_ain == 16'h4032 & ~disk_eject_wait) begin
-							read_4032_cnt <= read_4032_cnt + 1'b1;
-						end
-
-						if (read_4032_cnt == 5'd20) begin
-							disk_eject_auto <= 1;
-							disk_eject_wait <= 1;
-							cpu_clk_cnt <= 0;
-						end
-					 end
-				end else begin
-					disk_eject_auto <= 0;
-					read_4032_cnt <= 0;
-					disk_eject_wait <= 0;
-					cpu_clk_cnt <= 0;
-				end
-			end
-
-			if (cpu_clk_cnt == EJECT_DELAY) begin // Eject for a certain amount of frames
-				read_4032_cnt <= 0;
-				cpu_clk_cnt <= 0;
-				if (disk_eject_auto) begin
-					disk_eject_auto <= 0;
-				end else if (disk_eject_wait) begin // Wait a while after inserting the disk
-					disk_eject_wait <= 0;
-				end
-			end
-
-
-			// ---- Disk transfers
-			if (prg_read & prg_ain == 16'h4030) begin
-				read_4030 <= 1;
-			end
-
-			if (read_4030) begin
-				timer_irq <= 0;
-				byte_transfer_flag <= 0;
-				read_4030 <= 0;
-			end
-
-			// For some reason the 2 CRC bytes at the end of every block
-			// are missing from .fds files so we need to determine
-			// where the block ends to prevent reads/writes overflowing.
-			if ((read_disk & ~write_en) | write_disk) begin
-				if (byte_cnt == 0) begin
-					block_type <= disk_data[2:0];
-				end
-
-				if (block_type == 3) begin
-					if (byte_cnt == 'h0D) file_size[ 7:0] <= disk_data;
-					if (byte_cnt == 'h0E) file_size[15:8] <= disk_data;
-				end
-			end
-
-			read_disk_d <= read_disk;
-			write_disk_d <= write_disk;
-
-			if (read_disk_d & byte_transfer_flag) begin
-				byte_transfer_flag <= 0;
-			end
-
-			if ((read_disk_d & ~write_en) | write_disk_d) begin // Delayed to the next CE after a read/write.
-				if (new_byte) begin
-					new_byte <= 0;
-					byte_cnt <= byte_cnt + 1'b1;
-					if (~diskend & ~block_end) begin
-						diskpos <= diskpos + 1'b1;
-					end
-
-					if (  (block_type == 1 && byte_cnt == 'h37)
-						| (block_type == 2 && byte_cnt == 'h01)
-						| (block_type == 3 && byte_cnt == 'h0F)
-						| (block_type == 4 && byte_cnt == file_size) )
-					begin
-						block_end <= 1;
-					end
-				end
-			end
-
-			transfer_cnt <= transfer_cnt + 1'b1;
-			if (~motor_on) begin
-				transfer_cnt <= 0;
-			end else if(diskreset) begin
-				transfer_cnt <= 0;
-				diskpos<=0;
-				after_pre_gap <= 0;
-			end else begin
-				if (~after_pre_gap) begin
-					if (transfer_cnt == PRE_GAP_DELAY) begin // Beginning of disk
-						after_pre_gap <= 1;
-						transfer_cnt <= 0;
-					end
-				end else if (transfer_cnt == BYTE_DELAY) begin
-					transfer_cnt <= 0;
-					if (byte_transfer & ~fds_busy) begin
-						byte_transfer_flag <= 1;
-						new_byte <= 1;
-					end
-				end
-			end
 		end
+
+		if(nesprg_we)
+			case(prgain)
+				16'h4020: timerlatch[7:0]<=nesprgdin;
+
+				16'h4021: timerlatch[15:8]<=nesprgdin;
+
+				16'h4022: begin
+					timer_irq_repeat<=nesprgdin[0];
+					timer_irq_en<=nesprgdin[1] & disk_reg_en;
+
+					if (nesprgdin[1] & disk_reg_en) begin
+						timer <= timerlatch;
+					end else begin
+						timer_irq <= 0;
+					end
+				end
+
+				16'h4023: begin
+					disk_reg_en <=nesprgdin[0];
+					if (~nesprgdin[0]) begin
+						timer_irq_en <= 0;
+						timer_irq <= 0;
+					end
+				end
+
+				//16'h4024: //disk data write
+				16'h4025: begin // disk control
+					diskreset<=nesprgdin[1];
+					write_en<=!nesprgdin[2];
+					vertical<=!nesprgdin[3];
+					//disk_irq_en<=nesprgdin[7];
+				end
+
+				16'h4027:   //powerpak extra: disk side
+					diskside_auto<=nesprgdin[1:0];
+			endcase
+	end
+
+	if (m2) begin
+		if (~nesprg_we & prgain==16'h4030)
+			timer_irq <= 0;
 	end
 end
 
-// Loopy's patched bios use a trick to catch requested diskside for games
-// using standard bios load process.
-// Unlicensed games sometimes doesn't use standard bios load process. This
-// break automatic diskside trick.
-// diskside_manual to be manage from OSD user input allow to add diskswap capabilities.
-// (automatic fds_eject should be preferably stopped before changing diskside_manual)
+//watch for disk read/write
+always@(posedge clk20) begin
+	if (m2) begin
+		if(write_en & ~nesprg_we & (prgain==WRITE_LO))
+			Wstate<=1;
+		else if(~nesprg_we & (prgain==WRITE_HI) & Wstate==1)
+			Wstate<=2;
+		else
+			Wstate<=0;
 
-wire diskend=(diskpos==65499);
-always@* case(diskside) //16+65500*diskside
-	0:sideoffset=18'h00010;
-	1:sideoffset=18'h0ffec;
-	2:sideoffset=18'h1ffc8;
-	3:sideoffset=18'h2ffa4;
-endcase
-assign romoffset=diskpos + sideoffset;
+		if(~nesprg_we & (prgain==READ_LO))
+			Rstate<=1;
+		else if(~nesprg_we & (prgain==READ_HI) & Rstate==1)
+			Rstate<=2;
+		else
+			Rstate<=0;
 
-
-// BIOS patches
-localparam BIOS_PATCHES_CNT = 51;
-wire [23:0] BIOS_PATCHES[BIOS_PATCHES_CNT] = '{
-	// Wait for button press before loading disk
-	'hEEE2_09,                       // Don't branch here otherwise no music
-
-	'hEF33_20, 'hEF34_CC, 'hEF35_F4, // JSR $F4CC
-	'hEF36_29, 'hEF37_F0,            // AND #$F0
-	'hEF38_F0, 'hEF39_B0,            // BEQ $EEEA
-
-	'hF4CC_20, 'hF4CD_EB, 'hF4CE_E9, // JSR $E9EB (ReadCtrls)
-	'hF4CF_A5, 'hF4D0_F5,            // LDA $F5
-	'hF4D1_05, 'hF4D2_F4,            // ORA $F4
-	'hF4D3_85, 'hF4D4_F4,            // STA $F4
-	'hF4D5_60,                       // RTS
-
-	// Store diskside to $4027
-	'hE445_20, 'hE446_D6, 'hE447_F4, // JSR $F4D6
-
-	'hF4D6_A0, 'hF4D7_06,            // LDY #$06
-	'hF4D8_B1, 'hF4D9_00,            // LDA ($00),Y
-	'hF4DA_30, 'hF4DB_03,            // BMI $F4DF
-	'hF4DC_8D, 'hF4DD_27, 'hF4DE_40, // STA $4027
-	'hF4DF_4C, 'hF4E0_E3, 'hF4E1_E6, // JMP $E6E3 (StartXfer)
-
-	// Remove some delays
-	//'hE652_EA, 'hE653_EA, 'hE654_EA, // NOP <- This delay is needed for SMB2J Level 4-4 end
-	'hE655_EA, 'hE656_EA, 'hE657_EA,
-	'hE65D_EA, 'hE65E_EA, 'hE65F_EA,
-	'hE691_EA, 'hE692_EA, 'hE693_EA,
-	'hE6BB_EA, 'hE6BC_EA, 'hE6BD_EA,
-	'hE6E8_EA, 'hE6E9_EA, 'hE6EA_EA,
-	'hE6ED_EA, 'hE6EE_EA, 'hE6EF_EA
-};
-
-
-reg [7:0] patch_data;
-reg patch_found;
-integer i;
-always @* begin
-	patch_found = 0;
-	patch_data = 0;
-	for (i = 0; i < BIOS_PATCHES_CNT; i=i+1) begin
-		if (BIOS_PATCHES[i][23:8] == prg_ain) begin
-			patch_data = BIOS_PATCHES[i][7:0];
-			patch_found = 1;
-		end
+		if(Wstate==2)
+			saved<=1;
 	end
 end
 
-//NES data out
-reg [7:0] prg_dout_r;
-always @* begin
-	fds_prg_bus_write = 1'b1;
-
-	if (prg_ain == 16'h4030) begin //IRQ status
-		prg_dout_r = {1'b0, diskend, 4'd0 ,byte_transfer_flag, timer_irq};
-	end else if (prg_ain == 16'h4032) begin //drive status
-		prg_dout_r = {4'h4, 1'b0, disk_eject, ~disk_ready, disk_eject};
-	end else if (prg_ain == 16'h4033) begin //power / exp
-		prg_dout_r = 8'b10000000;
-	end else if (fds_audio_prg_bus_write) begin
-		prg_dout_r = audio_dout;
-	end else if (patch_found) begin
-		prg_dout_r = patch_data;
-	end else begin
-		prg_dout_r = 8'd0;
-		fds_prg_bus_write = 0;
+//disk pointer
+always@(posedge clk20) begin
+	if (m2) begin
+		if(diskreset)
+			diskpos<=0;
+		else if(Rstate==2 & !diskend)
+			diskpos<=diskpos+1'd1;
 	end
 end
 
+assign irq=timer_irq; // | disk_irq
 
-assign prg_dout = prg_dout_r;
+//disk eject:   toggle flag continuously except when select button is held
+//reg [2:0] control_cnt; //use fds_eject instead
+//reg [21:0] clkcount;
 
-assign irq = timer_irq | disk_irq;
+//assign disk_eject=clkcount[21] | fds_eject;
+assign disk_eject=fds_eject;
 
-assign disk_eject = disk_eject_auto | fds_eject_btn;
+//always@(posedge clk20) begin
+//	if (ce) begin
+//		clkcount<=clkcount+1'd1;
+//		if(prgain==16'h4016) begin
+//			if(nesprg_we)                           control_cnt<=0;
+//			else if(~nesprg_we & control_cnt!=7)    control_cnt<=control_cnt+1'd1;
+//			//if(~nesprg_we & control_cnt==2)          button<=|nesprgdin[1:0];
+//		end
+//	end
+//end
 
 //bankswitch control: 6000-DFFF = sram, E000-FFFF = bios or disk
-wire prg_is_ram = prg_ain[15] ^ (&prg_ain[14:13]); //$6000-DFFF
-wire [5:0] prgbank = prg_is_ram ? { 4'b0001,prg_ain[14:13] } : 6'd0;
+reg [18:13] prgbank;
+wire [18:13] diskbank={1'b1,romoffset[17:13]};
 
-//Switch to Cart Ram for Disk access
-//PRG 00000-01FFF = bios
-//PRG 08000-0FFFF = wram
-//PRG 40000-7FFFF = disk image
-assign prg_aout = (read_disk | write_disk) ? { 4'b111_1,romoffset } : { 3'b000,prgbank,prg_ain[12:0] };
-assign prg_allow = (prg_read & prg_ain[15] & ~fds_prg_bus_write) | (prg_is_ram | read_disk | write_disk);
+always@* begin
+	if(prgain[15:13]==7)
+		prgbank=diskbank & {6{Rstate==2|Wstate==2}};
+	else
+		prgbank={4'b0001,prgain[14:13]};
+end
 
-assign chr_allow = 1;
-assign chr_aout = { 9'b10_0000_000, chr_ain[12:0] };
-assign vram_a10 = vertical ? chr_aout[10] : chr_aout[11];
-assign vram_ce = chr_ain[13];
+assign ramprgaout={prgbank,prgain[12:0]};
+
+//mirroring
+assign ramchraout[18:11]={6'd0,chrain[12:11]};
+assign ramchraout[10]=!chrain[13]? chrain[10]: ((vertical & chrain[10]) | (!vertical & chrain[11]));
+assign ciram_ce=chrain[13];
 
 endmodule
 
@@ -578,7 +538,7 @@ wire [19:0] wave_pitch = $unsigned(temp3[11:4]) * wave_frequency;
 // Volume math
 wire [11:0] mul_out = wave_latch * (vol_pwm_lat[5] ? 6'd32 : vol_pwm_lat);
 
-wire [15:0] level_out;
+reg [15:0] level_out;
 assign audio_out = level_out[11:0];
 
 always_comb begin

@@ -183,7 +183,7 @@ reg [7:0] DO_r;
 
 reg [1:0] Mode_r;
 reg BCD_en_r;
-T_ALU_Op ALU_Op_r;         
+T_ALU_OP ALU_Op_r;         
 T_Write_Data Write_Data_r;     
 T_Set_Addr_To Set_Addr_To_r;
 wire [8:0] PCAdder;
@@ -211,7 +211,7 @@ wire [7:0] P_Out;
 
 // Micro code outputs
 wire [2:0] LCycle;
-T_ALU_Op ALU_Op;  
+T_ALU_OP ALU_Op;  
 T_Set_BusA_To Set_BusA_To;
 T_Set_Addr_To Set_Addr_To;
 T_Write_Data Write_Data;
@@ -321,7 +321,7 @@ T65_ALU alu(
 
 // the 65xx design requires at least two clock cycles before
 // starting its reset sequence (according to datasheet)
-always @(posedge Res_n, posedge Clk) begin
+always @(posedge Clk) begin
     if (~Res_n) begin
         Res_n_i <= 1'b0;
         Res_n_d <= 1'b0;
@@ -483,17 +483,6 @@ always @(posedge Clk) begin
 
             P <= tmpP;          //new way
         end
-
-        // detect irq even if not rdy
-        if (IR[4:0] != 5'b10000 || Jump != 2'b01 || really_rdy == 1'b0) begin
-            // delay interrupts during branches (checked with Lorenz test and real 6510), not best way yet, though - but works...
-            IRQ_n_o <= IRQ_n;
-        end
-        // detect nmi even if not rdy
-        if (IR[4:0] != 5'b10000 || Jump != 2'b01) begin
-            // delay interrupts during branches (checked with Lorenz test and real 6510) not best way yet, though - but works...
-            NMI_n_o <= NMI_n;
-        end
     end
 
     // act immediately on SO pin change
@@ -571,7 +560,7 @@ always @(posedge Clk) begin
                         NMI_entered <= 1'b1;
                 end else 
                     BAL[2:0] <= 3'b110;
-                if (Set_addr_To_r == Set_Addr_To_BA) 
+                if (Set_Addr_To_r == Set_Addr_To_BA) 
                     BAL[0] <= 1'b1;
             end
 
@@ -604,6 +593,7 @@ always @(*) begin
     Set_BusA_To_DAX :   BusA <= (ABC[7:0] | 8'hee) & DI & X[7:0];   //XAA, ee for OAL instruction. constant may be different on other platforms.TODO:Move to generics
     Set_BusA_To_AAX :   BusA <= ABC[7:0] & X[7:0];                  //SAX, SHA
     Set_BusA_To_DONTCARE : BusA <= {8{1'bX}};                       //Can probably remove this
+    default:            BusA <= {8{1'bX}};
     endcase
 end
 
@@ -635,6 +625,7 @@ always @(*) begin
     Write_Data_XB :     DO_r <= X[7:0] & BusB_r[7:0];               // no better way found yet...
     Write_Data_YB :     DO_r <= Y[7:0] & BusB_r[7:0];               // no better way found yet...
     Write_Data_DONTCARE : DO_r <= {8{1'bX}};                    //Can probably remove this
+    default:            DO_r <= {8{1'bX}};
     endcase
 end
 
@@ -648,9 +639,9 @@ always @(posedge Clk) begin
     if (~Res_n_i) begin
         MCycle <= 1;
         RstCycle <= 1;
-        IRQCycle <= 0;
-        NMICycle <= 0;
         NMIAct <= 0;
+        IRQReq <= 0;
+        NMIReq <= 0;
     end else if (Enable) begin
         if (really_rdy) begin
             if (MCycle == LCycle || Break) begin
@@ -660,7 +651,7 @@ always @(posedge Clk) begin
                 MCycle <= MCycle + 1;
 
             if (IR[4:0] != 5'b10000 || Jump != 2'b11) begin     // taken branches delay the interrupts
-                if (NMIAct && IR != 8'h00) begin
+                if (NMIAct && IR != 8'h00)
                     NMIReq <= 1;
                 else
                     NMIReq <= 0;

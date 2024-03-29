@@ -1209,29 +1209,29 @@ NesEvent nesev(
 // Notes  :                                                                    //
 // Games  : King Kong 2, Exciting Boxing, Tetsuwan Atom                        //
 //*****************************************************************************//
-VRC1 vrc1(
-	.clk        (clk),
-	.ce         (ce),
-	.enable     (me[75]),
-	.flags      (flags),
-	.prg_ain    (prg_ain),
-	.prg_aout_b (prg_addr_b),
-	.prg_read   (prg_read),
-	.prg_write  (prg_write),
-	.prg_din    (prg_din),
-	.prg_dout_b (prg_dout_b),
-	.prg_allow_b(prg_allow_b),
-	.chr_ain    (chr_ain),
-	.chr_aout_b (chr_addr_b),
-	.chr_read   (chr_read),
-	.chr_allow_b(chr_allow_b),
-	.vram_a10_b (vram_a10_b),
-	.vram_ce_b  (vram_ce_b),
-	.irq_b      (irq_b),
-	.flags_out_b(flags_out_b),
-	.audio_in   (audio_in),
-	.audio_b    (audio_out_b)
-);
+//VRC1 vrc1(
+//	.clk        (clk),
+//	.ce         (ce),
+//	.enable     (me[75]),
+//	.flags      (flags),
+//	.prg_ain    (prg_ain),
+//	.prg_aout_b (prg_addr_b),
+//	.prg_read   (prg_read),
+//	.prg_write  (prg_write),
+//	.prg_din    (prg_din),
+//	.prg_dout_b (prg_dout_b),
+//	.prg_allow_b(prg_allow_b),
+//	.chr_ain    (chr_ain),
+//	.chr_aout_b (chr_addr_b),
+//	.chr_read   (chr_read),
+//	.chr_allow_b(chr_allow_b),
+//	.vram_a10_b (vram_a10_b),
+//	.vram_ce_b  (vram_ce_b),
+//	.irq_b      (irq_b),
+//	.flags_out_b(flags_out_b),
+//	.audio_in   (audio_in),
+//	.audio_b    (audio_out_b)
+//);
 
 //*****************************************************************************//
 // Name   : Konami VRC-3                                                       //
@@ -1240,29 +1240,29 @@ VRC1 vrc1(
 // Notes  :                                                                    //
 // Games  : Salamander (j)                                                     //
 //*****************************************************************************//
-VRC3 vrc3(
-	.clk        (clk),
-	.ce         (ce),
-	.enable     (me[73]),
-	.flags      (flags),
-	.prg_ain    (prg_ain),
-	.prg_aout_b (prg_addr_b),
-	.prg_read   (prg_read),
-	.prg_write  (prg_write),
-	.prg_din    (prg_din),
-	.prg_dout_b (prg_dout_b),
-	.prg_allow_b(prg_allow_b),
-	.chr_ain    (chr_ain),
-	.chr_aout_b (chr_addr_b),
-	.chr_read   (chr_read),
-	.chr_allow_b(chr_allow_b),
-	.vram_a10_b (vram_a10_b),
-	.vram_ce_b  (vram_ce_b),
-	.irq_b      (irq_b),
-	.flags_out_b(flags_out_b),
-	.audio_in   (audio_in),
-	.audio_b    (audio_out_b)
-);
+//VRC3 vrc3(
+//	.clk        (clk),
+//	.ce         (ce),
+//	.enable     (me[73]),
+//	.flags      (flags),
+//	.prg_ain    (prg_ain),
+//	.prg_aout_b (prg_addr_b),
+//	.prg_read   (prg_read),
+//	.prg_write  (prg_write),
+//	.prg_din    (prg_din),
+//	.prg_dout_b (prg_dout_b),
+//	.prg_allow_b(prg_allow_b),
+//	.chr_ain    (chr_ain),
+//	.chr_aout_b (chr_addr_b),
+//	.chr_read   (chr_read),
+//	.chr_allow_b(chr_allow_b),
+//	.vram_a10_b (vram_a10_b),
+//	.vram_ce_b  (vram_ce_b),
+//	.irq_b      (irq_b),
+//	.flags_out_b(flags_out_b),
+//	.audio_in   (audio_in),
+//	.audio_b    (audio_out_b)
+//);
 
 //*****************************************************************************//
 // Name   : Konami VRC2/4                                                      //
@@ -1271,29 +1271,29 @@ VRC3 vrc3(
 // Notes  :                                                                    //
 // Games  : Wai Wai World 2, Twinbee 3, Contra (j), Gradius II (j)             //
 //*****************************************************************************//
-VRC24 vrc24(
-	.clk        (clk),
-	.ce         (ce),
-	.enable     (me[21] | me[22] | me[23] | me[25] | me[27]),
-	.flags      (flags),
-	.prg_ain    (prg_ain),
-	.prg_aout_b (prg_addr_b),
-	.prg_read   (prg_read),
-	.prg_write  (prg_write),
-	.prg_din    (prg_din),
-	.prg_dout_b (prg_dout_b),
-	.prg_allow_b(prg_allow_b),
-	.chr_ain    (chr_ain),
-	.chr_aout_b (chr_addr_b),
-	.chr_read   (chr_read),
-	.chr_allow_b(chr_allow_b),
-	.vram_a10_b (vram_a10_b),
-	.vram_ce_b  (vram_ce_b),
-	.irq_b      (irq_b),
-	.flags_out_b(flags_out_b),
-	.audio_in   (audio_in),
-	.audio_b    (audio_out_b)
-);
+//VRC24 vrc24(
+//	.clk        (clk),
+//	.ce         (ce),
+//	.enable     (me[21] | me[22] | me[23] | me[25] | me[27]),
+//	.flags      (flags),
+//	.prg_ain    (prg_ain),
+//	.prg_aout_b (prg_addr_b),
+//	.prg_read   (prg_read),
+//	.prg_write  (prg_write),
+//	.prg_din    (prg_din),
+//	.prg_dout_b (prg_dout_b),
+//	.prg_allow_b(prg_allow_b),
+//	.chr_ain    (chr_ain),
+//	.chr_aout_b (chr_addr_b),
+//	.chr_read   (chr_read),
+//	.chr_allow_b(chr_allow_b),
+//	.vram_a10_b (vram_a10_b),
+//	.vram_ce_b  (vram_ce_b),
+//	.irq_b      (irq_b),
+//	.flags_out_b(flags_out_b),
+//	.audio_in   (audio_in),
+//	.audio_b    (audio_out_b)
+//);
 
 //*****************************************************************************//
 // Name   : Konami VRC-6                                                       //
@@ -1302,29 +1302,29 @@ VRC24 vrc24(
 // Notes  : External audio needs to be mixed correctly.                        //
 // Games  : Akamajou Densetsu, Esper Dream 2, Mouryou Senki Madara             //
 //*****************************************************************************//
-VRC6 vrc6(
-	.clk        (clk),
-	.ce         (ce),
-	.enable     (me[24] | me[26]),
-	.flags      (flags),
-	.prg_ain    (prg_ain),
-	.prg_aout_b (prg_addr_b),
-	.prg_read   (prg_read),
-	.prg_write  (prg_write),
-	.prg_din    (prg_din),
-	.prg_dout_b (prg_dout_b),
-	.prg_allow_b(prg_allow_b),
-	.chr_ain    (chr_ain),
-	.chr_aout_b (chr_addr_b),
-	.chr_read   (chr_read),
-	.chr_allow_b(chr_allow_b),
-	.vram_a10_b (vram_a10_b),
-	.vram_ce_b  (vram_ce_b),
-	.irq_b      (irq_b),
-	.flags_out_b(flags_out_b),
-	.audio_in   (vrc6_audio),
-	.audio_b    (audio_out_b)
-);
+//VRC6 vrc6(
+//	.clk        (clk),
+//	.ce         (ce),
+//	.enable     (me[24] | me[26]),
+//	.flags      (flags),
+//	.prg_ain    (prg_ain),
+//	.prg_aout_b (prg_addr_b),
+//	.prg_read   (prg_read),
+//	.prg_write  (prg_write),
+//	.prg_din    (prg_din),
+//	.prg_dout_b (prg_dout_b),
+//	.prg_allow_b(prg_allow_b),
+//	.chr_ain    (chr_ain),
+//	.chr_aout_b (chr_addr_b),
+//	.chr_read   (chr_read),
+//	.chr_allow_b(chr_allow_b),
+//	.vram_a10_b (vram_a10_b),
+//	.vram_ce_b  (vram_ce_b),
+//	.irq_b      (irq_b),
+//	.flags_out_b(flags_out_b),
+//	.audio_in   (vrc6_audio),
+//	.audio_b    (audio_out_b)
+//);
 
 //*****************************************************************************//
 // Name   : Konami VRC-7                                                       //
@@ -1333,29 +1333,29 @@ VRC6 vrc6(
 // Notes  : Audio mixing needs evaluation                                      //
 // Games  : Lagrange Point, Tiny Toon Aventures 2 (j)                          //
 //*****************************************************************************//
-VRC7 vrc7(
-	.clk        (clk),
-	.ce         (ce),
-	.enable     (me[85]),
-	.flags      (flags),
-	.prg_ain    (prg_ain),
-	.prg_aout_b (prg_addr_b),
-	.prg_read   (prg_read),
-	.prg_write  (prg_write),
-	.prg_din    (prg_din),
-	.prg_dout_b (prg_dout_b),
-	.prg_allow_b(prg_allow_b),
-	.chr_ain    (chr_ain),
-	.chr_aout_b (chr_addr_b),
-	.chr_read   (chr_read),
-	.chr_allow_b(chr_allow_b),
-	.vram_a10_b (vram_a10_b),
-	.vram_ce_b  (vram_ce_b),
-	.irq_b      (irq_b),
-	.flags_out_b(flags_out_b),
-	.audio_in   (vrc7_audio),
-	.audio_b    (audio_out_b)
-);
+//VRC7 vrc7(
+//	.clk        (clk),
+//	.ce         (ce),
+//	.enable     (me[85]),
+//	.flags      (flags),
+//	.prg_ain    (prg_ain),
+//	.prg_aout_b (prg_addr_b),
+//	.prg_read   (prg_read),
+//	.prg_write  (prg_write),
+//	.prg_din    (prg_din),
+//	.prg_dout_b (prg_dout_b),
+//	.prg_allow_b(prg_allow_b),
+//	.chr_ain    (chr_ain),
+//	.chr_aout_b (chr_addr_b),
+//	.chr_read   (chr_read),
+//	.chr_allow_b(chr_allow_b),
+//	.vram_a10_b (vram_a10_b),
+//	.vram_ce_b  (vram_ce_b),
+//	.irq_b      (irq_b),
+//	.flags_out_b(flags_out_b),
+//	.audio_in   (vrc7_audio),
+//	.audio_b    (audio_out_b)
+//);
 
 //*****************************************************************************//
 // Name   : Namco 163                                                          //
@@ -1816,34 +1816,34 @@ fds_mixed snd_fds (
 );
 
 wire [15:0] vrc7_audio;
-vrc7_mixed snd_vrc7 (
-	.clk(clk),
-	.ce(ce),
-	.enable(me[85] | (me[31] && exp_audioe[1])),
-	.wren(prg_write),
-	.addr_in(prg_ain),
-	.data_in(prg_din),
-	.audio_in(audio_in),
-	.audio_out(vrc7_audio)
-);
+//vrc7_mixed snd_vrc7 (
+//	.clk(clk),
+//	.ce(ce),
+//	.enable(me[85] | (me[31] && exp_audioe[1])),
+//	.wren(prg_write),
+//	.addr_in(prg_ain),
+//	.data_in(prg_din),
+//	.audio_in(audio_in),
+//	.audio_out(vrc7_audio)
+//);
 
 wire [15:0] vrc6_audio;
-vrc6_mixed snd_vrc6 (
-	.clk(clk),
-	.ce(ce),
-	.enable(me[24] | me[26] | (me[31] && exp_audioe[0])),
-	.wren(prg_write),
-	.addr_invert(me[26]),
-	.addr_in(prg_ain),
-	.data_in(prg_din),
-	.audio_in(audio_in),
-	.audio_out(vrc6_audio)
-);
+//vrc6_mixed snd_vrc6 (
+//	.clk(clk),
+//	.ce(ce),
+//	.enable(me[24] | me[26] | (me[31] && exp_audioe[0])),
+//	.wren(prg_write),
+//	.addr_invert(me[26]),
+//	.addr_in(prg_ain),
+//	.data_in(prg_din),
+//	.audio_in(audio_in),
+//	.audio_out(vrc6_audio)
+//);
 
 
-wire [6:0] prg_mask;
-wire [6:0] chr_mask;
-wire [1023:0] me;
+reg [6:0] prg_mask;
+reg [6:0] chr_mask;
+reg [1023:0] me;
 
 always @* begin
 	me = 1023'd0;

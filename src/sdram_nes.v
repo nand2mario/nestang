@@ -42,6 +42,7 @@ module sdram_nes #(
 	input             clk,        // sdram clock
 	input             resetn,
     input             clkref,
+    output reg busy,
 
 	input [20:0]      addrA,      // 21 bit byte address, bank 0
 	input             weA,        // ppu requests write
@@ -254,7 +255,7 @@ always @(posedge clk) begin
                 { we_latch[1], oe_latch[1] } <= { next_we[1], next_oe[1] };
                 addr_latch[1] <= next_addr[1];
                 a <= next_addr[1][20:10];
-                SDRAM_BA <= 2'b01;
+                SDRAM_BA <= 2'd1;
                 din_latch[1] <= next_din[1];
                 ds[1] <= next_ds[1];
                 if (next_port[1] != PORT_NONE) begin 
@@ -262,7 +263,7 @@ always @(posedge clk) begin
                 end else if (!we_latch[0] && !oe_latch[0] && !we_latch[1] && !oe_latch[1] && need_refresh) begin
                     refresh_cnt <= 0;
                     cmd <= CMD_AutoRefresh;
-                    total_refresh <= total_refresh + 1;
+//                    total_refresh <= total_refresh + 1;
                 end
             end
 
@@ -270,7 +271,7 @@ always @(posedge clk) begin
             // CPU, PPU
             if (cycle[1] && (oe_latch[0] || we_latch[0])) begin
                 cmd <= we_latch[0]?CMD_Write:CMD_Read;
-                SDRAM_BA <= addr_latch[0][24:23];              
+                SDRAM_BA <= 2'd0;              
 `ifdef NANO  
                 a <= addr_latch[0][9:2];
 `else
@@ -308,7 +309,7 @@ always @(posedge clk) begin
 `endif
                 end else
                     SDRAM_DQM <= 0;
-			    SDRAM_BA <= 2'b10;
+			    SDRAM_BA <= 2'd1;
                 rv_req_ack <= rv_req;       // ack request
             end
 

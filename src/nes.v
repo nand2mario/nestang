@@ -269,13 +269,13 @@ wire apu_irq;
 // of M2, which corresponds with CPU ce, so no latches needed.
 
 T65 cpu(
-	.mode   (0),
+	.Mode   (0),
 	.BCD_en (0),
 
-	.res_n  (~reset),
-	.clk    (clk),
-	.enable (cpu_ce),
-	.rdy    (~pause_cpu),
+	.Res_n  (~reset),
+	.Clk    (clk),
+	.Enable (cpu_ce),
+	.Rdy    (~pause_cpu),
 
 	.IRQ_n  (~(apu_irq | mapper_irq)),
 	.NMI_n  (~nmi),

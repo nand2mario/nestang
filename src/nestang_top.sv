@@ -92,6 +92,8 @@ end
 
 `ifndef VERILATOR
 
+localparam FREQ = 21_477_000;
+
 // clk is 27Mhz
 `ifdef PRIMER
   gowin_pll_27 pll27 (.clkin(sys_clk), .clkout0(clk), .clkout1(clk_sdram));      // Primer25K: PLL to generate 27Mhz from 50Mhz
@@ -292,7 +294,6 @@ end
   );
 
 /*verilator tracing_off*/
-
 sdram_nes sdram (
     .clk(fclk), .resetn(sys_resetn), .busy(sdram_busy),
 

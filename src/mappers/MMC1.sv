@@ -5,7 +5,7 @@ module MMC1(
 	input        clk,         // System clock
 	input        ce,          // M2 ~cpu_clk
 	input        enable,      // Mapper enabled
-	input [63:0] flags,       // Cart flags
+	input [31:0] flags,       // Cart flags
 	input [15:0] prg_ain,     // prg address
 	inout [21:0] prg_aout_b,  // prg address out
 	input        prg_read,    // prg read
@@ -22,14 +22,7 @@ module MMC1(
 	inout        irq_b,       // IRQ
 	input [15:0] audio_in,    // Inverted audio from APU
 	inout [15:0] audio_b,     // Mixed audio output
-	inout [15:0] flags_out_b, // flags {0, 0, 0, 0, has_savestate, prg_conflict, prg_bus_write, has_chr_dout}
-	// savestates              
-	input       [63:0]  SaveStateBus_Din,
-	input       [ 9:0]  SaveStateBus_Adr,
-	input               SaveStateBus_wren,
-	input               SaveStateBus_rst,
-	input               SaveStateBus_load,
-	output      [63:0]  SaveStateBus_Dout
+	inout [15:0] flags_out_b  // flags {0, 0, 0, 0, 0, prg_conflict, prg_bus_write, has_chr_dout}
 );
 
 assign prg_aout_b   = enable ? prg_aout : 22'hZ;
@@ -49,7 +42,7 @@ wire chr_allow;
 wire vram_a10;
 wire vram_ce;
 wire mapper171 = (flags[7:0] == 171); //Mapper 171 has hardwired mirroring
-reg [15:0] flags_out = {12'h0, 1'b1, 3'b0};
+reg [15:0] flags_out = 0;
 
 reg [4:0] shift;
 
@@ -81,9 +74,7 @@ reg [4:0] prg_bank;
 
 reg delay_ctrl;	// used to prevent fast-write to the control register
 
-wire [3:0] prg_ram_size = flags[29:26];
-wire [3:0] prg_nvram_size = flags[34:31];
-wire [2:0] chr_size = flags[13:11];
+wire [2:0] prg_size = flags[10:8];
 
 // Update shift register
 always @(posedge clk) 
@@ -94,13 +85,6 @@ always @(posedge clk)
 		chr_bank_1 <= 0;
 		prg_bank <= 5'b00000;
 		delay_ctrl <= 0;
-	end else if (SaveStateBus_load) begin
-		shift      <= SS_MAP1[ 4: 0];
-		control    <= SS_MAP1[ 9: 5];
-		chr_bank_0 <= SS_MAP1[14:10];
-		chr_bank_1 <= SS_MAP1[19:15];
-		prg_bank   <= SS_MAP1[24:20];
-		delay_ctrl <= SS_MAP1[   25];
 	end else if (ce) begin
 		if (!prg_write)
 			delay_ctrl <= 1'b0;
@@ -124,14 +108,6 @@ always @(posedge clk)
 			end
 		end
 	end
-
-assign SS_MAP1_BACK[ 4: 0]	= shift;   
-assign SS_MAP1_BACK[ 9: 5] = control;   
-assign SS_MAP1_BACK[14:10] = chr_bank_0;
-assign SS_MAP1_BACK[19:15] = chr_bank_1;
-assign SS_MAP1_BACK[24:20] = prg_bank;  
-assign SS_MAP1_BACK[   25] = delay_ctrl;
-assign SS_MAP1_BACK[63:26] = 38'b0; // free to be used
 
 // The PRG bank to load. Each increment here is 16kb. So valid values are 0..15.
 // prg_ain[14] selects bank0 ($8000) or bank1 ($C000)
@@ -157,9 +133,8 @@ always @* begin
 end
 
 assign chr_aout = {5'b100_00, chrsel, chr_ain[11:0]};
-
-// for large PRG ROM, CHR A16 selects the 256KB PRG bank. ROM <= 256KB is not affected because of the mask in cart.sv
-wire [21:0] prg_aout_tmp = {3'b000, chrsel[4], prgsel, prg_ain[13:0]};
+wire [21:0] prg_aout_tmp = prg_size == 5 ? {3'b000, chrsel[4], prgsel, prg_ain[13:0]} // for large PRG ROM, CHR A16 selects the 256KB PRG bank
+	: {4'b00_00, prgsel, prg_ain[13:0]};
 
 // The a10 VRAM address line. (Used for mirroring)
 reg vram_a10_t;
@@ -172,38 +147,15 @@ always @* begin
 	endcase
 end
 
-// PRG RAM banking
-reg [1:0] prg_ram_a14_13;
-always @* begin
-	// SOROM & SZROM: The battery backed RAM chip is selected when the chrsel bit is high
-	// We only save the first 8KB so the battery RAM needs to be first.
-	if (prg_ram_size == 4'd7 && prg_nvram_size == 4'd7) begin
-		// CHR ROM 16-64KB = SZROM. Other is SOROM
-		prg_ram_a14_13 = {1'b0, (chr_size >= 3'd1) ? ~chrsel[4] : ~chrsel[3]}; // 8+8KB
-	end else if (prg_nvram_size == 4'd9) begin
-		prg_ram_a14_13 = {chrsel[3],chrsel[2]}; // SXROM 32KB
-	end else begin
-		prg_ram_a14_13 = 2'b00; // 8KB, no banking
-	end
-end
-
 assign vram_a10 = vram_a10_t;
 assign vram_ce = chr_ain[13];
 
 wire prg_is_ram = prg_ain >= 'h6000 && prg_ain < 'h8000;
 assign prg_allow = prg_ain[15] && !prg_write || prg_is_ram;
-wire [21:0] prg_ram = {7'b11_1100_0, prg_ram_a14_13, prg_ain[12:0]};
+wire [21:0] prg_ram = {9'b11_1100_000, prg_ain[12:0]};
 
 assign prg_aout = prg_is_ram ? prg_ram : prg_aout_tmp;
 assign chr_allow = flags[15];
-
-// savestate
-wire [63:0] SS_MAP1;
-wire [63:0] SS_MAP1_BACK;	
-wire [63:0] SaveStateBus_Dout_active;	
-eReg_SavestateV #(SSREG_INDEX_MAP1, 64'h0000000000000000) iREG_SAVESTATE_MAP1 (clk, SaveStateBus_Din, SaveStateBus_Adr, SaveStateBus_wren, SaveStateBus_rst, SaveStateBus_Dout_active, SS_MAP1_BACK, SS_MAP1);  
-
-assign SaveStateBus_Dout = enable ? SaveStateBus_Dout_active : 64'h0000000000000000;
 
 endmodule
 
@@ -230,7 +182,7 @@ module NesEvent(
 	inout        irq_b,       // IRQ
 	input [15:0] audio_in,    // Inverted audio from APU
 	inout [15:0] audio_b,     // Mixed audio output
-	inout [15:0] flags_out_b  // flags {0, 0, 0, 0, has_savestate, prg_conflict, prg_bus_write, has_chr_dout}
+	inout [15:0] flags_out_b  // flags {0, 0, 0, 0, 0, prg_conflict, prg_bus_write, has_chr_dout}
 );
 
 assign prg_aout_b   = enable ? prg_aout : 22'hZ;
