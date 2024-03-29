@@ -276,14 +276,19 @@ T65 cpu(
 	.Clk    (clk),
 	.Enable (cpu_ce),
 	.Rdy    (~pause_cpu),
+	.Abort_n(1'b1),
 
 	.IRQ_n  (~(apu_irq | mapper_irq)),
 	.NMI_n  (~nmi),
+	.SO_n   (1'b1),
 	.R_W_n  (cpu_rnw),
+	.Sync(), .EF(), .MF(), .XF(), .ML_n(), .VP_n(), .VDA(), .VPA(),
 
 	.A      (cpu_addr),
 	.DI     (cpu_rnw ? from_data_bus : cpu_dout),
-	.DO     (cpu_dout)
+	.DO     (cpu_dout),
+
+	.Regs(), .DEBUG(), .NMI_ack()
 );
 
 wire [15:0] dma_aout;
@@ -347,7 +352,8 @@ APU apu(
 	.DmaAddr        (apu_dma_addr),
 	.DmaData        (from_data_bus),
 	.odd_or_even    (odd_or_even),
-	.IRQ            (apu_irq)
+	.IRQ            (apu_irq),
+	.allow_us(1'b0)
 );
 
 assign sample = sample_a;

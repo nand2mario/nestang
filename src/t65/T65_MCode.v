@@ -50,7 +50,7 @@
 //   See in T65 top file (T65.vhd)...
 // no timescale needed
 
-import T65::*;
+import t65::*;
 
 module T65_MCode(
     input [1:0] Mode,                   // "00" => 6502, "01" => 65C02, "10" => 65816

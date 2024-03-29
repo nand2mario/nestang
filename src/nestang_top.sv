@@ -195,7 +195,7 @@ localparam FREQ = 21_477_000;
   wire NES_gamepad_data_available2;
 
 `ifdef NANO
-  NESGamepad nes_gamepad(
+NESGamepad nes_gamepad(
         .i_clk(clk),
         .i_rst(sys_resetn),
         .o_data_clock(NES_gamepad_data_clock),
@@ -205,7 +205,7 @@ localparam FREQ = 21_477_000;
         .o_data_available(NES_gamepad_data_available)
                         );
 
-  NESGamepad nes_gamepad2(
+NESGamepad nes_gamepad2(
         .i_clk(clk),
         .i_rst(sys_resetn),
         .o_data_clock(NES_gamepad_data_clock2),
@@ -217,34 +217,34 @@ localparam FREQ = 21_477_000;
 `endif
 
   // Joypad handling
-  always @(posedge clk) begin
+always @(posedge clk) begin
     if (joypad_strobe) begin
-      joypad_bits <= nes_btn;
-      joypad_bits2 <= nes_btn2;
+        joypad_bits <= nes_btn;
+        joypad_bits2 <= nes_btn2;
     end
     if (!joypad_clock[0] && last_joypad_clock[0])
-      joypad_bits <= {1'b0, joypad_bits[7:1]};
+        joypad_bits <= {1'b0, joypad_bits[7:1]};
     if (!joypad_clock[1] && last_joypad_clock[1])
-      joypad_bits2 <= {1'b0, joypad_bits2[7:1]};
+        joypad_bits2 <= {1'b0, joypad_bits2[7:1]};
     last_joypad_clock <= joypad_clock;
-  end
+end
 
-  // Loader
-  wire [21:0] loader_addr;
-  wire [7:0] loader_write_data;
-  reg loading_r;
-  always @(posedge clk) loading_r <= loading;
-  wire loader_reset = loading & ~loading_r;
-  wire loader_write;
-  wire [63:0] loader_flags;
-  reg  [63:0] mapper_flags;
-  wire loader_done, loader_fail;
-  wire loader_busy, loaded;
-  wire type_nes = 1'b1;  // (menu_index == 0) || (menu_index == {2'd0, 6'h1});
-  wire type_bios = 1'b0; // (menu_index == 2);
-  wire is_bios = 0;      //type_bios;
-  wire type_fds = 1'b0;  // (menu_index == {2'd1, 6'h1});
-  wire type_nsf = 1'b0;  // (menu_index == {2'd2, 6'h1});
+// Loader
+wire [21:0] loader_addr;
+wire [7:0] loader_write_data;
+reg loading_r;
+always @(posedge clk) loading_r <= loading;
+wire loader_reset = loading & ~loading_r;
+wire loader_write;
+wire [63:0] loader_flags;
+reg  [63:0] mapper_flags;
+wire loader_done, loader_fail;
+wire loader_busy, loaded;
+wire type_nes = 1'b1;  // (menu_index == 0) || (menu_index == {2'd0, 6'h1});
+wire type_bios = 1'b0; // (menu_index == 2);
+wire is_bios = 0;      //type_bios;
+wire type_fds = 1'b0;  // (menu_index == {2'd1, 6'h1});
+wire type_nsf = 1'b0;  // (menu_index == {2'd2, 6'h1});
 
   // Parses ROM data and store them for MemoryController to access
   GameLoader loader(
@@ -265,8 +265,16 @@ localparam FREQ = 21_477_000;
   assign int_audio = 1;
   assign ext_audio = (mapper_flags[7:0] == 19) | (mapper_flags[7:0] == 24) | (mapper_flags[7:0] == 26);
 
-  // Main NES machine
-  NES nes(
+reg reset_nes = 1;
+always @(posedge clk) begin
+    if (~loading && loading_r)
+        reset_nes <= 0;
+    else if (loading && ~loading_r)
+        reset_nes <= 1;
+end
+
+// Main NES machine
+NES nes(
     .clk(clk), .reset_nes(reset_nes), .cold_reset(1'b0),
     .sys_type(system_type), .nes_div(nes_ce),
     .mapper_flags(mapper_flags),
@@ -275,27 +283,31 @@ localparam FREQ = 21_477_000;
     .joypad1_data(joypad1_data), .joypad2_data(joypad2_data),
 
     .fds_busy(), .fds_eject(), .diskside_req(), .diskside(),        // disk system
-	.audio_channels(5'b11111),  // enable all channels
+    .audio_channels(5'b11111),  // enable all channels
     
-	.cpumem_addr(memory_addr_cpu),
-	.cpumem_read(memory_read_cpu),
-	.cpumem_din(memory_din_cpu),
-	.cpumem_write(memory_write_cpu),
-	.cpumem_dout(memory_dout_cpu),
-	.ppumem_addr(memory_addr_ppu),
-	.ppumem_read(memory_read_ppu),
-	.ppumem_write(memory_write_ppu),
-	.ppumem_din(memory_din_ppu),
-	.ppumem_dout(memory_dout_ppu),
+    .cpumem_addr(memory_addr_cpu),
+    .cpumem_read(memory_read_cpu),
+    .cpumem_din(memory_din_cpu),
+    .cpumem_write(memory_write_cpu),
+    .cpumem_dout(memory_dout_cpu),
+    .ppumem_addr(memory_addr_ppu),
+    .ppumem_read(memory_read_ppu),
+    .ppumem_write(memory_write_ppu),
+    .ppumem_din(memory_din_ppu),
+    .ppumem_dout(memory_dout_ppu),
+
+    .bram_addr(), .bram_din(), .bram_dout(), .bram_write(), .bram_override(1'b0),
 
     .cycle(cycle), .scanline(scanline),
     .int_audio(int_audio),    // VRC6
-    .ext_audio(ext_audio)
-  );
+    .ext_audio(ext_audio),
+
+    .apu_ce(), .gg(), .gg_code(), .gg_avail(), .gg_reset(), .emphasis(), .save_written()
+);
 
 /*verilator tracing_off*/
 sdram_nes sdram (
-    .clk(fclk), .resetn(sys_resetn), .busy(sdram_busy),
+    .clk(fclk), .clkref(clk), .resetn(sys_resetn), .busy(sdram_busy),
 
     .SDRAM_DQ(IO_sdram_dq), .SDRAM_A(O_sdram_addr), .SDRAM_BA(O_sdram_ba), 
     .SDRAM_nCS(O_sdram_cs_n), .SDRAM_nWE(O_sdram_wen_n), .SDRAM_nRAS(O_sdram_ras_n), 

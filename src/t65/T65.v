@@ -127,7 +127,7 @@
 //
 // no timescale needed
 
-import T65::*;
+import t65::*;
 
 module T65(
     input [1:0] Mode,   // "00" => 6502, "01" => 65C02, "10" => 65C816

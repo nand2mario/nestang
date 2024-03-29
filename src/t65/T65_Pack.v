@@ -1,6 +1,4 @@
-
-
-package T65;
+package t65;
 
 localparam Flag_C = 0;
 localparam Flag_Z = 1;
