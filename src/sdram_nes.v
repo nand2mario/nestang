@@ -10,7 +10,7 @@
 //   5                                1
 // 
 // CPU/PPU requests have to be issued on clkref==1, or they get lost.
-// RISC-V requests use req/ack interface, so they can issued anytime.
+// RISC-V requests use req/ack interface, so they can be issued anytime.
 //
 // For both Nano 20K (32-bit total 8MB) and Primer 25K (16-bit total 32MB)
 
