@@ -351,6 +351,7 @@ end else if (ce) begin
 				5'b10_11_1: {irq_enable, irq_reg[0]} <= 2'b00;         // IRQ disable ($C003-$DFFF)
 
 				5'b11_00_1: mirroring <= !prg_din[6];  // Mirroring
+				default:;
 			endcase
 		end else begin
 			casez({prg_ain[14:13], prg_ain[0]})
@@ -370,6 +371,8 @@ end else if (ce) begin
 				end
 
 				3'b11_0: mirroring <= !prg_din[0];  // Mirroring ($E000-$FFFE)
+
+				default: ;
 			endcase
 		end
 
@@ -398,6 +401,7 @@ end else if (ce) begin
 			5'b1010_1: prg_bank_0 <= prg_din[7:2];  // Select 8 KB PRG ROM bank at $8000-$9FFF
 			5'b1011_1: prg_bank_1 <= prg_din[7:2];  // Select 8 KB PRG ROM bank at $A000-$BFFF
 			5'b1100_1: prg_bank_2 <= prg_din[7:2];  // Select 8 KB PRG ROM bank at $C000-$DFFF
+			default: ;
 		endcase
 	end
 
@@ -682,8 +686,8 @@ always @* begin
 	endcase
 end
 
-assign chr_allow = !chrsel; // page 0 is CHR-RAM
-assign chr_aout = !chrsel ? {10'b11_1111_1111, chr_ain[11:0]} :   // 4KB CHR-RAM
+assign chr_allow = chrsel == 0; // page 0 is CHR-RAM
+assign chr_aout = chrsel == 0 ? {10'b11_1111_1111, chr_ain[11:0]} :   // 4KB CHR-RAM
                             {4'b10_00, chrsel[7:2], chr_ain[11:0]}; // CHR-ROM per 4KB page
 
 assign prg_is_ram = prg_ain >= 'h6000 && prg_ain < 'h8000 && ram_enable && !(ram_protect && prg_write);

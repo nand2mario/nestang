@@ -445,7 +445,7 @@ end else if (ce) begin
 				5'b111_00: {irq_ack, irq_counter} <= {1'b1, irq_reload};
 				5'b111_01: {irq_ack, irq_enable} <= {1'b1, prg_din[3:0]};
 				5'b111_10: mirroring <= prg_din[1:0];
-
+				default:;
 			endcase
 
 	if (irq_ack)
@@ -576,6 +576,7 @@ end else if (ce) begin
 			6'b11_?_101:  chrreg5            <= prg_din;
 			6'b11_?_110:  chrreg6            <= prg_din;
 			6'b11_?_111:  chrreg7            <= prg_din;
+			default : ;
 		endcase
 	end
 end
@@ -687,6 +688,7 @@ end else if (ce) begin
 			16'he000: prg_bank <= prg_din[3:0];
 			16'he001: mirroring <= prg_din[3];
 			16'he002: irq_enable <= prg_din[1];
+			default: ;
 		endcase
 
 	if (irq_enable)
@@ -818,6 +820,7 @@ end else if (ce) begin
 			6'b001_100: {irq_ack, irq_counter} <= {1'b1, irq_reload};
 			6'b001_101: irq_reload[15:8] <= prg_din;
 			6'b001_110: irq_reload[7:0] <= prg_din;
+			default:;
 		endcase
 
 	if (irq_enable) begin
@@ -1946,6 +1949,7 @@ always@(posedge clk) begin
                     if (|prg_ain[11:8])
                         scratch_ram[prg_ain[1:0]] <= prg_din;
                 end
+				default:;
             endcase
         end
 

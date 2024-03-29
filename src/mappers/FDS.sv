@@ -324,6 +324,8 @@ assign prg_allow = (nesprg_we & (Wstate==2 | (prgain[15]^(&prgain[14:13]))))
 
 				16'h4027:   //powerpak extra: disk side
 					diskside_auto<=nesprgdin[1:0];
+
+				default:;
 			endcase
 	end
 
@@ -465,7 +467,9 @@ IIR_filter #(
 	.ce        (fds_filter_ce),
 	.sample_ce (1),
 	.input_l   ({audio_exp[11:0], 4'b0000}),
-	.output_l  (audio_exp_f)
+	.output_l  (audio_exp_f),
+	.reset(), .cx(), .cx0(), .cx1(), .cx2(), 
+	.cy0(), .cy1(), .cy2(), .input_r(), .output_r()
 );
 
 wire [16:0] audio = audio_in + {1'b0, ~(audio_exp_f[15] ? 15'h7FFF : audio_exp_f[14:0])};
@@ -536,7 +540,7 @@ wire signed [11:0] temp3 = temp2 + 12'sh400;
 wire [19:0] wave_pitch = $unsigned(temp3[11:4]) * wave_frequency;
 
 // Volume math
-wire [11:0] mul_out = wave_latch * (vol_pwm_lat[5] ? 6'd32 : vol_pwm_lat);
+wire [11:0] mul_out = wave_latch * (vol_pwm_lat[5] ? 12'd32 : 12'(vol_pwm_lat));
 
 reg [15:0] level_out;
 assign audio_out = level_out[11:0];
@@ -548,6 +552,18 @@ always_comb begin
 		2'b10: level_out = mul_out[11:1];
 		2'b11: level_out = {mul_out, 1'b0} / 16'd5;
 		default: level_out = mul_out;
+	endcase
+
+	case (mod_table[mod_accum[17:13]])
+		3'h0: mod_incr = 0;
+		3'h1: mod_incr = 7'sd1;
+		3'h2: mod_incr = 7'sd2;
+		3'h3: mod_incr = 7'sd4;
+		3'h4: mod_incr = -7'sd4;
+		3'h5: mod_incr = -7'sd4;
+		3'h6: mod_incr = -7'sd2;
+		3'h7: mod_incr = -7'sd1;
+		default: mod_incr = 0;
 	endcase
 
 	if (addr_in >= 'h4040 && addr_in < 'h4080) begin
@@ -569,17 +585,6 @@ always_comb begin
 		endcase
 	end
 
-	case (mod_table[mod_accum[17:13]])
-		3'h0: mod_incr = 0;
-		3'h1: mod_incr = 7'sd1;
-		3'h2: mod_incr = 7'sd2;
-		3'h3: mod_incr = 7'sd4;
-		3'h4: mod_incr = -7'sd4;
-		3'h5: mod_incr = -7'sd4;
-		3'h6: mod_incr = -7'sd2;
-		3'h7: mod_incr = -7'sd1;
-		default: mod_incr = 0;
-	endcase
 end
 
 always_ff @(posedge clk) begin
@@ -605,7 +610,7 @@ end else if (~old_m2 & m2) begin
 	end
 
 	//**** Envelopes ****//
-	if (~env_disable && env_speed) begin
+	if (~env_disable && env_speed != 0) begin
 
 		//**** Volume Envelope ****//
 		if (~vol_disable) begin
@@ -615,7 +620,7 @@ end else if (~old_m2 & m2) begin
 					vol_ticks <= 0;
 					if (vol_dir && ~vol_gain[5])
 						vol_gain <= vol_gain + 1'b1;
-					else if (~vol_dir && vol_gain)
+					else if (~vol_dir && vol_gain != 0)
 						vol_gain <= vol_gain - 1'b1;
 				end else
 					vol_ticks <= vol_ticks + 1'b1;
@@ -631,7 +636,7 @@ end else if (~old_m2 & m2) begin
 					sweep_ticks <= 0;
 					if (sweep_dir && ~sweep_gain[5])
 						sweep_gain <= sweep_gain + 1'b1;
-					else if (~sweep_dir && sweep_gain)
+					else if (~sweep_dir && sweep_gain != 0)
 						sweep_gain <= sweep_gain - 1'b1;
 				end else
 					sweep_ticks <= sweep_ticks + 1'b1;
@@ -729,6 +734,8 @@ end else if (~old_m2 & m2) begin
 				vol_env_ticks <= 0; // Undocumented, but I believe this is right.
 				sweep_env_ticks <= 0;
 			end
+
+			default:;
 		endcase
 	end
 end // if m2

@@ -214,6 +214,7 @@ MMC1 mmc1_nesevent(
 	.vram_a10_b (vram_a10_b),
 	.vram_ce_b  (vram_ce_b),
 	.irq_b      (),
+	.chr_read(),
 	.flags_out_b(flags_out_b),
 	.audio_in   (audio_in),
 	.audio_b    (audio_b)

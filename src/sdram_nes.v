@@ -70,13 +70,13 @@ localparam DQM_SIZE = SDRAM_DATA_WIDTH / 8;
 
 // Tri-state DQ input/output
 reg dq_oen;        // 0 means output
-reg [15:0] dq_out;
-assign SDRAM_DQ = dq_oen ? {16{1'bz}} : dq_out;
-wire [15:0] dq_in = SDRAM_DQ;     // DQ input
+reg [SDRAM_DATA_WIDTH-1:0] dq_out;
+assign SDRAM_DQ = dq_oen ? {SDRAM_DATA_WIDTH{1'bz}} : dq_out;
+wire [SDRAM_DATA_WIDTH-1:0] dq_in = SDRAM_DQ;     // DQ input
 reg [3:0] cmd;
 reg [12:0] a;
 assign {SDRAM_nCS, SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} = cmd;
-assign SDRAM_A = a;
+assign SDRAM_A = SDRAM_ROW_WIDTH'(a);
 
 assign SDRAM_CKE = 1'b1;
 
@@ -316,15 +316,32 @@ always @(posedge clk) begin
             // read
             // CPU, PPU
             if (cycle[4] && oe_latch[0]) begin
+                reg [7:0] dq_byte;
+`ifdef NANO
+                case (addr_latch[0][1:0])
+                2'd0: dq_byte = dq_in[7:0];
+                2'd1: dq_byte = dq_in[15:8];
+                2'd2: dq_byte = dq_in[23:16];
+                2'd3: dq_byte = dq_in[31:24];
+                endcase
+`else
+                dq_byte = addr_latch[0][0] ? dq_in[15:8] : dq_in[7:0];
+`endif
+
                 case (port[0])
-                PORT_A: doutA <= addr_latch[0][0] ? dq_in[15:8] : dq_in[7:0];
-                PORT_B: doutA <= addr_latch[0][0] ? dq_in[15:8] : dq_in[7:0];
+                PORT_A: doutA <= dq_byte;
+                PORT_B: doutA <= dq_byte;
                 default: ;
                 endcase
             end
 
             // RV
-            if (cycle[1] && oe_latch[1]) rv_dout <= dq_in;
+            if (cycle[1] && oe_latch[1]) 
+`ifdef NANO
+                rv_dout <= addr_latch[1][1] ? dq_in[31:16] : dq_in[15:0];
+`else
+                rv_dout <= dq_in;
+`endif
         end
     end
 end

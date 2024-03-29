@@ -164,6 +164,7 @@ always@(posedge clk20) begin
 			5'b11101: {chr_en,prgAB}<=nesprgdin;    //E800
 			5'b11110: prgCD<=nesprgdin[5:0];        //F000
 			//5'b11111:                             //F800 (sound)
+			default:;
 		endcase
 end
 
@@ -336,15 +337,15 @@ reg [2:0] ch;
 reg [7:0] cnt_L[7:0];
 reg [7:0] cnt_M[7:0];
 reg [1:0] cnt_H[7:0];
-wire [2:0] sum_H=cnt_H[ch]+ram_dout[1:0]+carry;
+wire [2:0] sum_H=cnt_H[ch]+ram_dout[1:0]+3'(carry);
 reg [4:0] sample_pos[7:0];
 reg [2:0] cycle;
 reg [3:0] sample;
-wire [7:0] chan_out=sample*ram_dout[3:0];   //sample*vol
+wire [7:0] chan_out = sample * ram_dout[3:0];   //sample*vol
 reg [10:0] out_acc;
-wire [10:0] sum=out_acc+chan_out;
+wire [10:0] sum = out_acc + 11'(chan_out);
 reg addr_lsb;
-wire [7:0] sample_addr=ram_dout+sample_pos[ch];
+wire [7:0] sample_addr = ram_dout + 8'(sample_pos[ch]);
 reg do_inc;
 
 //ram in
@@ -384,7 +385,7 @@ always@(posedge clk20) begin
 	else if(cycle!=7) cycle<=cycle+1'd1;
 	case(cycle)
 		1: {carry, cnt_L[ch]}<=cnt_L[ch][7:0]+ram_dout;
-		2: {carry, cnt_M[ch]}<=cnt_M[ch][7:0]+ram_dout+carry;
+		2: {carry, cnt_M[ch]}<=cnt_M[ch][7:0]+ram_dout+9'(carry);
 		3: begin
 			cnt_H[ch]<=sum_H[1:0];
 			if(sum_H[2])

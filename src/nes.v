@@ -78,7 +78,7 @@ module NES(
 	output  [2:0] nes_div,
 	input  [63:0] mapper_flags,
 	output [15:0] sample,         // sample generated from APU
-	output  [5:0] color,          // pixel generated from PPU
+	output  [5:0] color /* verilator public */,          // pixel generated from PPU
 	output  [2:0] joypad_out,     // Set to 1 to strobe joypads. Then set to zero to keep the value (bit0)
 	output  [1:0] joypad_clock,   // Set to 1 for each joypad to clock it.
 	input   [4:0] joypad1_data,   // Port1
@@ -108,8 +108,8 @@ module NES(
 	output        bram_write,     // is a write operation
 	output        bram_override,
 
-	output  [8:0] cycle,
-	output  [8:0] scanline,
+	output  [8:0] cycle/* verilator public */,
+	output  [8:0] scanline/* verilator public */,
 	input         int_audio,
 	input         ext_audio,
 	output        apu_ce,

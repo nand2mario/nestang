@@ -50,15 +50,17 @@
 //   See in T65 top file (T65.vhd)...
 // no timescale needed
 
+import t65::*;
+
 module T65_ALU(
-input wire [1:0] Mode,
-input wire BCD_en,
-input wire [3:0] Op,
-input wire [7:0] BusA,
-input wire [7:0] BusB,
-input wire [7:0] P_In,
-output reg [7:0] P_Out,
-output reg [7:0] Q
+    input [1:0] Mode,
+    input BCD_en,
+    input T_ALU_OP Op,
+    input [7:0] BusA,
+    input [7:0] BusB,
+    input [7:0] P_In,
+    output [7:0] P_Out,
+    output [7:0] Q
 );
 
 // "00" => 6502, "01" => 65C02, "10" => 65816

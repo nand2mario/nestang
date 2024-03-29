@@ -1,33 +1,33 @@
 // J. Y. Company mappers
 
 module multiplier (
-  input clk,
-  input ce,
-  input start,
-  input [7:0] a,
-  input [7:0] b,
-  output [15:0] p,
-  output done
+	input clk,
+	input ce,
+	input start,
+	input [7:0] a,
+	input [7:0] b,
+	output [15:0] p,
+	output done
 );
 
-  reg [15:0] shift_a;
-  reg [15:0] product;
-  reg [8:0] bindex;
-  assign p = product;
-  assign done = bindex[8];
+reg [15:0] shift_a;
+reg [15:0] product;
+reg [8:0] bindex;
+assign p = product;
+assign done = bindex[8];
   
 
-  always @(posedge clk) begin
+always @(posedge clk) begin
     if (start && ce) begin
-	  bindex <= 9'd1 << 1;
-	  product <= {8'h00, b[0] ? a : 8'h00};
-	  shift_a <= a << 1;
+		bindex <= 9'd1 << 1;
+		product <= {8'h00, b[0] ? a : 8'h00};
+		shift_a <= 16'(a) << 1;
     end else if (bindex < 9'h100) begin
-	  product <= product + ((bindex[7:0] & b) ? shift_a : 16'd0);
-	  bindex <= bindex << 1;
-	  shift_a <= shift_a << 1;
+		product <= product + ((bindex[7:0] & b) != 0 ? shift_a : 16'd0);
+		bindex <= bindex << 1;
+		shift_a <= shift_a << 1;
     end
-  end
+end
 
 endmodule
 
@@ -125,7 +125,7 @@ always @(posedge clk) begin
 		// Could be bank_mode[2] = 0 or prg_bank[3] = FF
 		// Outer bank might be an issue as well...
 		// Needed for Tiny Toons 6 and Warioland II.
-		bank_mode[2] = 1'b0;
+		bank_mode[2] <= 1'b0;
 	if (ce && prg_write) begin // $5000-$FFFF
 		casez({prg_ain[15:11], prg_ain[2:0]})
 			8'b0101_1_?00: multiplier_1 <= prg_din;                                  // $5800
@@ -149,6 +149,7 @@ always @(posedge clk) begin
 			8'b1101_0_?01: mirroring <= prg_din[3:0];                                // $D001
 			8'b1101_0_?10: ppu_conf <= prg_din;                                      // $D002
 			8'b1101_0_?11: outer_bank <= prg_din;                                    // $D003
+			default:;
 		endcase
 	end
 	

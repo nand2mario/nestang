@@ -249,31 +249,31 @@ end else if (ce) begin
 	tone_b_cnt <= tone_b_next[11:0];
 	tone_c_cnt <= tone_c_next[11:0];
 
-	if (tone_a_next >= period_a) begin
+	if (tone_a_next >= {1'b0, period_a}) begin
 		tone_a_cnt <= 12'd0;
 		tone_a <= tone_a + 1'b1;
 	end
 
-	if (tone_b_next >= period_b) begin
+	if (tone_b_next >= {1'b0, period_b}) begin
 		tone_b_cnt<= 12'd0;
 		tone_b <= tone_b + 1'b1;
 	end
 
-	if (tone_c_next >= period_c) begin
+	if (tone_c_next >= {1'b0, period_c}) begin
 		tone_c_cnt <= 12'd0;
 		tone_c <= tone_c + 1'b1;
 	end
 
 	// XXX: Implement modulation envelope if needed (not used in any games)
-	envelope_a <= {env_vol_a, 1'b1};
-	envelope_b <= {env_vol_b, 1'b1};
-	envelope_c <= {env_vol_c, 1'b1};
+	envelope_a <= {1'b0, env_vol_a, 1'b1};
+	envelope_b <= {1'b0, env_vol_b, 1'b1};
+	envelope_c <= {1'b0, env_vol_c, 1'b1};
 
 	if (&cycles) begin
 		// Advance noise LFSR every 32 cycles
 		noise_cnt <= noise_next[11:0];
 
-		if (noise_next >= period_n) begin
+		if (noise_next >= 13'(period_n)) begin
 			noise_lfsr <= {noise_lfsr[15:0], noise_lfsr[16] ^ noise_lfsr[13]};
 			noise_cnt <= 12'd0;
 		end
@@ -307,12 +307,12 @@ always_comb begin
 end
 
 assign audio_out =
-	{output_a ? ss5b_amp_lut[envelope_a] : 8'h0, 5'b0} +
-	{output_b ? ss5b_amp_lut[envelope_b] : 8'h0, 5'b0} +
-	{output_c ? ss5b_amp_lut[envelope_c] : 8'h0, 5'b0} ;
+	{3'b0, output_a ? ss5b_amp_lut[envelope_a[4:0]] : 8'h0, 5'b0} +
+	{3'b0, output_b ? ss5b_amp_lut[envelope_b[4:0]] : 8'h0, 5'b0} +
+	{3'b0, output_c ? ss5b_amp_lut[envelope_c[4:0]] : 8'h0, 5'b0} ;
 
 // Logarithmic amplification table in 1.5db steps
-wire [7:0] ss5b_amp_lut[0:31] = '{
+localparam [7:0] ss5b_amp_lut [0:31] = '{
 	8'd0,  8'd0,  8'd1,  8'd1,  8'd1,   8'd1,   8'd2,   8'd2,
 	8'd3,  8'd3,  8'd4,  8'd5,  8'd6,   8'd7,   8'd9,   8'd11,
 	8'd13, 8'd15, 8'd18, 8'd22, 8'd26,  8'd31,  8'd37,  8'd44,
@@ -400,6 +400,7 @@ end else if (ce) begin
 				5'b100_1_0: {irq_low, irq_counter[15:8]} <= {1'b1,prg_din};
 				5'b100_1_1: {irq_low, irq_counter[7:0]} <= {1'b0,prg_din};
 				5'b101_1_?: {irq_low, irq_ack, irq_enable} <= {2'b01, prg_din[4]};
+				default:;
 			endcase
 		else
 			casez({prg_ain[13],prg_ain[1:0]})

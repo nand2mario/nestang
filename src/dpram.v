@@ -1,7 +1,7 @@
 
 module dpram #(
     parameter widthad_a,
-    parameter width_a = 9
+    parameter width_a = 8
 ) (
     input [widthad_a-1:0] address_a,
     input [widthad_a-1:0] address_b,
@@ -17,7 +17,7 @@ module dpram #(
     output reg [width_a-1:0] q_b
 );
 
-localparam SIZE = 1 << (widthad_a-1);
+localparam SIZE = 1 << widthad_a;
 
 reg [width_a-1:0] mem [0:SIZE-1];
 

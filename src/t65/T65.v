@@ -582,27 +582,27 @@ assign Break = (BreakAtNA & ~BAL[8]) | (PCAdd &  ~PCAdder[8]);
 
 always @(*) begin
     case (Set_BusA_To)
-    Set_BusA_To_DI :    BusA <= DI;
-    Set_BusA_To_ABC :   BusA <= ABC[7:0];
-    Set_BusA_To_X :     BusA <= X[7:0];
-    Set_BusA_To_Y :     BusA <= Y[7:0];
-    Set_BusA_To_S :     BusA <= S[7:0];
-    Set_BusA_To_P :     BusA <= P;
-    Set_BusA_To_DA :    BusA <= ABC[7:0] & DI;
-    Set_BusA_To_DAO :   BusA <= (ABC[7:0] | 8'hee) & DI;            //ee for OAL instruction. constant may be different on other platforms.TODO:Move to generics
-    Set_BusA_To_DAX :   BusA <= (ABC[7:0] | 8'hee) & DI & X[7:0];   //XAA, ee for OAL instruction. constant may be different on other platforms.TODO:Move to generics
-    Set_BusA_To_AAX :   BusA <= ABC[7:0] & X[7:0];                  //SAX, SHA
-    Set_BusA_To_DONTCARE : BusA <= {8{1'bX}};                       //Can probably remove this
-    default:            BusA <= {8{1'bX}};
+    Set_BusA_To_DI :    BusA = DI;
+    Set_BusA_To_ABC :   BusA = ABC[7:0];
+    Set_BusA_To_X :     BusA = X[7:0];
+    Set_BusA_To_Y :     BusA = Y[7:0];
+    Set_BusA_To_S :     BusA = S[7:0];
+    Set_BusA_To_P :     BusA = P;
+    Set_BusA_To_DA :    BusA = ABC[7:0] & DI;
+    Set_BusA_To_DAO :   BusA = (ABC[7:0] | 8'hee) & DI;            //ee for OAL instruction. constant may be different on other platforms.TODO:Move to generics
+    Set_BusA_To_DAX :   BusA = (ABC[7:0] | 8'hee) & DI & X[7:0];   //XAA, ee for OAL instruction. constant may be different on other platforms.TODO:Move to generics
+    Set_BusA_To_AAX :   BusA = ABC[7:0] & X[7:0];                  //SAX, SHA
+    Set_BusA_To_DONTCARE : BusA = {8{1'bX}};                       //Can probably remove this
+    default:            BusA = {8{1'bX}};
     endcase
 end
 
 always @(*) begin
     case (Set_Addr_To_r)
-    Set_Addr_To_SP :    A <= {16'b1, S[7:0]};
-    Set_Addr_To_ZPG :   A <= {DBR, 8'b0, AD};
-    Set_Addr_To_BA :    A <= {8'b0, BAH, BAL[7:0]};
-    Set_Addr_To_PBR :   A <= {PBR, PC[15:8], PCAdder[7:0]};
+    Set_Addr_To_SP :    A = {16'b1, S[7:0]};
+    Set_Addr_To_ZPG :   A = {DBR, 8'b0, AD};
+    Set_Addr_To_BA :    A = {8'b0, BAH, BAL[7:0]};
+    Set_Addr_To_PBR :   A = {PBR, PC[15:8], PCAdder[7:0]};
     endcase
 end
 
@@ -612,20 +612,20 @@ assign DO = DO_r;
 
 always @(*) begin
     case (Write_Data_r)
-    Write_Data_DL :     DO_r <= DL;
-    Write_Data_ABC :    DO_r <= ABC[7:0];
-    Write_Data_X :      DO_r <= X[7:0];
-    Write_Data_Y :      DO_r <= Y[7:0];
-    Write_Data_S :      DO_r <= S[7:0];
-    Write_Data_P :      DO_r <= PwithB;
-    Write_Data_PCL :    DO_r <= PC[7:0];
-    Write_Data_PCH :    DO_r <= PC[15:8];
-    Write_Data_AX :     DO_r <= ABC[7:0] & X[7:0];
-    Write_Data_AXB :    DO_r <= ABC[7:0] & X[7:0] & BusB_r[7:0];   // no better way found yet...
-    Write_Data_XB :     DO_r <= X[7:0] & BusB_r[7:0];               // no better way found yet...
-    Write_Data_YB :     DO_r <= Y[7:0] & BusB_r[7:0];               // no better way found yet...
-    Write_Data_DONTCARE : DO_r <= {8{1'bX}};                    //Can probably remove this
-    default:            DO_r <= {8{1'bX}};
+    Write_Data_DL :     DO_r = DL;
+    Write_Data_ABC :    DO_r = ABC[7:0];
+    Write_Data_X :      DO_r = X[7:0];
+    Write_Data_Y :      DO_r = Y[7:0];
+    Write_Data_S :      DO_r = S[7:0];
+    Write_Data_P :      DO_r = PwithB;
+    Write_Data_PCL :    DO_r = PC[7:0];
+    Write_Data_PCH :    DO_r = PC[15:8];
+    Write_Data_AX :     DO_r = ABC[7:0] & X[7:0];
+    Write_Data_AXB :    DO_r = ABC[7:0] & X[7:0] & BusB_r[7:0];   // no better way found yet...
+    Write_Data_XB :     DO_r = X[7:0] & BusB_r[7:0];               // no better way found yet...
+    Write_Data_YB :     DO_r = Y[7:0] & BusB_r[7:0];               // no better way found yet...
+    Write_Data_DONTCARE : DO_r = {8{1'bX}};                    //Can probably remove this
+    default:            DO_r = {8{1'bX}};
     endcase
 end
 

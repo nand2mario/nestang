@@ -24,10 +24,6 @@ module GameLoader
 	output reg    rom_loaded
 );
 
-initial begin
-	rom_loaded <= 0;
-end
-
 reg [7:0] prgsize;
 reg [3:0] ctr;
 reg [7:0] ines[0:15]; // 16 bytes of iNES header
@@ -279,6 +275,7 @@ always @(posedge clk) begin
 			 busy <= 0;
 			 bios_download <= 0;
 			end
+		default ;
 		endcase
 	end
 end

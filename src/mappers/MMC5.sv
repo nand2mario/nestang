@@ -466,7 +466,8 @@ APU mmc5apu(
 	.DmaAddr        (DmaAddr),
 	.DmaData        (0),
 	.odd_or_even    (odd_or_even),
-	.IRQ            (apu_irq)
+	.IRQ            (apu_irq),
+	.cold_reset(), .allow_us(), .PAL()
 );
 
 endmodule
