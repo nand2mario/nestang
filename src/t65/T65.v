@@ -667,7 +667,7 @@ always @(posedge Clk) begin
         NMI_n_o <= NMI_n;
 
         //detect NMI even if not rdy    
-        if (NMI_n_o && ~NMI_n == 1'b0) 
+        if (NMI_n_o && ~NMI_n) 
             NMIAct <= 1'b1;
         // we entered NMI during BRK instruction
         if (NMI_entered) begin
