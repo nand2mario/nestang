@@ -8,8 +8,10 @@ module GameData (
 );
 
 // 24KB+ buffer for ROM
-localparam INES_SIZE = 28688; // 28KB + 16
-initial $readmemh("roms/nes15.hex", INES);
+// localparam INES_SIZE = 28688; // 28KB + 16
+// initial $readmemh("roms/nes15.hex", INES);
+localparam INES_SIZE = 24592; // 24KB + 16
+initial $readmemh("roms/helloworld.hex", INES);
 
 reg [7:0] INES[INES_SIZE:0];
 reg [1:0] state = 0;
