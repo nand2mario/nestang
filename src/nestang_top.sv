@@ -91,6 +91,8 @@ wire blend = 0;
 wire bk_save = 0;
 
 // NES signals
+reg reset_nes = 1;
+reg clkref;
 wire [5:0] color;
 wire [15:0] sample;
 wire [8:0] scanline;
@@ -291,7 +293,7 @@ end
 
 // From sdram_nes.v or sdram_sim.v
 sdram_nes sdram (
-    .clk(fclk), .clkref(clk), .resetn(sys_resetn), .busy(sdram_busy),
+    .clk(fclk), .clkref(clkref), .resetn(sys_resetn), .busy(sdram_busy),
 
     .SDRAM_DQ(IO_sdram_dq), .SDRAM_A(O_sdram_addr), .SDRAM_BA(O_sdram_ba), 
     .SDRAM_nCS(O_sdram_cs_n), .SDRAM_nWE(O_sdram_wen_n), .SDRAM_nRAS(O_sdram_ras_n), 
@@ -327,11 +329,12 @@ GameLoader loader(
 assign int_audio = 1;
 assign ext_audio = (mapper_flags[7:0] == 19) | (mapper_flags[7:0] == 24) | (mapper_flags[7:0] == 26);
 
-reg reset_nes = 1;
 always @(posedge clk) begin
-    if (~loading && loading_r)
+    clkref <= ~clkref;
+    if (~loading && loading_r) begin
         reset_nes <= 0;
-    else if (loading && ~loading_r)
+        clkref <= 0;
+    end else if (loading && ~loading_r)
         reset_nes <= 1;
 end
 

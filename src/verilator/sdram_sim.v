@@ -10,33 +10,33 @@ import configPackage::*;
 
 module sdram_nes
 (
-	inout  reg [SDRAM_DATA_WIDTH-1:0] SDRAM_DQ,   // 16 bit bidirectional data bus
-	output     [SDRAM_ROW_WIDTH-1:0] SDRAM_A,    // 13 bit multiplexed address bus
-	output reg [SDRAM_DATA_WIDTH/8-1:0] SDRAM_DQM,  // two byte masks
-	output reg [1:0]  SDRAM_BA,   // two banks
-	output            SDRAM_nCS,  // a single chip select
-	output            SDRAM_nWE,  // write enable
-	output            SDRAM_nRAS, // row address select
-	output            SDRAM_nCAS, // columns address select
+    inout  reg [SDRAM_DATA_WIDTH-1:0] SDRAM_DQ,   // 16 bit bidirectional data bus
+    output     [SDRAM_ROW_WIDTH-1:0] SDRAM_A,    // 13 bit multiplexed address bus
+    output reg [SDRAM_DATA_WIDTH/8-1:0] SDRAM_DQM,  // two byte masks
+    output reg [1:0]  SDRAM_BA,   // two banks
+    output            SDRAM_nCS,  // a single chip select
+    output            SDRAM_nWE,  // write enable
+    output            SDRAM_nRAS, // row address select
+    output            SDRAM_nCAS, // columns address select
     output            SDRAM_CKE,
 
-	// cpu/chipset interface
-	input             clk,        // main clock @ 21.477Mhz
-	input             resetn,
+    // cpu/chipset interface
+    input             clk,        // main clock @ 21.477Mhz
+    input             resetn,
     input             clkref,
     output reg busy,
 
-	input [21:0]      addrA,      // 22 bit byte address, bank 0/1
-	input             weA,        // ppu requests write
-	input [7:0]       dinA,       // data input from cpu
-	input             oeA,        // ppu requests data
-	output reg [7:0]  doutA,      // data output to cpu
+    input [21:0]      addrA,      // 22 bit byte address, bank 0/1
+    input             weA,        // ppu requests write
+    input [7:0]       dinA,       // data input from cpu
+    input             oeA,        // ppu requests data
+    output reg [7:0]  doutA,      // data output to cpu
 
-	input [21:0]      addrB,      // 21 bit byte address, also bank 0/1
-	input             weB,        // cpu requests write
-	input [7:0]       dinB,       // data input from ppu
-	input             oeB,        // cpu requests data
-	output reg [7:0]  doutB,      // data output to ppu
+    input [21:0]      addrB,      // 21 bit byte address, also bank 0/1
+    input             weB,        // cpu requests write
+    input [7:0]       dinB,       // data input from ppu
+    input             oeB,        // cpu requests data
+    output reg [7:0]  doutB,      // data output to ppu
 
     // RISC-V softcore
     input      [20:1] rv_addr,      // 2MB RV memory space, bank 2
@@ -77,6 +77,10 @@ reg [7:0] doutA_pre, doutB_pre;
 reg [15:0] rv_dout_pre;
 reg rv_req_new;
 
+reg oeA_d, oeB_d, weA_d, weB_d;
+wire reqA = (~oeA_d & oeA) || (~weA_d & weA);
+wire reqB = (~oeB_d & oeB) || (~weB_d & weB);
+
 always @(posedge clk) begin
     reg rv_req_new_t;
     rv_req_new_t = rv_req ^ rv_req_r;
@@ -90,7 +94,12 @@ always @(posedge clk) begin
 
         // RAS
         if (cycle == 1'b1) begin
-            if (oeB || weB) begin               // CPU
+
+            oeA_d <= oeA_d & oeA; weA_d <= weA_d & weA;
+            oeB_d <= oeB_d & oeB; weB_d <= weB_d & weB;
+
+            if (reqB) begin               // CPU
+                oeB_d <= oeB; weB_d <= weB;
                 port[0] <= PORT_B;
                 {we_latch[0], oe_latch[0]} <= {weB, oeB};
                 if (weB) begin
@@ -98,7 +107,8 @@ always @(posedge clk) begin
                     // $fdisplay(32'h80000002, "[%06x] <= %02x", addrB, dinB);
                 end else
                     doutB_pre <= mem_cpu[addrB];
-            end else if (oeA || weA) begin      // PPU
+            end else if (reqA) begin      // PPU
+                oeA_d <= oeA; weA_d <= weA;
                 port[0] <= PORT_A;
                 {we_latch[0], oe_latch[0]} <= {weA, oeA};
                 if (weA) begin
