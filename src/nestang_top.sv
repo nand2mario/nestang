@@ -182,7 +182,7 @@ wire ext_audio;
 // Clocks
 ///////////////////////////
 
-wire clk, fclk, clk_sdram, clk_usb;
+wire clk, fclk, clk_sdram, clk27, clk_usb;
 assign O_sdram_clk = clk_sdram;
 
 reg sys_resetn = 0;
@@ -190,21 +190,23 @@ reg [7:0] reset_cnt = 255;      // reset for 255 cycles before start everything
 always @(posedge clk) begin
     reset_cnt <= reset_cnt == 0 ? 0 : reset_cnt - 1;
     if (reset_cnt == 0)
-        sys_resetn <= ~s1 & ~reset2 & ~(nes_btn[5] && nes_btn[2]);    // 8BitDo Home button = Select + Down
+        sys_resetn <= ~(nes_btn[5] && nes_btn[2]);    // 8BitDo Home button = Select + Down
 end
 
 `ifndef VERILATOR
 
 localparam FREQ = 21_477_000;
 
-// clk is 27Mhz
 `ifdef PRIMER
-gowin_pll_27 pll27 (.clkin(sys_clk), .clkout0(clk), .clkout1(clk_sdram));      // Primer25K: PLL to generate 27Mhz from 50Mhz
-`else
-gowin_pll_nes pll_nes(.clkin(sys_clk), .clkout(fclk), .clkoutp(clk_sdram), .clkoutd3(clk));
+// sysclk 50Mhz
+gowin_pll_27 pll_27 (.clkin(sys_clk), .clkout0(clk27));      // Primer25K: PLL to generate 27Mhz from 50Mhz
 
-wire clk = sys_clk;       // Nano20K: native 27Mhz system clock
-wire clk_sdram = ~clk;  
+gowin_pll_nes pll_nes (.clkin(sys_clk), .clkout0(clk), .clkout1(fclk), .clkout2(clk_sdram));
+`else
+// sys_clk 27Mhz
+wire clk27 = sys_clk;       // Nano20K: native 27Mhz system clock
+wire clk_sdram;  
+gowin_pll_nes pll_nes(.clkin(sys_clk), ..clkoutd3(clk), clkout(fclk), .clkoutp(clk_sdram));
 `endif  // PRIMER
 
 // USB clock 12Mhz
@@ -214,19 +216,19 @@ wire clk_sdram = ~clk;
 //   );
 
 // HDMI domain clocks
-wire clk_p;     // 720p pixel clock: 74.25 Mhz
-wire clk_p5;    // 5x pixel clock: 371.25 Mhz
+wire hclk;     // 720p pixel clock: 74.25 Mhz
+wire hclk5;    // 5x pixel clock: 371.25 Mhz
 wire pll_lock;
 
 gowin_pll_hdmi pll_hdmi (
-    .clkin(clk),
-    .clkout(clk_p5),
+    .clkin(clk27),
+    .clkout(hclk5),
     .lock(pll_lock)
 );
 
 CLKDIV #(.DIV_MODE(5)) div5 (
-    .CLKOUT(clk_p),
-    .HCLKIN(clk_p5),
+    .CLKOUT(hclk),
+    .HCLKIN(hclk5),
     .RESETN(sys_resetn & pll_lock),
     .CALIB(1'b0)
 );
@@ -344,6 +346,8 @@ always @(posedge clk) begin
         clkref <= 0;
     end else if (loading && ~loading_r)
         reset_nes <= 1;
+    if (~sys_resetn)
+        reset_nes <= 1;
 end
 
 ///////////////////////////
@@ -372,7 +376,7 @@ nes2hdmi u_hdmi (
     .scanline(scanline), .sample(sample >> 1),
     .overlay(overlay), .overlay_x(overlay_x), .overlay_y(overlay_y),
     .overlay_color(overlay_color),
-    .clk_pixel(clk_p), .clk_5x_pixel(clk_p5), .locked(pll_lock),
+    .clk_pixel(hclk), .clk_5x_pixel(hclk5), .locked(pll_lock),
     .tmds_clk_n(tmds_clk_n), .tmds_clk_p(tmds_clk_p),
     .tmds_d_n(tmds_d_n), .tmds_d_p(tmds_d_p)
 );
@@ -386,7 +390,7 @@ localparam RV_DATA1 = 3'd4;
 reg [2:0]   rvst;
 
 always @(posedge clk) begin            // RV
-    if (~resetn) begin
+    if (~sys_resetn) begin
         rvst <= RV_IDLE_REQ0;
         rv_ready <= 0;
     end else begin
@@ -461,7 +465,7 @@ always @(posedge clk) begin            // RV
 end
 
 iosys iosys (
-    .clk(clk), .hclk(hclk), .resetn(resetn),
+    .clk(clk), .hclk(hclk), .resetn(sys_resetn),
 
     .overlay(overlay), .overlay_x(overlay_x), .overlay_y(overlay_y),
     .overlay_color(overlay_color),

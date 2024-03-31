@@ -237,6 +237,7 @@ wire [15:0] rmix = r_rgbv[23:16]*mixratio[15:8] + rgbv[23:16]*mixratio[7:0];
 wire [15:0] gmix = r_rgbv[15:8]*mixratio[15:8] + rgbv[15:8]*mixratio[7:0];
 wire [15:0] bmix = r_rgbv[7:0]*mixratio[15:8] + rgbv[7:0]*mixratio[7:0];
 reg [23:0] rgb;     // actual RGB output
+reg overlay_active;
 
 // calc rgb value to hdmi
 always_ff @(posedge clk_pixel) begin
@@ -244,6 +245,10 @@ always_ff @(posedge clk_pixel) begin
         active <= 1'b1;
     if (asp8x7_on && cx == 11'd1075 || ~asp8x7_on && cx == 11'd1021)
         active <= 1'b0;
+    if (cx == 11'd256 && cy >= 10'd24 && cy < 10'd696)
+        overlay_active <= 1;
+    if (cx == 11'd1023)
+        overlay_active <= 0;
 
     // calculate pixel rgb through 3 cycles
     // 0 - load: xmem_portB_rdata = mem[{y,x}]
@@ -275,8 +280,11 @@ always_ff @(posedge clk_pixel) begin
     end else
         rgb <= 24'b0;
 
-    if (active && overlay)  // overlay_color is BGR5
-        rgb <= {overlay_color[4:0], 3'b0, overlay_color[9:5], 3'b0, overlay_color[14:10], 3'b0};
+    if (overlay) begin
+        rgb <= 0;
+        if (overlay_active)  // overlay_color is BGR5
+            rgb <= {overlay_color[4:0], 3'b0, overlay_color[9:5], 3'b0, overlay_color[14:10], 3'b0};
+    end
 
     if (cx == 0) begin
         x <= 0;

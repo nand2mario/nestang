@@ -56,6 +56,7 @@
         <File path="src/tang_primer_25k/config.sv" type="file.verilog" enable="1"/>
         <File path="src/tang_primer_25k/gowin_pll_27.v" type="file.verilog" enable="1"/>
         <File path="src/tang_primer_25k/gowin_pll_hdmi.v" type="file.verilog" enable="1"/>
+        <File path="src/tang_primer_25k/gowin_pll_nes.v" type="file.verilog" enable="1"/>
         <File path="src/tang_primer_25k/gowin_pll_usb.v" type="file.verilog" enable="1"/>
         <File path="src/uart_tx_V2.v" type="file.verilog" enable="1"/>
         <File path="src/usb_hid_host.v" type="file.verilog" enable="1"/>
