@@ -30,7 +30,11 @@
 // design are read in the correct order.
 `define PICOSOC_V
 
-module iosys #(parameter FREQ=21_477_000)
+module iosys #(
+    parameter FREQ=21_477_000,
+    parameter [14:0] COLOR_LOGO=15'b00000_10101_00000,
+    parameter [15:0] CORE_ID=1      // 1: nestang, 2: snestang
+)
 (
     input clk,                      // SNES mclk
     input hclk,                     // hdmi clock
@@ -180,8 +184,10 @@ wire        joystick_reg_sel = mem_valid && (mem_addr == 32'h 0200_0040);
 
 wire        time_reg_sel = mem_valid && (mem_addr == 32'h0200_0050);        // milli-seconds since start-up (overflows in 49 days)
 
+wire        id_reg_sel = mem_valid && (mem_addr == 32'h0200_0060);
+
 assign mem_ready = ram_ready || textdisp_reg_char_sel || simpleuart_reg_div_sel || 
-            romload_reg_ctrl_sel || romload_reg_data_sel || joystick_reg_sel || time_reg_sel ||
+            romload_reg_ctrl_sel || romload_reg_data_sel || joystick_reg_sel || time_reg_sel || id_reg_sel ||
             (simpleuart_reg_dat_sel && !simpleuart_reg_dat_wait) ||
             ((simplespimaster_reg_byte_sel || simplespimaster_reg_word_sel) && !simplespimaster_reg_wait);
 
@@ -190,6 +196,7 @@ assign mem_rdata = ram_ready ? ram_rdata :
         simpleuart_reg_div_sel ? simpleuart_reg_div_do :
         simpleuart_reg_dat_sel ? simpleuart_reg_dat_do : 
         time_reg_sel ? time_reg :
+        id_reg_sel ? {16'b0, CORE_ID} :
         (simplespimaster_reg_byte_sel | simplespimaster_reg_word_sel) ? simplespimaster_reg_do : 
         32'h 0000_0000;
 
@@ -209,7 +216,7 @@ picorv32 #(
 );
 
 // text display @ 0x0200_0000
-textdisp disp (
+textdisp #(.COLOR_LOGO(COLOR_LOGO)) disp (
     .clk(clk), .hclk(hclk), .resetn(resetn),
     .overlay_x(overlay_x), .overlay_y(overlay_y), .overlay_color(overlay_color),
     .reg_char_we(textdisp_reg_char_sel ? mem_wstrb : 4'b0),

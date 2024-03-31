@@ -370,7 +370,7 @@ wire [9:0]  overlay_y;
 wire [14:0] overlay_color;      // BGR5
 
 // HDMI output
-nes2hdmi u_hdmi (
+nes2hdmi u_hdmi (     // purple: RGB=440064 (010001000_00000000_01100100), BGR5=01100_00000_01000
     .clk(clk), .resetn(sys_resetn),
     .color(color), .cycle(cycle), 
     .scanline(scanline), .sample(sample >> 1),
@@ -464,7 +464,8 @@ always @(posedge clk) begin            // RV
     end
 end
 
-iosys iosys (
+iosys #(.COLOR_LOGO(15'b01100_00000_01000), .CORE_ID(1) )     // purple nestang logo
+    iosys (
     .clk(clk), .hclk(hclk), .resetn(sys_resetn),
 
     .overlay(overlay), .overlay_x(overlay_x), .overlay_y(overlay_y),
