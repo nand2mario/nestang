@@ -14,6 +14,12 @@ module nes2hdmi (
     input [15:0] sample,
     input aspect_8x7,       // 1: 8x7 pixel aspect ratio mode
 
+    // overlay interface
+    input overlay,
+    output [10:0] overlay_x,
+    output [9:0] overlay_y,
+    input [14:0] overlay_color, // BGR5
+
 	// video clocks
 	input clk_pixel,
 	input clk_5x_pixel,
@@ -75,6 +81,9 @@ logic asp8x7_on = 1'b1;
 wire [9:0] cy, frameHeight;
 wire [10:0] cx, frameWidth;
 logic [7:0] ONE_THIRD[0:768];     // lookup table for divide-by-3
+
+assign overlay_x = cx;
+assign overlay_y = cy;
 
 logic active;
 logic r_active;
@@ -265,6 +274,9 @@ always_ff @(posedge clk_pixel) begin
             rgb <= rgbv;
     end else
         rgb <= 24'b0;
+
+    if (active && overlay)  // overlay_color is BGR5
+        rgb <= {overlay_color[4:0], 3'b0, overlay_color[9:5], 3'b0, overlay_color[14:10], 3'b0};
 
     if (cx == 0) begin
         x <= 0;

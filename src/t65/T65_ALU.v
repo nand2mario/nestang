@@ -59,8 +59,8 @@ module T65_ALU(
     input [7:0] BusA,
     input [7:0] BusB,
     input [7:0] P_In,
-    output [7:0] P_Out,
-    output [7:0] Q
+    output reg [7:0] P_Out,
+    output reg [7:0] Q
 );
 
 // AddSub variables (temporary signals)

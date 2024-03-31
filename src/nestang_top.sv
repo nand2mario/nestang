@@ -41,6 +41,14 @@ module nestang_top (
     output sd_dat2,     // 1
     output sd_dat3,     // 1
 
+    // SPI flash
+    output flash_spi_cs_n,          // chip select
+    input flash_spi_miso,           // master in slave out
+    output flash_spi_mosi,          // mster out slave in
+    output flash_spi_clk,           // spi clock
+    output flash_spi_wp_n,          // write protect
+    output flash_spi_hold_n,        // hold operations
+
     // Dualshock game controller
     output joystick_clk,
     output joystick_mosi,
@@ -352,15 +360,18 @@ GameData game_data(
 `else
 
 // For physical board, there's HDMI, iosys, joypads, and USB
-wire menu_overlay;
-wire [5:0] menu_color;
-wire [7:0] menu_scanline, menu_cycle;
+wire overlay;                   // iosys controls overlay
+wire [10:0] overlay_x;
+wire [9:0]  overlay_y;
+wire [14:0] overlay_color;      // BGR5
 
 // HDMI output
 nes2hdmi u_hdmi (
     .clk(clk), .resetn(sys_resetn),
-    .color(menu_overlay ? menu_color : color), .cycle(menu_overlay ? menu_cycle : cycle), 
-    .scanline(menu_overlay ? menu_scanline : scanline), .sample(sample >> 1),
+    .color(color), .cycle(cycle), 
+    .scanline(scanline), .sample(sample >> 1),
+    .overlay(overlay), .overlay_x(overlay_x), .overlay_y(overlay_y),
+    .overlay_color(overlay_color),
     .clk_pixel(clk_p), .clk_5x_pixel(clk_p5), .locked(pll_lock),
     .tmds_clk_n(tmds_clk_n), .tmds_clk_p(tmds_clk_p),
     .tmds_d_n(tmds_d_n), .tmds_d_p(tmds_d_p)
@@ -374,7 +385,7 @@ localparam RV_WAIT1 = 3'd3;
 localparam RV_DATA1 = 3'd4;
 reg [2:0]   rvst;
 
-always @(posedge mclk) begin            // RV
+always @(posedge clk) begin            // RV
     if (~resetn) begin
         rvst <= RV_IDLE_REQ0;
         rv_ready <= 0;
@@ -450,11 +461,11 @@ always @(posedge mclk) begin            // RV
 end
 
 iosys iosys (
-    .clk(mclk), .hclk(hclk), /*.clkref(DOTCLK),*/ .resetn(resetn),
+    .clk(clk), .hclk(hclk), .resetn(resetn),
 
     .overlay(overlay), .overlay_x(overlay_x), .overlay_y(overlay_y),
     .overlay_color(overlay_color),
-    .joy1(joy1_btns), .joy2(joy2_btns),
+    .joy1(nes_btn), .joy2(nes_btn2),
 
     .rom_loading(loading), .rom_do(loader_do), .rom_do_valid(loader_do_valid), 
     .ram_busy(sdram_busy),

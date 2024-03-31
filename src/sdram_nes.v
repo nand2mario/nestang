@@ -14,9 +14,11 @@
 //
 // For both Nano 20K (32-bit total 8MB) and Primer 25K (16-bit total 32MB)
 
+import configPackage::*;
+
 module sdram_nes #(
     // Clock frequency, max 66.7Mhz with current set of T_xx/CAS parameters.
-    parameter         FREQ = 64_800_000,  
+    parameter         FREQ = 64_800_000,
 
     // Time delays for 66.7Mhz max clock (min clock cycle 15ns)
     // The SDRAM supports max 166.7Mhz (RP/RCD/RC need changes)
@@ -44,20 +46,20 @@ module sdram_nes #(
     input             clkref,
     output reg busy,
 
-	input [20:0]      addrA,      // 21 bit byte address, bank 0
+	input [21:0]      addrA,      // 4MB, bank 0/1
 	input             weA,        // ppu requests write
 	input [7:0]       dinA,       // data input from cpu
 	input             oeA,        // ppu requests data
 	output reg [7:0]  doutA,      // data output to cpu
 
-	input [20:0]      addrB,      // 21 bit byte address, also bank 0
+	input [21:0]      addrB,      // 4MB, bank 0/1
 	input             weB,        // cpu requests write
 	input [7:0]       dinB,       // data input from ppu
 	input             oeB,        // cpu requests data
 	output reg [7:0]  doutB,      // data output to ppu
 
     // RISC-V softcore
-    input      [20:1] rv_addr,      // 2MB RV memory space, bank 1
+    input      [20:1] rv_addr,      // 2MB RV memory space, bank 2
     input      [15:0] rv_din,       // 16-bit accesses
     input      [1:0]  rv_ds,
     output reg [15:0] rv_dout,
@@ -101,7 +103,7 @@ reg normal, setup;
 reg cfg_now;            // pulse for configuration
 
 // requests
-reg [20:0] addr_latch[2];
+reg [21:0] addr_latch[2];
 reg [15:0] din_latch[2];
 reg  [2:0] oe_latch;
 reg  [2:0] we_latch;
@@ -116,11 +118,15 @@ localparam PORT_RV    = 2'd1;
 
 reg  [1:0] port[2];
 reg  [1:0] next_port[2];
-reg [20:0] next_addr[2];
+reg [21:0] next_addr[2];
 reg [15:0] next_din[2];
 reg  [1:0] next_ds[2];
 reg  [2:0] next_we;
 reg  [2:0] next_oe;
+
+reg oeA_d, oeB_d, weA_d, weB_d;
+wire reqA = (~oeA_d & oeA) || (~weA_d & weA);
+wire reqB = (~oeB_d & oeB) || (~weB_d & weB);
 
 reg clkref_r;
 always @(posedge clk) clkref_r <= clkref;
@@ -135,7 +141,7 @@ always @(posedge clk) begin
 		need_refresh <= 1;
 end
 
-// CPU/PPU: bank 0
+// CPU/PPU: bank 0/1
 always @(*) begin
 	next_port[0] = PORT_NONE;
 	next_addr[0] = 0;
@@ -143,14 +149,14 @@ always @(*) begin
 	next_oe[0] = 0;
 	next_ds[0] = 0;
 	next_din[0] = 0;
-    if (oeB || weB) begin
+    if (reqB) begin
 		next_port[0] = PORT_B;
 		next_addr[0] = addrB;
 		next_din[0]  = {dinB, dinB};
 		next_ds[0]   = {addrB[0], ~addrB[0]};
 		next_we[0]   = weB;
 		next_oe[0]   = oeB;
-	end else if (oeA || weA) begin
+	end else if (reqA) begin
 		next_port[0] = PORT_A;
 		next_addr[0] = addrA;
 		next_din[0] = {dinA, dinA};
@@ -160,7 +166,7 @@ always @(*) begin
 	end 
 end
 
-// RV: bank 1
+// RV: bank 2
 always @* begin
 	next_port[1] = PORT_NONE;
 	next_addr[1] = 0;
@@ -240,9 +246,17 @@ always @(posedge clk) begin
             // CPU, PPU
             if (cycle[0]) begin
     			port[0] <= next_port[0];
+                oeA_d <= oeA_d & oeA; weA_d <= weA_d & weA;
+                oeB_d <= oeB_d & oeB; weB_d <= weB_d & weB;
+                if (next_port[0] == PORT_A) begin
+                    oeA_d <= oeA; weA_d <= weA;
+                end
+                if (next_port[0] == PORT_B) begin
+                    oeB_d <= oeB; weB_d <= weB;
+                end
 	    		{ we_latch[0], oe_latch[0] } <= { next_we[0], next_oe[0] };
     			addr_latch[0] <= next_addr[0];
-                SDRAM_BA <= 2'd0;
+                SDRAM_BA <= next_addr[0][21];       // bank 0 or 1
                 din_latch[0] <= next_din[0];
                 ds[0] <= next_ds[0];
                 if (next_port[0] != PORT_NONE) cmd <= CMD_BankActivate;
@@ -255,7 +269,7 @@ always @(posedge clk) begin
                 { we_latch[1], oe_latch[1] } <= { next_we[1], next_oe[1] };
                 addr_latch[1] <= next_addr[1];
                 a <= next_addr[1][20:10];
-                SDRAM_BA <= 2'd1;
+                SDRAM_BA <= 2'd2;
                 din_latch[1] <= next_din[1];
                 ds[1] <= next_ds[1];
                 if (next_port[1] != PORT_NONE) begin 
@@ -271,7 +285,7 @@ always @(posedge clk) begin
             // CPU, PPU
             if (cycle[1] && (oe_latch[0] || we_latch[0])) begin
                 cmd <= we_latch[0]?CMD_Write:CMD_Read;
-                SDRAM_BA <= 2'd0;              
+                SDRAM_BA <= addr_latch[0][21];
 `ifdef NANO  
                 a <= addr_latch[0][9:2];
 `else
@@ -293,6 +307,7 @@ always @(posedge clk) begin
             // RV
             if (cycle[4] && (oe_latch[1] || we_latch[1])) begin
                 cmd <= we_latch[1]?CMD_Write:CMD_Read;
+			    SDRAM_BA <= 2'd2;
 `ifdef NANO
                 a <= addr_latch[1][9:2];  
 `else
@@ -309,7 +324,6 @@ always @(posedge clk) begin
 `endif
                 end else
                     SDRAM_DQM <= 0;
-			    SDRAM_BA <= 2'd1;
                 rv_req_ack <= rv_req;       // ack request
             end
 
@@ -330,7 +344,7 @@ always @(posedge clk) begin
 
                 case (port[0])
                 PORT_A: doutA <= dq_byte;
-                PORT_B: doutA <= dq_byte;
+                PORT_B: doutB <= dq_byte;
                 default: ;
                 endcase
             end
