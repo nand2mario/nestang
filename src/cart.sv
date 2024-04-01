@@ -61,23 +61,6 @@ tri0 [21:0] prg_addr_b, chr_addr_b;
 tri0 [15:0] flags_out_b, audio_out_b;
 tri1 [7:0] prg_dout_b, chr_dout_b;
 
-// nand2mario: signals have to be declared first for gowin synthesis
-wire [15:0] ss5b_audio;
-wire [15:0] n163_audio;
-wire [7:0] n163_data;
-wire [5:0] exp_audioe;
-wire [15:0] mmc5_audio;
-wire [7:0] mmc5_data;
-wire [15:0] fds_audio;
-wire [7:0] fds_data;
-wire [15:0] vrc7_audio;
-wire [15:0] vrc6_audio;
-
-reg [6:0] prg_mask;
-reg [6:0] chr_mask;
-reg [1023:0] me;
-reg [9:0] mapper_en;
-
 // This mapper used to be default if no other mapper was found
 // It seems MMC0 is handled by map28. Does it have any purpose?
 // flags_out_b will be high if no other mappers are selected, so we use that.
@@ -86,7 +69,7 @@ MMC0 mmc0(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (1'b0),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -117,7 +100,7 @@ MMC1 mmc1(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[171] | me[155] | me[1]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -144,10 +127,7 @@ MMC1 mmc1(
 // Notes  : This mapper relies on open bus and bus conflict behavior.          //
 // Games  : Donkey Kong                                                        //
 //*****************************************************************************//
-wire mapper28_en /* synthesis syn_keep=1 */;
-// assign mapper28_en = (mapper_en == 0) | me[0] | me[2] | me[3] | me[7] | me[94] | me[97] | me[180] | me[185] | me[28];
-assign mapper28_en = 1;
-wire prg_allow_28 = prg_ain[15] && !prg_write;
+wire mapper28_en = me[0] | me[2] | me[3] | me[7] | me[94] | me[97] | me[180] | me[185] | me[28];
 Mapper28 map28(
 	.clk        (clk),
 	.ce         (ce),
@@ -159,8 +139,7 @@ Mapper28 map28(
 	.prg_write  (prg_write),
 	.prg_din    (prg_din),
 	.prg_dout_b (prg_dout_b),
-	// .prg_allow(prg_allow_28),
-	.prg_allow_b(),
+	.prg_allow_b(prg_allow_b),
 	.chr_ain    (chr_ain),
 	.chr_aout_b (chr_addr_b),
 	.chr_read   (chr_read),
@@ -185,7 +164,7 @@ Mapper30 map30(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[30]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -216,7 +195,7 @@ Mapper32 map32(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[32]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -247,7 +226,7 @@ MMC2 mmc2(
 	.clk        (clk),
 	.ce         (ppu_ce), // PPU_CE
 	.enable     (me[9]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -283,7 +262,7 @@ MMC3 mmc3 (
 	.clk        (clk),
 	.ce         (ppu_ce), // PPU CE
 	.enable     (mmc3_en),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -314,7 +293,7 @@ MMC4 mmc4(
 	.clk        (clk),
 	.ce         (ppu_ce), // PPU_CE
 	.enable     (me[10]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -345,7 +324,7 @@ MMC5 mmc5(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[5]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -383,7 +362,7 @@ Mapper13 map13(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[13]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -414,7 +393,7 @@ Mapper15 map15(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[15]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -448,7 +427,7 @@ Mapper16 map16(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[159] | me[153] | me[16]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -485,7 +464,7 @@ Mapper18 map18(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[18]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -516,7 +495,7 @@ Mapper34 map34(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[34]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -547,7 +526,7 @@ Mapper41 map41(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[41]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -578,7 +557,7 @@ Mapper42 map42(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[42]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -609,7 +588,7 @@ Mapper65 map65(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[65]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -641,7 +620,7 @@ Mapper66 map66(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (mapper66_en),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -672,7 +651,7 @@ Mapper67 map67(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[67] | me[190]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -703,7 +682,7 @@ Mapper68 map68(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[68]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -734,7 +713,7 @@ Mapper69 map69(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[69]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -765,7 +744,7 @@ Mapper71 map71(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[71] | me[232]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -796,7 +775,7 @@ Mapper72 map72(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[92] | me[72]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -827,7 +806,7 @@ Mapper77 map77(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[77]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -858,7 +837,7 @@ Mapper78 map78(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[152] | me[70] | me[78]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -890,7 +869,7 @@ Mapper79 map79(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[79] | me[113] | me[133] | me[146] | me[148]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -921,7 +900,7 @@ Mapper83 map83(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[83]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -952,7 +931,7 @@ Mapper89 map89(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[89] | me[93] | me[184]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -983,7 +962,7 @@ Mapper107 map107(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[107]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -1014,7 +993,7 @@ Mapper111 map111(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[111]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -1045,7 +1024,7 @@ Mapper165 map165(
 	.clk        (clk),
 	.ce         (ppu_ce), // PPU_CE
 	.enable     (me[165]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -1076,7 +1055,7 @@ Mapper218 map218(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[218]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -1107,7 +1086,7 @@ Mapper228 map228(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[228]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -1140,7 +1119,7 @@ Mapper234 map234(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[234]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -1171,7 +1150,7 @@ Rambo1 rambo1(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[64] | me[158]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -1202,7 +1181,7 @@ NesEvent nesev(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[105]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -1230,29 +1209,29 @@ NesEvent nesev(
 // Notes  :                                                                    //
 // Games  : King Kong 2, Exciting Boxing, Tetsuwan Atom                        //
 //*****************************************************************************//
-//VRC1 vrc1(
-//	.clk        (clk),
-//	.ce         (ce),
-//	.enable     (me[75]),
-//	.flags      (flags[31:0]),
-//	.prg_ain    (prg_ain),
-//	.prg_aout_b (prg_addr_b),
-//	.prg_read   (prg_read),
-//	.prg_write  (prg_write),
-//	.prg_din    (prg_din),
-//	.prg_dout_b (prg_dout_b),
-//	.prg_allow_b(prg_allow_b),
-//	.chr_ain    (chr_ain),
-//	.chr_aout_b (chr_addr_b),
-//	.chr_read   (chr_read),
-//	.chr_allow_b(chr_allow_b),
-//	.vram_a10_b (vram_a10_b),
-//	.vram_ce_b  (vram_ce_b),
-//	.irq_b      (irq_b),
-//	.flags_out_b(flags_out_b),
-//	.audio_in   (audio_in),
-//	.audio_b    (audio_out_b)
-//);
+// VRC1 vrc1(
+// 	.clk        (clk),
+// 	.ce         (ce),
+// 	.enable     (me[75]),
+// 	.flags      (flags),
+// 	.prg_ain    (prg_ain),
+// 	.prg_aout_b (prg_addr_b),
+// 	.prg_read   (prg_read),
+// 	.prg_write  (prg_write),
+// 	.prg_din    (prg_din),
+// 	.prg_dout_b (prg_dout_b),
+// 	.prg_allow_b(prg_allow_b),
+// 	.chr_ain    (chr_ain),
+// 	.chr_aout_b (chr_addr_b),
+// 	.chr_read   (chr_read),
+// 	.chr_allow_b(chr_allow_b),
+// 	.vram_a10_b (vram_a10_b),
+// 	.vram_ce_b  (vram_ce_b),
+// 	.irq_b      (irq_b),
+// 	.flags_out_b(flags_out_b),
+// 	.audio_in   (audio_in),
+// 	.audio_b    (audio_out_b)
+// );
 
 //*****************************************************************************//
 // Name   : Konami VRC-3                                                       //
@@ -1261,29 +1240,29 @@ NesEvent nesev(
 // Notes  :                                                                    //
 // Games  : Salamander (j)                                                     //
 //*****************************************************************************//
-//VRC3 vrc3(
-//	.clk        (clk),
-//	.ce         (ce),
-//	.enable     (me[73]),
-//	.flags      (flags[31:0]),
-//	.prg_ain    (prg_ain),
-//	.prg_aout_b (prg_addr_b),
-//	.prg_read   (prg_read),
-//	.prg_write  (prg_write),
-//	.prg_din    (prg_din),
-//	.prg_dout_b (prg_dout_b),
-//	.prg_allow_b(prg_allow_b),
-//	.chr_ain    (chr_ain),
-//	.chr_aout_b (chr_addr_b),
-//	.chr_read   (chr_read),
-//	.chr_allow_b(chr_allow_b),
-//	.vram_a10_b (vram_a10_b),
-//	.vram_ce_b  (vram_ce_b),
-//	.irq_b      (irq_b),
-//	.flags_out_b(flags_out_b),
-//	.audio_in   (audio_in),
-//	.audio_b    (audio_out_b)
-//);
+// VRC3 vrc3(
+// 	.clk        (clk),
+// 	.ce         (ce),
+// 	.enable     (me[73]),
+// 	.flags      (flags),
+// 	.prg_ain    (prg_ain),
+// 	.prg_aout_b (prg_addr_b),
+// 	.prg_read   (prg_read),
+// 	.prg_write  (prg_write),
+// 	.prg_din    (prg_din),
+// 	.prg_dout_b (prg_dout_b),
+// 	.prg_allow_b(prg_allow_b),
+// 	.chr_ain    (chr_ain),
+// 	.chr_aout_b (chr_addr_b),
+// 	.chr_read   (chr_read),
+// 	.chr_allow_b(chr_allow_b),
+// 	.vram_a10_b (vram_a10_b),
+// 	.vram_ce_b  (vram_ce_b),
+// 	.irq_b      (irq_b),
+// 	.flags_out_b(flags_out_b),
+// 	.audio_in   (audio_in),
+// 	.audio_b    (audio_out_b)
+// );
 
 //*****************************************************************************//
 // Name   : Konami VRC2/4                                                      //
@@ -1292,29 +1271,29 @@ NesEvent nesev(
 // Notes  :                                                                    //
 // Games  : Wai Wai World 2, Twinbee 3, Contra (j), Gradius II (j)             //
 //*****************************************************************************//
-//VRC24 vrc24(
-//	.clk        (clk),
-//	.ce         (ce),
-//	.enable     (me[21] | me[22] | me[23] | me[25] | me[27]),
-//	.flags      (flags[31:0]),
-//	.prg_ain    (prg_ain),
-//	.prg_aout_b (prg_addr_b),
-//	.prg_read   (prg_read),
-//	.prg_write  (prg_write),
-//	.prg_din    (prg_din),
-//	.prg_dout_b (prg_dout_b),
-//	.prg_allow_b(prg_allow_b),
-//	.chr_ain    (chr_ain),
-//	.chr_aout_b (chr_addr_b),
-//	.chr_read   (chr_read),
-//	.chr_allow_b(chr_allow_b),
-//	.vram_a10_b (vram_a10_b),
-//	.vram_ce_b  (vram_ce_b),
-//	.irq_b      (irq_b),
-//	.flags_out_b(flags_out_b),
-//	.audio_in   (audio_in),
-//	.audio_b    (audio_out_b)
-//);
+// VRC24 vrc24(
+// 	.clk        (clk),
+// 	.ce         (ce),
+// 	.enable     (me[21] | me[22] | me[23] | me[25] | me[27]),
+// 	.flags      (flags),
+// 	.prg_ain    (prg_ain),
+// 	.prg_aout_b (prg_addr_b),
+// 	.prg_read   (prg_read),
+// 	.prg_write  (prg_write),
+// 	.prg_din    (prg_din),
+// 	.prg_dout_b (prg_dout_b),
+// 	.prg_allow_b(prg_allow_b),
+// 	.chr_ain    (chr_ain),
+// 	.chr_aout_b (chr_addr_b),
+// 	.chr_read   (chr_read),
+// 	.chr_allow_b(chr_allow_b),
+// 	.vram_a10_b (vram_a10_b),
+// 	.vram_ce_b  (vram_ce_b),
+// 	.irq_b      (irq_b),
+// 	.flags_out_b(flags_out_b),
+// 	.audio_in   (audio_in),
+// 	.audio_b    (audio_out_b)
+// );
 
 //*****************************************************************************//
 // Name   : Konami VRC-6                                                       //
@@ -1323,29 +1302,29 @@ NesEvent nesev(
 // Notes  : External audio needs to be mixed correctly.                        //
 // Games  : Akamajou Densetsu, Esper Dream 2, Mouryou Senki Madara             //
 //*****************************************************************************//
-//VRC6 vrc6(
-//	.clk        (clk),
-//	.ce         (ce),
-//	.enable     (me[24] | me[26]),
-//	.flags      (flags[31:0]),
-//	.prg_ain    (prg_ain),
-//	.prg_aout_b (prg_addr_b),
-//	.prg_read   (prg_read),
-//	.prg_write  (prg_write),
-//	.prg_din    (prg_din),
-//	.prg_dout_b (prg_dout_b),
-//	.prg_allow_b(prg_allow_b),
-//	.chr_ain    (chr_ain),
-//	.chr_aout_b (chr_addr_b),
-//	.chr_read   (chr_read),
-//	.chr_allow_b(chr_allow_b),
-//	.vram_a10_b (vram_a10_b),
-//	.vram_ce_b  (vram_ce_b),
-//	.irq_b      (irq_b),
-//	.flags_out_b(flags_out_b),
-//	.audio_in   (vrc6_audio),
-//	.audio_b    (audio_out_b)
-//);
+// VRC6 vrc6(
+// 	.clk        (clk),
+// 	.ce         (ce),
+// 	.enable     (me[24] | me[26]),
+// 	.flags      (flags),
+// 	.prg_ain    (prg_ain),
+// 	.prg_aout_b (prg_addr_b),
+// 	.prg_read   (prg_read),
+// 	.prg_write  (prg_write),
+// 	.prg_din    (prg_din),
+// 	.prg_dout_b (prg_dout_b),
+// 	.prg_allow_b(prg_allow_b),
+// 	.chr_ain    (chr_ain),
+// 	.chr_aout_b (chr_addr_b),
+// 	.chr_read   (chr_read),
+// 	.chr_allow_b(chr_allow_b),
+// 	.vram_a10_b (vram_a10_b),
+// 	.vram_ce_b  (vram_ce_b),
+// 	.irq_b      (irq_b),
+// 	.flags_out_b(flags_out_b),
+// 	.audio_in   (vrc6_audio),
+// 	.audio_b    (audio_out_b)
+// );
 
 //*****************************************************************************//
 // Name   : Konami VRC-7                                                       //
@@ -1354,29 +1333,29 @@ NesEvent nesev(
 // Notes  : Audio mixing needs evaluation                                      //
 // Games  : Lagrange Point, Tiny Toon Aventures 2 (j)                          //
 //*****************************************************************************//
-//VRC7 vrc7(
-//	.clk        (clk),
-//	.ce         (ce),
-//	.enable     (me[85]),
-//	.flags      (flags[31:0]),
-//	.prg_ain    (prg_ain),
-//	.prg_aout_b (prg_addr_b),
-//	.prg_read   (prg_read),
-//	.prg_write  (prg_write),
-//	.prg_din    (prg_din),
-//	.prg_dout_b (prg_dout_b),
-//	.prg_allow_b(prg_allow_b),
-//	.chr_ain    (chr_ain),
-//	.chr_aout_b (chr_addr_b),
-//	.chr_read   (chr_read),
-//	.chr_allow_b(chr_allow_b),
-//	.vram_a10_b (vram_a10_b),
-//	.vram_ce_b  (vram_ce_b),
-//	.irq_b      (irq_b),
-//	.flags_out_b(flags_out_b),
-//	.audio_in   (vrc7_audio),
-//	.audio_b    (audio_out_b)
-//);
+// VRC7 vrc7(
+// 	.clk        (clk),
+// 	.ce         (ce),
+// 	.enable     (me[85]),
+// 	.flags      (flags),
+// 	.prg_ain    (prg_ain),
+// 	.prg_aout_b (prg_addr_b),
+// 	.prg_read   (prg_read),
+// 	.prg_write  (prg_write),
+// 	.prg_din    (prg_din),
+// 	.prg_dout_b (prg_dout_b),
+// 	.prg_allow_b(prg_allow_b),
+// 	.chr_ain    (chr_ain),
+// 	.chr_aout_b (chr_addr_b),
+// 	.chr_read   (chr_read),
+// 	.chr_allow_b(chr_allow_b),
+// 	.vram_a10_b (vram_a10_b),
+// 	.vram_ce_b  (vram_ce_b),
+// 	.irq_b      (irq_b),
+// 	.flags_out_b(flags_out_b),
+// 	.audio_in   (vrc7_audio),
+// 	.audio_b    (audio_out_b)
+// );
 
 //*****************************************************************************//
 // Name   : Namco 163                                                          //
@@ -1389,7 +1368,7 @@ N163 n163(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[210] | me[19]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -1422,7 +1401,7 @@ Mapper162 map162(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[162]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -1453,7 +1432,7 @@ Nanjing map163(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[163]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -1488,7 +1467,7 @@ Mapper164 map164(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[164]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -1520,7 +1499,7 @@ Sachen8259 sachen(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[137] | me[138] | me[139] | me[141] | me[150] | me[243]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -1552,7 +1531,7 @@ SachenJV001 sachenj(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[136] | me[147] | me[132] | me[173] | me[172] | me[36]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -1583,7 +1562,7 @@ SachenNROM sachenn(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[143]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -1615,7 +1594,7 @@ JYCompany jycompany(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[90] | me[209] | me[211] | me[35]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -1650,7 +1629,7 @@ Mapper91 map91(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[91]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -1682,7 +1661,7 @@ Mapper225 map225(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[225] | me[255]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -1714,7 +1693,7 @@ tri0 [1:0] fds_diskside_auto;
 // 	.clk        (clk),
 // 	.ce         (ce),
 // 	.enable     (me[20]),
-// 	.flags      (flags[31:0]),
+// 	.flags      (flags),
 // 	.prg_ain    (prg_ain),
 // 	.prg_aout_b (prg_addr_b),
 // 	.prg_read   (prg_read),
@@ -1747,11 +1726,12 @@ tri0 [1:0] fds_diskside_auto;
 // Notes  : Uses Mapper 31.15 (submapper) for NSF Player; NSF 1.0 only         //
 // Games  : Famicompo Pico 2014, NSF 1.0                                       //
 //*****************************************************************************//
+wire [5:0] exp_audioe;
 NSF nsfplayer(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[31]),
-	.flags      (flags[31:0]),
+	.flags      (flags),
 	.prg_ain    (prg_ain),
 	.prg_aout_b (prg_addr_b),
 	.prg_read   (prg_read),
@@ -1779,6 +1759,7 @@ NSF nsfplayer(
 	.fds_din    (fds_data)
 );
 
+wire [15:0] ss5b_audio;
 SS5b_mixed snd_5bm (
 	.clk(clk),
 	.ce(ce),
@@ -1790,6 +1771,8 @@ SS5b_mixed snd_5bm (
 	.audio_out(ss5b_audio)
 );
 
+wire [15:0] n163_audio;
+wire [7:0] n163_data;
 namco163_mixed snd_n163 (
 	.clk(clk),
 	.ce(ce),
@@ -1803,6 +1786,8 @@ namco163_mixed snd_n163 (
 	.audio_out(n163_audio)
 );
 
+wire [15:0] mmc5_audio;
+wire [7:0] mmc5_data;
 mmc5_mixed snd_mmc5 (
 	.clk(clk),
 	.ce(ce),
@@ -1816,6 +1801,8 @@ mmc5_mixed snd_mmc5 (
 	.audio_out(mmc5_audio)
 );
 
+wire [15:0] fds_audio;
+wire [7:0] fds_data;
 // fds_mixed snd_fds (
 // 	.clk(clk),
 // 	.ce(ce),
@@ -1828,35 +1815,40 @@ mmc5_mixed snd_mmc5 (
 // 	.audio_out(fds_audio)
 // );
 
-//vrc7_mixed snd_vrc7 (
-//	.clk(clk),
-//	.ce(ce),
-//	.enable(me[85] | (me[31] && exp_audioe[1])),
-//	.wren(prg_write),
-//	.addr_in(prg_ain),
-//	.data_in(prg_din),
-//	.audio_in(audio_in),
-//	.audio_out(vrc7_audio)
-//);
+wire [15:0] vrc7_audio;
+// vrc7_mixed snd_vrc7 (
+// 	.clk(clk),
+// 	.ce(ce),
+// 	.enable(me[85] | (me[31] && exp_audioe[1])),
+// 	.wren(prg_write),
+// 	.addr_in(prg_ain),
+// 	.data_in(prg_din),
+// 	.audio_in(audio_in),
+// 	.audio_out(vrc7_audio)
+// );
 
-//vrc6_mixed snd_vrc6 (
-//	.clk(clk),
-//	.ce(ce),
-//	.enable(me[24] | me[26] | (me[31] && exp_audioe[0])),
-//	.wren(prg_write),
-//	.addr_invert(me[26]),
-//	.addr_in(prg_ain),
-//	.data_in(prg_din),
-//	.audio_in(audio_in),
-//	.audio_out(vrc6_audio)
-//);
+wire [15:0] vrc6_audio;
+// vrc6_mixed snd_vrc6 (
+// 	.clk(clk),
+// 	.ce(ce),
+// 	.enable(me[24] | me[26] | (me[31] && exp_audioe[0])),
+// 	.wren(prg_write),
+// 	.addr_invert(me[26]),
+// 	.addr_in(prg_ain),
+// 	.data_in(prg_din),
+// 	.audio_in(audio_in),
+// 	.audio_out(vrc6_audio)
+// );
 
+
+reg [6:0] prg_mask;
+reg [6:0] chr_mask;
+reg [1023:0] me;
 
 always @* begin
 	me = 1023'd0;
 	me[{flags[18:17],flags[7:0]}] = 1'b1;
-	mapper_en = {flags[18:17],flags[7:0]};
-	
+
 	case(flags[10:8])
 		0: prg_mask = 7'b0000000;
 		1: prg_mask = 7'b0000001;
@@ -1882,9 +1874,6 @@ always @* begin
 	// Mapper output to cart pins
 	{prg_aout,   prg_allow,   chr_aout,   vram_a10,   vram_ce,   chr_allow,   prg_dout,   chr_dout,   irq,   audio} =
 	{prg_addr_b, prg_allow_b, chr_addr_b, vram_a10_b, vram_ce_b, chr_allow_b, prg_dout_b, chr_dout_b, irq_b, audio_out_b};
-
-	prg_allow = mapper28_en ? prg_allow_28:
-				0;
 
 	// Currently only used for Mapper 16 EEPROM. Expand if needed.
 	{mapper_addr, mapper_data_out, mapper_prg_write, mapper_ovr} = (me[159] | me[16]) ?

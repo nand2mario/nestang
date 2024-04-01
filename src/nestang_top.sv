@@ -292,6 +292,9 @@ always @(posedge clk) begin
 		loader_addr_mem <= loader_addr;
 		loader_write_data_mem <= loader_write_data;
 	end
+
+    if (loader_done)
+        mapper_flags <= loader_flags;
 end
 
 // From sdram_nes.v or sdram_sim.v
