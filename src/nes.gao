@@ -2,94 +2,86 @@
 <GAO_CONFIG>
     <Version>3.0</Version>
     <Mode>Standard</Mode>
-    <AoCore index="0" sample_clock="clk" trig_type="0" storage_depth="2048" window_num="1" capture_amount="1024" trigger_pos="0" module_name="NES_Tang20k" force_trigger_by_falling_edge="false">
+    <AoCore index="0" sample_clock="clk" trig_type="0" storage_depth="2048" window_num="1" capture_amount="2048" implementation="0" trigger_pos="0" module_name="nestang_top" force_trigger_by_falling_edge="false">
         <SignalList>
-            <Bus name="nes_ce[3:0]">
-                <Signal>nes_ce[3]</Signal>
-                <Signal>nes_ce[2]</Signal>
-                <Signal>nes_ce[1]</Signal>
-                <Signal>nes_ce[0]</Signal>
+            <Signal capture_enable="true">loading</Signal>
+            <Bus capture_enable="true" name="loader_addr_mem[21:0]">
+                <Signal>loader_addr_mem[21]</Signal>
+                <Signal>loader_addr_mem[20]</Signal>
+                <Signal>loader_addr_mem[19]</Signal>
+                <Signal>loader_addr_mem[18]</Signal>
+                <Signal>loader_addr_mem[17]</Signal>
+                <Signal>loader_addr_mem[16]</Signal>
+                <Signal>loader_addr_mem[15]</Signal>
+                <Signal>loader_addr_mem[14]</Signal>
+                <Signal>loader_addr_mem[13]</Signal>
+                <Signal>loader_addr_mem[12]</Signal>
+                <Signal>loader_addr_mem[11]</Signal>
+                <Signal>loader_addr_mem[10]</Signal>
+                <Signal>loader_addr_mem[9]</Signal>
+                <Signal>loader_addr_mem[8]</Signal>
+                <Signal>loader_addr_mem[7]</Signal>
+                <Signal>loader_addr_mem[6]</Signal>
+                <Signal>loader_addr_mem[5]</Signal>
+                <Signal>loader_addr_mem[4]</Signal>
+                <Signal>loader_addr_mem[3]</Signal>
+                <Signal>loader_addr_mem[2]</Signal>
+                <Signal>loader_addr_mem[1]</Signal>
+                <Signal>loader_addr_mem[0]</Signal>
             </Bus>
-            <Signal>memory/MemBusy</Signal>
-            <Signal>memory/MemRD</Signal>
-            <Signal>memory/MemWR</Signal>
-            <Signal>memory/MemRefresh</Signal>
-            <Bus name="memory/MemAddr[15:0]">
-                <Signal>memory/MemAddr[15]</Signal>
-                <Signal>memory/MemAddr[14]</Signal>
-                <Signal>memory/MemAddr[13]</Signal>
-                <Signal>memory/MemAddr[12]</Signal>
-                <Signal>memory/MemAddr[11]</Signal>
-                <Signal>memory/MemAddr[10]</Signal>
-                <Signal>memory/MemAddr[9]</Signal>
-                <Signal>memory/MemAddr[8]</Signal>
-                <Signal>memory/MemAddr[7]</Signal>
-                <Signal>memory/MemAddr[6]</Signal>
-                <Signal>memory/MemAddr[5]</Signal>
-                <Signal>memory/MemAddr[4]</Signal>
-                <Signal>memory/MemAddr[3]</Signal>
-                <Signal>memory/MemAddr[2]</Signal>
-                <Signal>memory/MemAddr[1]</Signal>
-                <Signal>memory/MemAddr[0]</Signal>
+            <Signal capture_enable="true">loader_write_mem</Signal>
+            <Bus capture_enable="true" name="loader_write_data_mem[7:0]">
+                <Signal>loader_write_data_mem[7]</Signal>
+                <Signal>loader_write_data_mem[6]</Signal>
+                <Signal>loader_write_data_mem[5]</Signal>
+                <Signal>loader_write_data_mem[4]</Signal>
+                <Signal>loader_write_data_mem[3]</Signal>
+                <Signal>loader_write_data_mem[2]</Signal>
+                <Signal>loader_write_data_mem[1]</Signal>
+                <Signal>loader_write_data_mem[0]</Signal>
             </Bus>
-            <Signal>memory/MemDataReady</Signal>
-            <Bus name="memory/MemDout[15:0]">
-                <Signal>memory/MemDout[15]</Signal>
-                <Signal>memory/MemDout[14]</Signal>
-                <Signal>memory/MemDout[13]</Signal>
-                <Signal>memory/MemDout[12]</Signal>
-                <Signal>memory/MemDout[11]</Signal>
-                <Signal>memory/MemDout[10]</Signal>
-                <Signal>memory/MemDout[9]</Signal>
-                <Signal>memory/MemDout[8]</Signal>
-                <Signal>memory/MemDout[7]</Signal>
-                <Signal>memory/MemDout[6]</Signal>
-                <Signal>memory/MemDout[5]</Signal>
-                <Signal>memory/MemDout[4]</Signal>
-                <Signal>memory/MemDout[3]</Signal>
-                <Signal>memory/MemDout[2]</Signal>
-                <Signal>memory/MemDout[1]</Signal>
-                <Signal>memory/MemDout[0]</Signal>
+            <Bus capture_enable="true" name="loader_do[7:0]">
+                <Signal>loader_do[7]</Signal>
+                <Signal>loader_do[6]</Signal>
+                <Signal>loader_do[5]</Signal>
+                <Signal>loader_do[4]</Signal>
+                <Signal>loader_do[3]</Signal>
+                <Signal>loader_do[2]</Signal>
+                <Signal>loader_do[1]</Signal>
+                <Signal>loader_do[0]</Signal>
             </Bus>
-            <Bus name="memory/MemDin[15:8]">
-                <Signal>memory/MemDin[15]</Signal>
-                <Signal>memory/MemDin[14]</Signal>
-                <Signal>memory/MemDin[13]</Signal>
-                <Signal>memory/MemDin[12]</Signal>
-                <Signal>memory/MemDin[11]</Signal>
-                <Signal>memory/MemDin[10]</Signal>
-                <Signal>memory/MemDin[9]</Signal>
-                <Signal>memory/MemDin[8]</Signal>
+            <Signal capture_enable="true">loader_do_valid</Signal>
+            <Bus capture_enable="true" name="iosys/rom_do_buf[31:8]">
+                <Signal>iosys/rom_do_buf[31]</Signal>
+                <Signal>iosys/rom_do_buf[30]</Signal>
+                <Signal>iosys/rom_do_buf[29]</Signal>
+                <Signal>iosys/rom_do_buf[28]</Signal>
+                <Signal>iosys/rom_do_buf[27]</Signal>
+                <Signal>iosys/rom_do_buf[26]</Signal>
+                <Signal>iosys/rom_do_buf[25]</Signal>
+                <Signal>iosys/rom_do_buf[24]</Signal>
+                <Signal>iosys/rom_do_buf[23]</Signal>
+                <Signal>iosys/rom_do_buf[22]</Signal>
+                <Signal>iosys/rom_do_buf[21]</Signal>
+                <Signal>iosys/rom_do_buf[20]</Signal>
+                <Signal>iosys/rom_do_buf[19]</Signal>
+                <Signal>iosys/rom_do_buf[18]</Signal>
+                <Signal>iosys/rom_do_buf[17]</Signal>
+                <Signal>iosys/rom_do_buf[16]</Signal>
+                <Signal>iosys/rom_do_buf[15]</Signal>
+                <Signal>iosys/rom_do_buf[14]</Signal>
+                <Signal>iosys/rom_do_buf[13]</Signal>
+                <Signal>iosys/rom_do_buf[12]</Signal>
+                <Signal>iosys/rom_do_buf[11]</Signal>
+                <Signal>iosys/rom_do_buf[10]</Signal>
+                <Signal>iosys/rom_do_buf[9]</Signal>
+                <Signal>iosys/rom_do_buf[8]</Signal>
             </Bus>
         </SignalList>
         <Triggers>
             <Trigger index="0">
                 <SignalList>
-                    <Signal>memory/MemRD</Signal>
-                    <Bus restorename="memory/MemAddr[21:0]">
-                        <Signal>memory/MemAddr[21]</Signal>
-                        <Signal>memory/MemAddr[20]</Signal>
-                        <Signal>memory/MemAddr[19]</Signal>
-                        <Signal>memory/MemAddr[18]</Signal>
-                        <Signal>memory/MemAddr[17]</Signal>
-                        <Signal>memory/MemAddr[16]</Signal>
-                        <Signal>memory/MemAddr[15]</Signal>
-                        <Signal>memory/MemAddr[14]</Signal>
-                        <Signal>memory/MemAddr[13]</Signal>
-                        <Signal>memory/MemAddr[12]</Signal>
-                        <Signal>memory/MemAddr[11]</Signal>
-                        <Signal>memory/MemAddr[10]</Signal>
-                        <Signal>memory/MemAddr[9]</Signal>
-                        <Signal>memory/MemAddr[8]</Signal>
-                        <Signal>memory/MemAddr[7]</Signal>
-                        <Signal>memory/MemAddr[6]</Signal>
-                        <Signal>memory/MemAddr[5]</Signal>
-                        <Signal>memory/MemAddr[4]</Signal>
-                        <Signal>memory/MemAddr[3]</Signal>
-                        <Signal>memory/MemAddr[2]</Signal>
-                        <Signal>memory/MemAddr[1]</Signal>
-                        <Signal>memory/MemAddr[0]</Signal>
-                    </Bus>
+                    <Signal>loader_do_valid</Signal>
                 </SignalList>
             </Trigger>
             <Trigger index="1"/>
@@ -109,7 +101,7 @@
             <Trigger index="15"/>
         </Triggers>
         <MatchUnits>
-            <MatchUnit index="0" enabled="1" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="10000000000000001110000" value1="00000000000000000000000" trigger="0"/>
+            <MatchUnit index="0" enabled="1" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="1" value1="0" trigger="0"/>
             <MatchUnit index="1" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="1" value0="001111" value1="000000" trigger="1"/>
             <MatchUnit index="2" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
             <MatchUnit index="3" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
@@ -130,5 +122,5 @@
             <Expression>M0</Expression>
         </Expressions>
     </AoCore>
-    <GAO_ID>0010011011001111</GAO_ID>
+    <GAO_ID>1000111000001011</GAO_ID>
 </GAO_CONFIG>

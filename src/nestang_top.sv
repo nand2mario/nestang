@@ -292,13 +292,6 @@ always @(posedge clk) begin
 		loader_addr_mem <= loader_addr;
 		loader_write_data_mem <= loader_write_data;
 	end
-
-	// signal write in the PPU memory phase
-	// if(nes_ce == 3) begin
-	// 	loader_write_mem <= loader_write_triggered;
-	// 	if(loader_write_triggered)
-	// 		loader_write_triggered <= 1'b0;
-	// end
 end
 
 // From sdram_nes.v or sdram_sim.v
@@ -325,7 +318,7 @@ sdram_nes sdram (
 
 // ROM parser
 GameLoader loader(
-    .clk(clk), .reset(~sys_resetn), .downloading(loading), 
+    .clk(clk), .reset(~sys_resetn | loader_reset), .downloading(loading), 
     .filetype({4'b0000, type_nsf, type_fds, type_nes, type_bios}),
     .is_bios(is_bios), .invert_mirroring(1'b0),
     .indata(loader_do), .indata_clk(loader_do_valid),

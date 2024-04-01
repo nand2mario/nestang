@@ -38,7 +38,7 @@ module iosys #(
 (
     input clk,                      // SNES mclk
     input hclk,                     // hdmi clock
-//    input clkref,                   // 1/2 of mclk, for sdram access synchronization
+    // input clkref,                   // 1/2 of clk 
     input resetn,
 
     // OSD display interface
@@ -273,24 +273,27 @@ simplespimaster simplespi (
     .reg_wait(simplespimaster_reg_wait)
 );
 
-// ROM loading I/O
-reg [1:0] rom_cnt;
+// ROM loading I/O. 2 cycles for a byte and 2 cycles idles.
+reg [3:0] rom_cnt;
 reg [31:0] rom_do_buf;
 assign rom_do = rom_do_buf[7:0];
 always @(posedge clk) begin
-    rom_do_valid <= 0;
+    if (rom_cnt != 0)
+        rom_cnt <= rom_cnt - 2'd1;
     // data register
     if (romload_reg_data_sel && mem_wstrb) begin
         rom_do_buf <= mem_wdata;
-        rom_cnt <= 2'd3;
+        rom_cnt <= 4'd15;
         rom_do_valid <= 1;
     end
-    if (rom_cnt != 2'd0) begin      // output remaining rom_do
+    if (rom_cnt[1:0] == 2'd3)
+        rom_do_valid <= 0;
+    if (rom_cnt[1:0] == 2'd0 && rom_cnt[3:2] != 0) begin
         rom_do_buf[23:0] <= rom_do_buf[31:8];
-        rom_cnt <= rom_cnt - 2'd1;
         rom_do_valid <= 1;
     end
 end
+
 always @(posedge clk) begin
     if (romload_reg_ctrl_sel && mem_wstrb) begin
         // control register
