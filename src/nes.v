@@ -438,10 +438,10 @@ PPU ppu(
 wire [15:0] prg_addr = addr;
 wire [7:0] prg_din = dbus & (prg_conflict ? cpumem_din : 8'hFF);
 
-wire prg_read  = mr_int && cart_pre && !apu_cs && !ppu_cs;
+wire prg_read /* synthesis syn_keep=1 */  = mr_int && cart_pre && !apu_cs && !ppu_cs;
 wire prg_write = mw_int && cart_pre && !apu_cs && !ppu_cs;
 
-wire prg_allow, prg_bus_write, prg_conflict, vram_a10, vram_ce, chr_allow;
+wire prg_allow /* synthesis syn_keep=1 */, prg_bus_write, prg_conflict, vram_a10, vram_ce, chr_allow;
 wire [21:0] prg_linaddr, chr_linaddr;
 wire [7:0] prg_dout_mapper, chr_from_ppu_mapper;
 wire has_chr_from_ppu_mapper;

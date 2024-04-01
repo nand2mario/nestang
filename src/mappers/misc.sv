@@ -77,7 +77,7 @@ always @(posedge clk) begin
 end
 
 reg [6:0] prg_bank;
-always begin
+always @* begin
 	casez({prg_rom_bank_mode, prg_ain[14]})
 		// Bank mode 0 ( 32K ) / CPU $8000-$BFFF: Bank B / CPU $C000-$FFFF: Bank (B OR 1)
 		3'b00_0: prg_bank = {prg_rom_bank, prg_ain[13]};
@@ -234,7 +234,7 @@ always @(posedge clk) begin
 	end
 end
 
-always begin
+always @* begin
 	// mirroring
 	casez(mirroring[1:0])
 		2'b00:   vram_a10 = {chr_ain[10]};    // vertical
@@ -244,7 +244,7 @@ always begin
 end
 
 reg [4:0] prgsel;
-always begin
+always @* begin
 	case(prg_ain[15:14])
 		2'b10: 	 prgsel = {outer_prg_bank, inner_prg_bank};  // $8000 is swapable
 		2'b11: 	 prgsel = {outer_prg_bank, 4'hF};            // $C000 is hardwired to last inner bank
@@ -253,7 +253,7 @@ always begin
 end
 
 reg [7:0] chrsel;
-always begin
+always @* begin
 	casez(chr_ain[12:10])
 		0: chrsel = chr_bank_0;
 		1: chrsel = chr_bank_1;
@@ -452,7 +452,7 @@ end else if (ce) begin
 		irq <= 1'b0; // IRQ ACK
 end
 
-always begin
+always @* begin
 	// mirroring
 	casez(mirroring[1:0])
 		2'b00: vram_a10 = {chr_ain[11]};    // horizontal
@@ -462,7 +462,7 @@ always begin
 end
 
 reg [7:0] prgsel;
-always begin
+always @* begin
 	case(prg_ain[14:13])
 		2'b00: prgsel = prg_bank_0;      // $8000 is swapable
 		2'b01: prgsel = prg_bank_1;      // $A000 is swapable
@@ -472,7 +472,7 @@ always begin
 end
 
 reg [7:0] chrsel;
-always begin
+always @* begin
 	casez(chr_ain[12:10])
 	0: chrsel = chr_bank_0;
 	1: chrsel = chr_bank_1;
@@ -581,7 +581,7 @@ end else if (ce) begin
 	end
 end
 
-always begin
+always @* begin
 	// mirroring mode
 	casez({submapper1, mirror})
 		2'b00   :   vram_a10 = {chr_ain[10]};    // vertical
@@ -835,12 +835,12 @@ end else if (ce) begin
 		irq <= 1'b0; // IRQ ACK
 end
 
-always begin
+always @* begin
 	vram_a10 = mirroring ? chr_ain[11] : chr_ain[10];    // horizontal:vertical
 end
 
 reg [7:0] prgsel;
-always begin
+always @* begin
 	case(prg_ain[14:13])
 		2'b00: prgsel = prg_bank_0;      // $8000 is swapable
 		2'b01: prgsel = prg_bank_1;      // $A000 is swapable
@@ -850,7 +850,7 @@ always begin
 end
 
 reg [7:0] chrsel;
-always begin
+always @* begin
 	casez(chr_ain[12:10])
 		0: chrsel = chr_bank_0;
 		1: chrsel = chr_bank_1;
@@ -1280,6 +1280,7 @@ always_comb begin
 		1: prg_bank = {state[reg_b][3:0], state[0][3:2], 2'b0};
 		4: prg_bank = {state[reg_b][3:0], state[0][3:1], state[reg_a][1]};
 		5: prg_bank = {state[reg_b][3:0], state[0][3:0]};
+        default: prg_bank = 0;
 	endcase
 end
 
@@ -1723,7 +1724,7 @@ always @(posedge clk) begin
 end
 
 reg [9:0] prg_bank;
-always begin
+always @* begin
 	casez({prg_ain[15:12], exp_audioe[2]})
 		5'b00???: prg_bank = 10'h0;//{10'b11_1110_0000};
 		5'b0100?: prg_bank = 10'h0;//{10'b11_1110_0000};
@@ -1734,7 +1735,7 @@ always begin
 	endcase
 end
 
-always begin
+always @* begin
 	prg_bus_write = 1'b1;
 	if (prg_ain == 16'h5205) begin
 		prg_dout = multiply_result[7:0];

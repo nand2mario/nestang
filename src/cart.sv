@@ -61,6 +61,23 @@ tri0 [21:0] prg_addr_b, chr_addr_b;
 tri0 [15:0] flags_out_b, audio_out_b;
 tri1 [7:0] prg_dout_b, chr_dout_b;
 
+// nand2mario: signals have to be declared first for gowin synthesis
+wire [15:0] ss5b_audio;
+wire [15:0] n163_audio;
+wire [7:0] n163_data;
+wire [5:0] exp_audioe;
+wire [15:0] mmc5_audio;
+wire [7:0] mmc5_data;
+wire [15:0] fds_audio;
+wire [7:0] fds_data;
+wire [15:0] vrc7_audio;
+wire [15:0] vrc6_audio;
+
+reg [6:0] prg_mask;
+reg [6:0] chr_mask;
+reg [1023:0] me;
+reg [9:0] mapper_en;
+
 // This mapper used to be default if no other mapper was found
 // It seems MMC0 is handled by map28. Does it have any purpose?
 // flags_out_b will be high if no other mappers are selected, so we use that.
@@ -127,7 +144,10 @@ MMC1 mmc1(
 // Notes  : This mapper relies on open bus and bus conflict behavior.          //
 // Games  : Donkey Kong                                                        //
 //*****************************************************************************//
-wire mapper28_en = me[0] | me[2] | me[3] | me[7] | me[94] | me[97] | me[180] | me[185] | me[28];
+wire mapper28_en /* synthesis syn_keep=1 */;
+// assign mapper28_en = (mapper_en == 0) | me[0] | me[2] | me[3] | me[7] | me[94] | me[97] | me[180] | me[185] | me[28];
+assign mapper28_en = 1;
+wire prg_allow_28 = prg_ain[15] && !prg_write;
 Mapper28 map28(
 	.clk        (clk),
 	.ce         (ce),
@@ -139,7 +159,8 @@ Mapper28 map28(
 	.prg_write  (prg_write),
 	.prg_din    (prg_din),
 	.prg_dout_b (prg_dout_b),
-	.prg_allow_b(prg_allow_b),
+	// .prg_allow(prg_allow_28),
+	.prg_allow_b(),
 	.chr_ain    (chr_ain),
 	.chr_aout_b (chr_addr_b),
 	.chr_read   (chr_read),
@@ -1726,7 +1747,6 @@ tri0 [1:0] fds_diskside_auto;
 // Notes  : Uses Mapper 31.15 (submapper) for NSF Player; NSF 1.0 only         //
 // Games  : Famicompo Pico 2014, NSF 1.0                                       //
 //*****************************************************************************//
-wire [5:0] exp_audioe;
 NSF nsfplayer(
 	.clk        (clk),
 	.ce         (ce),
@@ -1759,7 +1779,6 @@ NSF nsfplayer(
 	.fds_din    (fds_data)
 );
 
-wire [15:0] ss5b_audio;
 SS5b_mixed snd_5bm (
 	.clk(clk),
 	.ce(ce),
@@ -1771,8 +1790,6 @@ SS5b_mixed snd_5bm (
 	.audio_out(ss5b_audio)
 );
 
-wire [15:0] n163_audio;
-wire [7:0] n163_data;
 namco163_mixed snd_n163 (
 	.clk(clk),
 	.ce(ce),
@@ -1786,8 +1803,6 @@ namco163_mixed snd_n163 (
 	.audio_out(n163_audio)
 );
 
-wire [15:0] mmc5_audio;
-wire [7:0] mmc5_data;
 mmc5_mixed snd_mmc5 (
 	.clk(clk),
 	.ce(ce),
@@ -1801,8 +1816,6 @@ mmc5_mixed snd_mmc5 (
 	.audio_out(mmc5_audio)
 );
 
-wire [15:0] fds_audio;
-wire [7:0] fds_data;
 // fds_mixed snd_fds (
 // 	.clk(clk),
 // 	.ce(ce),
@@ -1815,7 +1828,6 @@ wire [7:0] fds_data;
 // 	.audio_out(fds_audio)
 // );
 
-wire [15:0] vrc7_audio;
 //vrc7_mixed snd_vrc7 (
 //	.clk(clk),
 //	.ce(ce),
@@ -1827,7 +1839,6 @@ wire [15:0] vrc7_audio;
 //	.audio_out(vrc7_audio)
 //);
 
-wire [15:0] vrc6_audio;
 //vrc6_mixed snd_vrc6 (
 //	.clk(clk),
 //	.ce(ce),
@@ -1841,14 +1852,11 @@ wire [15:0] vrc6_audio;
 //);
 
 
-reg [6:0] prg_mask;
-reg [6:0] chr_mask;
-reg [1023:0] me;
-
 always @* begin
 	me = 1023'd0;
 	me[{flags[18:17],flags[7:0]}] = 1'b1;
-
+	mapper_en = {flags[18:17],flags[7:0]};
+	
 	case(flags[10:8])
 		0: prg_mask = 7'b0000000;
 		1: prg_mask = 7'b0000001;
@@ -1874,6 +1882,9 @@ always @* begin
 	// Mapper output to cart pins
 	{prg_aout,   prg_allow,   chr_aout,   vram_a10,   vram_ce,   chr_allow,   prg_dout,   chr_dout,   irq,   audio} =
 	{prg_addr_b, prg_allow_b, chr_addr_b, vram_a10_b, vram_ce_b, chr_allow_b, prg_dout_b, chr_dout_b, irq_b, audio_out_b};
+
+	prg_allow = mapper28_en ? prg_allow_28:
+				0;
 
 	// Currently only used for Mapper 16 EEPROM. Expand if needed.
 	{mapper_addr, mapper_data_out, mapper_prg_write, mapper_ovr} = (me[159] | me[16]) ?

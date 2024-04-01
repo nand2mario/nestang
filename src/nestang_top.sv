@@ -336,7 +336,7 @@ always @(posedge clk) begin
     clkref <= ~clkref;
     if (~loading && loading_r) begin
         reset_nes <= 0;
-        clkref <= 0;
+        clkref <= 1;
     end else if (loading && ~loading_r)
         reset_nes <= 1;
     if (~sys_resetn)

@@ -2,9 +2,11 @@
 <GAO_CONFIG>
     <Version>3.0</Version>
     <Mode>Standard</Mode>
-    <AoCore index="0" sample_clock="clk" trig_type="0" storage_depth="2048" window_num="1" capture_amount="2048" implementation="0" trigger_pos="0" module_name="nestang_top" force_trigger_by_falling_edge="false">
+    <AoCore index="0" sample_clock="fclk" trig_type="0" storage_depth="2048" window_num="1" capture_amount="2048" implementation="0" trigger_pos="0" module_name="nestang_top" force_trigger_by_falling_edge="false">
         <SignalList>
+            <Signal capture_enable="true">clk</Signal>
             <Signal capture_enable="true">loading</Signal>
+            <Signal capture_enable="true">loading_r</Signal>
             <Bus capture_enable="true" name="loader_addr_mem[21:0]">
                 <Signal>loader_addr_mem[21]</Signal>
                 <Signal>loader_addr_mem[20]</Signal>
@@ -77,6 +79,86 @@
                 <Signal>iosys/rom_do_buf[9]</Signal>
                 <Signal>iosys/rom_do_buf[8]</Signal>
             </Bus>
+            <Bus capture_enable="true" name="nes/cpu/A[15:0]">
+                <Signal>nes/cpu/A[15]</Signal>
+                <Signal>nes/cpu/A[14]</Signal>
+                <Signal>nes/cpu/A[13]</Signal>
+                <Signal>nes/cpu/A[12]</Signal>
+                <Signal>nes/cpu/A[11]</Signal>
+                <Signal>nes/cpu/A[10]</Signal>
+                <Signal>nes/cpu/A[9]</Signal>
+                <Signal>nes/cpu/A[8]</Signal>
+                <Signal>nes/cpu/A[7]</Signal>
+                <Signal>nes/cpu/A[6]</Signal>
+                <Signal>nes/cpu/A[5]</Signal>
+                <Signal>nes/cpu/A[4]</Signal>
+                <Signal>nes/cpu/A[3]</Signal>
+                <Signal>nes/cpu/A[2]</Signal>
+                <Signal>nes/cpu/A[1]</Signal>
+                <Signal>nes/cpu/A[0]</Signal>
+            </Bus>
+            <Bus capture_enable="true" name="nes/cpu/MCycle[2:0]">
+                <Signal>nes/cpu/MCycle[2]</Signal>
+                <Signal>nes/cpu/MCycle[1]</Signal>
+                <Signal>nes/cpu/MCycle[0]</Signal>
+            </Bus>
+            <Bus capture_enable="true" name="nes/cpu/DI[7:0]">
+                <Signal>nes/cpu/DI[7]</Signal>
+                <Signal>nes/cpu/DI[6]</Signal>
+                <Signal>nes/cpu/DI[5]</Signal>
+                <Signal>nes/cpu/DI[4]</Signal>
+                <Signal>nes/cpu/DI[3]</Signal>
+                <Signal>nes/cpu/DI[2]</Signal>
+                <Signal>nes/cpu/DI[1]</Signal>
+                <Signal>nes/cpu/DI[0]</Signal>
+            </Bus>
+            <Bus capture_enable="true" name="nes/cpu/DO[7:0]">
+                <Signal>nes/cpu/DO[7]</Signal>
+                <Signal>nes/cpu/DO[6]</Signal>
+                <Signal>nes/cpu/DO[5]</Signal>
+                <Signal>nes/cpu/DO[4]</Signal>
+                <Signal>nes/cpu/DO[3]</Signal>
+                <Signal>nes/cpu/DO[2]</Signal>
+                <Signal>nes/cpu/DO[1]</Signal>
+                <Signal>nes/cpu/DO[0]</Signal>
+            </Bus>
+            <Bus capture_enable="true" name="sdram/cycle[11:0]">
+                <Signal>sdram/cycle[11]</Signal>
+                <Signal>sdram/cycle[10]</Signal>
+                <Signal>sdram/cycle[9]</Signal>
+                <Signal>sdram/cycle[8]</Signal>
+                <Signal>sdram/cycle[7]</Signal>
+                <Signal>sdram/cycle[6]</Signal>
+                <Signal>sdram/cycle[5]</Signal>
+                <Signal>sdram/cycle[4]</Signal>
+                <Signal>sdram/cycle[3]</Signal>
+                <Signal>sdram/cycle[2]</Signal>
+                <Signal>sdram/cycle[1]</Signal>
+                <Signal>sdram/cycle[0]</Signal>
+            </Bus>
+            <Signal capture_enable="true">sdram/oeB</Signal>
+            <Signal capture_enable="true">nes/prg_allow</Signal>
+            <Signal capture_enable="true">nes/prg_read</Signal>
+            <Bus capture_enable="true" name="loader/ines[4][7:0]">
+                <Signal>loader/ines[4][7]</Signal>
+                <Signal>loader/ines[4][6]</Signal>
+                <Signal>loader/ines[4][5]</Signal>
+                <Signal>loader/ines[4][4]</Signal>
+                <Signal>loader/ines[4][3]</Signal>
+                <Signal>loader/ines[4][2]</Signal>
+                <Signal>loader/ines[4][1]</Signal>
+                <Signal>loader/ines[4][0]</Signal>
+            </Bus>
+            <Bus capture_enable="true" name="loader/ines[5][7:0]">
+                <Signal>loader/ines[5][7]</Signal>
+                <Signal>loader/ines[5][6]</Signal>
+                <Signal>loader/ines[5][5]</Signal>
+                <Signal>loader/ines[5][4]</Signal>
+                <Signal>loader/ines[5][3]</Signal>
+                <Signal>loader/ines[5][2]</Signal>
+                <Signal>loader/ines[5][1]</Signal>
+                <Signal>loader/ines[5][0]</Signal>
+            </Bus>
         </SignalList>
         <Triggers>
             <Trigger index="0">
@@ -84,7 +166,12 @@
                     <Signal>loader_do_valid</Signal>
                 </SignalList>
             </Trigger>
-            <Trigger index="1"/>
+            <Trigger index="1">
+                <SignalList>
+                    <Signal>loading</Signal>
+                    <Signal>loading_r</Signal>
+                </SignalList>
+            </Trigger>
             <Trigger index="2"/>
             <Trigger index="3"/>
             <Trigger index="4"/>
@@ -102,7 +189,7 @@
         </Triggers>
         <MatchUnits>
             <MatchUnit index="0" enabled="1" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="1" value1="0" trigger="0"/>
-            <MatchUnit index="1" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="1" value0="001111" value1="000000" trigger="1"/>
+            <MatchUnit index="1" enabled="1" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="01" value1="00" trigger="1"/>
             <MatchUnit index="2" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
             <MatchUnit index="3" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
             <MatchUnit index="4" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
@@ -119,8 +206,8 @@
             <MatchUnit index="15" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
         </MatchUnits>
         <Expressions type="Static">
-            <Expression>M0</Expression>
+            <Expression>M1</Expression>
         </Expressions>
     </AoCore>
-    <GAO_ID>1000111000001011</GAO_ID>
+    <GAO_ID>1111101111011101</GAO_ID>
 </GAO_CONFIG>

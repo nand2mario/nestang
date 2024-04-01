@@ -150,9 +150,9 @@ module T65(
     output VP_n,
     output VDA,
     output VPA,
-    output reg [23:0] A,
-    input [7:0] DI,
-    output [7:0] DO,
+    output reg [23:0] A /* synthesis syn_keep=1 */,
+    input [7:0] DI /* synthesis syn_keep=1 */,
+    output [7:0] DO /* synthesis syn_keep=1 */,
     // 6502 registers (MSB) PC, SP, P, Y, X, A (LSB)
     output [63:0] Regs,
     // DEBUG

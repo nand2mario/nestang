@@ -37,7 +37,7 @@ assign mem_write = (((bytes_left != 0) && (state == S_LOADPRG || state == S_LOAD
                     || (downloading && (state == S_LOADHEADER || state == S_LOADFDS || state == S_LOADNSFH || state == S_LOADNSFD))) && indata_clk)
                     || ((bytes_left != 0) && ((state == S_CLEARRAM) || (state == S_COPYBIOS) || (state == S_COPYPLAY)) && clearclk == 4'h2);
 
-wire [2:0] prg_size = prgrom <= 1  ? 3'd0 :			// 16KB
+wire [2:0] prg_size /* synthesis syn_keep=1 */= prgrom <= 1  ? 3'd0 :			// 16KB
                       prgrom <= 2  ? 3'd1 : 		// 32KB
                       prgrom <= 4  ? 3'd2 : 		// 64KB
                       prgrom <= 8  ? 3'd3 : 		// 128KB
@@ -45,7 +45,7 @@ wire [2:0] prg_size = prgrom <= 1  ? 3'd0 :			// 16KB
                       prgrom <= 32 ? 3'd5 : 		// 512KB
                       prgrom <= 64 ? 3'd6 : 3'd7;// 1MB/2MB
 
-wire [2:0] chr_size = chrrom <= 1  ? 3'd0 : 		// 8KB
+wire [2:0] chr_size /* synthesis syn_keep=1 */= chrrom <= 1  ? 3'd0 : 		// 8KB
                       chrrom <= 2  ? 3'd1 : 		// 16KB
                       chrrom <= 4  ? 3'd2 : 		// 32KB
                       chrrom <= 8  ? 3'd3 : 		// 64KB
@@ -65,7 +65,7 @@ wire is_dirty = !is_nes20 && ((ines[9][7:1] != 0)
                            || (ines[15] != 0));
 
 // Read the mapper number
-wire [7:0] mapper = {is_dirty ? 4'b0000 : ines[7][7:4], ines[6][7:4]};
+wire [7:0] mapper /* synthesis syn_keep=1 */ = {is_dirty ? 4'b0000 : ines[7][7:4], ines[6][7:4]};
 wire [7:0] ines2mapper = {is_nes20 ? ines[8] : 8'h00};
 wire [3:0] prgram = {is_nes20 ? ines[10][3:0] : 4'h0};
 wire [3:0] prg_nvram = (is_nes20 ? ines[10][7:4] : 4'h0);

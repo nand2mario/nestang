@@ -67,6 +67,10 @@ wire [39:0] x = inp_mul[59:20];
 wire [39:0] y = x + tap0;
 
 wire [39:0] tap0;
+wire [39:0] tap1;
+wire [39:0] tap2;
+reg        ch = 0;
+
 iir_filter_tap iir_tap_0
 (
 	.clk(clk),
@@ -81,7 +85,6 @@ iir_filter_tap iir_tap_0
 	.tap(tap0)
 );
 
-wire [39:0] tap1;
 iir_filter_tap iir_tap_1
 (
 	.clk(clk),
@@ -96,7 +99,6 @@ iir_filter_tap iir_tap_1
 	.tap(tap1)
 );
 
-wire [39:0] tap2;
 iir_filter_tap iir_tap_2
 (
 	.clk(clk),
@@ -113,7 +115,6 @@ iir_filter_tap iir_tap_2
 
 wire [15:0] y_clamp = (~y[39] & |y[38:35]) ? 16'h7FFF : (y[39] & ~&y[38:35]) ? 16'h8000 : y[35:20];
 
-reg        ch = 0;
 reg [15:0] out_l, out_r, out_m;
 reg [15:0] inp, inp_m;
 always @(posedge clk) if (ce) begin

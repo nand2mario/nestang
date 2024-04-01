@@ -98,7 +98,7 @@ end else if (ce) begin
 	end
 end
 
-always begin
+always @* begin
 	casez(mirroring[1:0])
 		2'b00: vram_a10 = {chr_ain[10]};    // vertical
 		2'b01: vram_a10 = {chr_ain[11]};    // horizontal
@@ -109,7 +109,7 @@ end
 reg [4:0] prgout;
 reg [7:0] chrout;
 
-always begin
+always @* begin
 	casez(prg_ain[15:13])
 		3'b011: prgout = prg_bank[0];
 		3'b100: prgout = prg_bank[1];
@@ -145,6 +145,8 @@ module SS5b_mixed (
 	output [15:0] audio_out
 );
 
+wire [15:0] exp_out;
+
 SS5b_audio snd_5b (
 	.clk(clk),
 	.ce(ce),
@@ -160,7 +162,6 @@ SS5b_audio snd_5b (
 // The expansion audio is much louder than APU audio, so we reduce it to 68% prior to
 // mixing.
 
-wire [15:0] exp_out;
 wire [15:0] exp_adj = (|exp_out[15:14] ? 16'hFFFF : {exp_out[13:0], exp_out[1:0]});
 wire [16:0] audio_mix = audio_in + (exp_adj + exp_adj[15:1]);
 
@@ -423,7 +424,7 @@ end else if (ce) begin
 		irq <= 1'b0; // IRQ ACK
 end
 
-always begin
+always @* begin
 	casez({mirroring})
 		2'b00   :   vram_a10 = {chr_ain[10]};    // vertical
 		2'b01   :   vram_a10 = {chr_ain[11]};    // horizontal
@@ -432,7 +433,7 @@ always begin
 end
 
 reg [7:0] prgsel;
-always begin
+always @* begin
 	case(prg_ain[14])
 	1'b0: prgsel = prg_bank_0;                // $8000 is swapable
 	1'b1: prgsel = mapper190 ? 8'h00 : 8'hFF; // $C000 is hardwired to first/last bank
@@ -440,7 +441,7 @@ always begin
 end
 
 reg [7:0] chrsel;
-always begin
+always @* begin
 	casez(chr_ain[12:11])
 		0: chrsel = chr_bank_0;
 		1: chrsel = chr_bank_1;
@@ -549,7 +550,7 @@ assign prg_aout = prg_is_ram ? prg_ram : {4'b00_00, prgout, prg_ain[13:0]};
 assign prg_allow = (prg_ain[15] && !prg_write) || (prg_is_ram && ram_enable);
 
 reg [6:0] chrout;
-always begin
+always @* begin
 	casez(chr_ain[12:11])
 		0: chrout = chr_bank_0;
 		1: chrout = chr_bank_1;
@@ -558,7 +559,7 @@ always begin
 	endcase
 end
 
-always begin
+always @* begin
 	casez(mirroring[1:0])
 		2'b00: vram_a10 = {chr_ain[10]};    // vertical
 		2'b01: vram_a10 = {chr_ain[11]};    // horizontal

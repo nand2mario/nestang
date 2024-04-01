@@ -178,7 +178,7 @@ always @(posedge clk) begin
 	end
 end
 
-always begin
+always @* begin
 	// mirroring mode
 	casez({flags[16], flags[14]})
 		3'b00   :   vram_a10 = chr_ain[11];    // horizontal
@@ -452,7 +452,7 @@ end else if (ce) begin
 end
 
 reg [3:0] prgout;
-always begin
+always @* begin
 	casez({prg_ain[14], mapper232})
 		2'b0?: prgout = prg_bank;
 		2'b10: prgout = 4'b1111;
@@ -530,7 +530,7 @@ always @(posedge clk) begin
 	end
 end
 
-always begin
+always @* begin
 	vram_a10 = {chr_ain[10]};    // four screen (consecutive)
 end
 
@@ -619,7 +619,7 @@ assign vram_ce = chr_ain[13];
 
 // The a10 VRAM address line. (Used for mirroring)
 reg vram_a10_t;
-always begin
+always @* begin
 	case({onescreen, mirroring})
 		2'b00: vram_a10_t = chr_ain[11];   // One screen, horizontal
 		2'b01: vram_a10_t = chr_ain[10];   // One screen, vertical
@@ -784,7 +784,7 @@ end else if (ce) begin
 	end
 end
 
-always begin
+always @* begin
 	// mirroring mode
 	casez({mapper89,flags[14]})
 		2'b00   :   vram_a10 = {chr_ain[11]};    // horizontal
@@ -897,6 +897,7 @@ module Mapper28(
 	input        prg_write,   // prg write
 	input  [7:0] prg_din,     // prg data in
 	inout  [7:0] prg_dout_b,  // prg data out
+	output       prg_allow,
 	inout        prg_allow_b, // Enable access to memory for the specified operation.
 	input [13:0] chr_ain,     // chr address in
 	inout [21:0] chr_aout_b,  // chr address out
@@ -1016,7 +1017,7 @@ end else if (ce) begin
 	end
 end
 
-always begin
+always @* begin
 	// mirroring mode
 	casez(mode[1:0])
 		2'b0? : vram_a10 = {mode[0]};        // 1 screen lower
