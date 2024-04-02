@@ -18,7 +18,7 @@ module nes2hdmi (
     input overlay,
     output [10:0] overlay_x,
     output [9:0] overlay_y,
-    input [14:0] overlay_color, // BGR5
+    input [15:0] overlay_color, // BGR5, [15] is opacity
 
 	// video clocks
 	input clk_pixel,
@@ -241,6 +241,7 @@ reg overlay_active;
 
 // calc rgb value to hdmi
 always_ff @(posedge clk_pixel) begin
+    reg [23:0] rgb_nes;
     if (asp8x7_on && cx == 11'd198 || ~asp8x7_on && cx == 11'd253)
         active <= 1'b1;
     if (asp8x7_on && cx == 11'd1075 || ~asp8x7_on && cx == 11'd1021)
@@ -274,17 +275,18 @@ always_ff @(posedge clk_pixel) begin
     // 2 - mix rgb and output
     if (r2_active) begin
         if (asp8x7_on && mix)
-            rgb <= {rmix[15:8], gmix[15:8], bmix[15:8]};
+            rgb_nes = {rmix[15:8], gmix[15:8], bmix[15:8]};
         else
-            rgb <= rgbv;
+            rgb_nes = rgbv;
     end else
-        rgb <= 24'b0;
+        rgb_nes = 24'b0;
 
-    if (overlay) begin
-        rgb <= 0;
-        if (overlay_active)  // overlay_color is BGR5
+    if (overlay) begin      // transparency effect for overlay
+        rgb <= {2'b0, rgb_nes[23:18], 2'b0, rgb_nes[15:10], 2'b0, rgb_nes[7:2]};  
+        if (overlay_active && overlay_color[15])  // overlay_color is BGR5
             rgb <= {overlay_color[4:0], 3'b0, overlay_color[9:5], 3'b0, overlay_color[14:10], 3'b0};
-    end
+    end else
+        rgb <= rgb_nes;     // normal NES display
 
     if (cx == 0) begin
         x <= 0;

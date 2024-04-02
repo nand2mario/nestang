@@ -363,7 +363,7 @@ GameData game_data(
 wire overlay;                   // iosys controls overlay
 wire [10:0] overlay_x;
 wire [9:0]  overlay_y;
-wire [14:0] overlay_color;      // BGR5
+wire [15:0] overlay_color;      // BGR5
 
 // HDMI output
 nes2hdmi u_hdmi (     // purple: RGB=440064 (010001000_00000000_01100100), BGR5=01100_00000_01000
@@ -510,13 +510,13 @@ Autofire af_square2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][7] | usb_b
 Autofire af_triangle2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][4] | usb_btn_x2), .out(auto_triangle2));
 
 assign nes_btn  =   {~joy_rx[0][5], ~joy_rx[0][7], ~joy_rx[0][6], ~joy_rx[0][4], 
-                    ~joy_rx[0][3], ~joy_rx[0][0], ~joy_rx[1][6] | auto_square, ~joy_rx[1][5] | auto_triangle}
-                    | usb_btn
-                    | NES_gamepad_button_state;
+                    ~joy_rx[0][3], ~joy_rx[0][0], ~joy_rx[1][6] | auto_square, ~joy_rx[1][5] | auto_triangle};
+                    // | usb_btn
+                    // | NES_gamepad_button_state;
 assign nes_btn2 =   {~joy_rx2[0][5], ~joy_rx2[0][7], ~joy_rx2[0][6], ~joy_rx2[0][4], 
-                    ~joy_rx2[0][3], ~joy_rx2[0][0], ~joy_rx2[1][6] | auto_square2, ~joy_rx2[1][5] | auto_triangle2}
-                    | usb_btn2
-                    | NES_gamepad_button_state2;
+                    ~joy_rx2[0][3], ~joy_rx2[0][0], ~joy_rx2[1][6] | auto_square2, ~joy_rx2[1][5] | auto_triangle2};
+                    // | usb_btn2
+                    // | NES_gamepad_button_state2;
 
 // Joypad handling
 always @(posedge clk) begin
@@ -525,11 +525,13 @@ always @(posedge clk) begin
         joypad_bits2 <= nes_btn2;
     end
     if (!joypad_clock[0] && last_joypad_clock[0])
-        joypad_bits <= {1'b0, joypad_bits[7:1]};
+        joypad_bits <= {1'b1, joypad_bits[7:1]};
     if (!joypad_clock[1] && last_joypad_clock[1])
-        joypad_bits2 <= {1'b0, joypad_bits2[7:1]};
+        joypad_bits2 <= {1'b1, joypad_bits2[7:1]};
     last_joypad_clock <= joypad_clock;
 end
+assign joypad1_data[0] = joypad_bits[0];
+assign joypad2_data[0] = joypad_bits2[0];
 
 //   usb_btn:      (R L D U START SELECT B A)
 wire [1:0] usb_type, usb_type2;
@@ -560,27 +562,7 @@ usb_hid_host usb_controller2 (
 );
 `endif
 
-`ifdef NANO
-NESGamepad nes_gamepad(
-        .i_clk(clk),
-        .i_rst(sys_resetn),
-        .o_data_clock(NES_gamepad_data_clock),
-        .o_data_latch(NES_gampepad_data_latch),
-        .i_serial_data(NES_gampead_serial_data),
-        .o_button_state(NES_gamepad_button_state),
-        .o_data_available(NES_gamepad_data_available)
-                        );
-
-NESGamepad nes_gamepad2(
-        .i_clk(clk),
-        .i_rst(sys_resetn),
-        .o_data_clock(NES_gamepad_data_clock2),
-        .o_data_latch(NES_gampepad_data_latch2),
-        .i_serial_data(NES_gampead_serial_data2),
-        .o_button_state(NES_gamepad_button_state2),
-        .o_data_available(NES_gamepad_data_available2)
-                        );
-`endif
+// nand2mario: joypad interface changed. we'll add NESGamepad back later 
 
 `endif
 

@@ -45,7 +45,7 @@ module iosys #(
     output overlay,
     input [10:0] overlay_x,         // 720p
     input [9:0] overlay_y,
-    output [14:0] overlay_color,    // BGR5
+    output [15:0] overlay_color,    // BGR5, [15] is opacity
     input [11:0] joy1,              // joystick 1: (R L X A RT LT DN UP START SELECT Y B)
     input [11:0] joy2,              // joystick 2
 

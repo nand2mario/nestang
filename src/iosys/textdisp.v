@@ -8,7 +8,7 @@ module textdisp(
 
     input [10:0] overlay_x,
     input [9:0] overlay_y,
-    output reg [14:0] overlay_color,
+    output reg [15:0] overlay_color, // BGR5, [15] is opacity
 
     // PicoRV32 I/O interface. Every write updates one character
     // [23:16]: x, [15:8]: y, [7-0]: character to print
@@ -33,7 +33,7 @@ reg [7:0] mem_do_b;
 reg [1:0] mem_cnt;
 reg is_cursor;
 reg [2:0] xoff, yoff;
-reg [14:0] overlay_color_buf;
+reg [15:0] overlay_color_buf;
 
 wire [1:0] cmd = reg_char_di[31:24];
 wire [4:0] text_x = reg_char_di[20:16];
@@ -147,17 +147,17 @@ always @(posedge hclk) begin
     end  
     2'd2: begin
         // compute output color
-        overlay_color_buf <= COLOR_BACK;
+        overlay_color_buf <= {1'b0, COLOR_BACK};
         if (logo_active) begin
             if (mem_do_b[logo_xoff])
-                overlay_color_buf <= COLOR_LOGO;
+                overlay_color_buf <= {1'b1, COLOR_LOGO};
             else
-                overlay_color_buf <= COLOR_BACK;
+                overlay_color_buf <= {1'b0, COLOR_BACK};
         end else if (mem_do_b[xoff]) begin
             if (is_cursor)
-                overlay_color_buf <= COLOR_CURSOR;
+                overlay_color_buf <= {1'b1, COLOR_CURSOR};
             else
-                overlay_color_buf <= COLOR_TEXT;
+                overlay_color_buf <= {1'b1, COLOR_TEXT};
         end
     end
     endcase
