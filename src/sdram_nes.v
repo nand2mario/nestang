@@ -55,7 +55,7 @@ module sdram_nes #(
 	input [21:0]      addrB,      // 4MB, bank 0/1
 	input             weB,        // cpu requests write
 	input [7:0]       dinB,       // data input from ppu
-	input             oeB /* synthesis syn_keep=1 */,        // cpu requests data
+	input             oeB /*XX synthesis syn_keep=1 */,        // cpu requests data
 	output reg [7:0]  doutB,      // data output to ppu
 
     // RISC-V softcore
