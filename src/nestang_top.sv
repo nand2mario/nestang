@@ -69,12 +69,12 @@ module nestang_top (
 
     // NES gamepad
 `ifdef NANO
-    output NES_gamepad_data_clock,
-    output NES_gampepad_data_latch,
-    input NES_gampead_serial_data,
-    output NES_gamepad_data_clock2,
-    output NES_gampepad_data_latch2,
-    input NES_gampead_serial_data2,
+    // output NES_gamepad_data_clock,
+    // output NES_gampepad_data_latch,
+    // input NES_gampead_serial_data,
+    // output NES_gamepad_data_clock2,
+    // output NES_gampepad_data_latch2,
+    // input NES_gampead_serial_data2,
 `endif
 
     // HDMI TX
@@ -206,7 +206,7 @@ gowin_pll_nes pll_nes (.clkin(sys_clk), .clkout0(clk), .clkout1(fclk), .clkout2(
 // sys_clk 27Mhz
 wire clk27 = sys_clk;       // Nano20K: native 27Mhz system clock
 wire clk_sdram;  
-gowin_pll_nes pll_nes(.clkin(sys_clk), ..clkoutd3(clk), clkout(fclk), .clkoutp(clk_sdram));
+gowin_pll_nes pll_nes(.clkin(sys_clk), .clkoutd3(clk), .clkout(fclk), .clkoutp(clk_sdram));
 `endif  // PRIMER
 
 // USB clock 12Mhz
@@ -218,18 +218,16 @@ gowin_pll_nes pll_nes(.clkin(sys_clk), ..clkoutd3(clk), clkout(fclk), .clkoutp(c
 // HDMI domain clocks
 wire hclk;     // 720p pixel clock: 74.25 Mhz
 wire hclk5;    // 5x pixel clock: 371.25 Mhz
-wire pll_lock;
 
 gowin_pll_hdmi pll_hdmi (
     .clkin(clk27),
-    .clkout(hclk5),
-    .lock(pll_lock)
+    .clkout(hclk5)
 );
 
 CLKDIV #(.DIV_MODE(5)) div5 (
     .CLKOUT(hclk),
     .HCLKIN(hclk5),
-    .RESETN(sys_resetn & pll_lock),
+    .RESETN(sys_resetn),
     .CALIB(1'b0)
 );
 

@@ -22,15 +22,17 @@ localparam SIZE = 1 << widthad_a;
 reg [width_a-1:0] mem [0:SIZE-1];
 
 always @(posedge clock_a) begin
-    q_a <= mem[address_a];
     if (wren_a)
         mem[address_a] <= data_a;
+    else
+        q_a <= mem[address_a];
 end
 
 always @(posedge clock_b) begin
-    q_b <= mem[address_b];
     if (wren_b)
         mem[address_b] <= data_b;
+    else
+        q_b <= mem[address_b];
 end
 
 endmodule

@@ -1,24 +1,34 @@
+//Copyright (C)2014-2023 Gowin Semiconductor Corporation.
+//All rights reserved.
+//File Title: IP file
+//Tool Version: V1.9.9 (64-bit)
+//Part Number: GW2AR-LV18QN88C8/I7
+//Device: GW2AR-18
+//Device Version: C
+//Created Time: Fri Apr  5 10:42:16 2024
 
-// 27Mhz in, 64.8Mhz / 21.6Mhz out
-module gowin_pll_nes (clkout, clkoutd3, clkoutp, clkin);
+module gowin_pll_nes (clkout, clkoutp, clkoutd3, clkin);
 
-output clkout, clkoutd3, clkoutp;
+output clkout;
+output clkoutp;
+output clkoutd3;
 input clkin;
 
-wire lock;
-wire reset = 0;
+wire lock_o;
 wire clkoutd_o;
+wire gw_vcc;
 wire gw_gnd;
 
+assign gw_vcc = 1'b1;
 assign gw_gnd = 1'b0;
 
 rPLL rpll_inst (
     .CLKOUT(clkout),
-    .LOCK(lock),
+    .LOCK(lock_o),
     .CLKOUTP(clkoutp),
     .CLKOUTD(clkoutd_o),
     .CLKOUTD3(clkoutd3),
-    .RESET(reset),
+    .RESET(gw_gnd),
     .RESET_P(gw_gnd),
     .CLKIN(clkin),
     .CLKFB(gw_gnd),
@@ -27,19 +37,17 @@ rPLL rpll_inst (
     .ODSEL({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
     .PSDA({gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
     .DUTYDA({gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
-    .FDLY({gw_gnd,gw_gnd,gw_gnd,gw_gnd})
+    .FDLY({gw_vcc,gw_vcc,gw_vcc,gw_vcc})
 );
 
-// 27 -> 64.8 Mhz / 21.6 Mhz (target 21.477 Mhz)
 defparam rpll_inst.FCLKIN = "27";
-defparam rpll_inst.IDIV_SEL = 4;
-defparam rpll_inst.FBDIV_SEL = 11;
-defparam rpll_inst.ODIV_SEL = 8;
-
 defparam rpll_inst.DYN_IDIV_SEL = "false";
+defparam rpll_inst.IDIV_SEL = 4;
 defparam rpll_inst.DYN_FBDIV_SEL = "false";
+defparam rpll_inst.FBDIV_SEL = 11;
 defparam rpll_inst.DYN_ODIV_SEL = "false";
-defparam rpll_inst.PSDA_SEL = "1000";
+defparam rpll_inst.ODIV_SEL = 8;
+defparam rpll_inst.PSDA_SEL = "1010";
 defparam rpll_inst.DYN_DA_EN = "false";
 defparam rpll_inst.DUTYDA_SEL = "1000";
 defparam rpll_inst.CLKOUT_FT_DIR = 1'b1;
@@ -53,6 +61,6 @@ defparam rpll_inst.CLKOUTD_BYPASS = "false";
 defparam rpll_inst.DYN_SDIV_SEL = 2;
 defparam rpll_inst.CLKOUTD_SRC = "CLKOUT";
 defparam rpll_inst.CLKOUTD3_SRC = "CLKOUT";
-defparam rpll_inst.DEVICE = "GW2AR-18";
+defparam rpll_inst.DEVICE = "GW2AR-18C";
 
-endmodule //Gowin_rPLL
+endmodule //gowin_pll_nes

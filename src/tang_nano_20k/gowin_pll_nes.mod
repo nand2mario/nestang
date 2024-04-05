@@ -7,7 +7,7 @@
 
 -mod_name gowin_pll_nes
 -file_name gowin_pll_nes
--path /home/zf/share/fpga/nestang/src/tang_nano_20k/
+-path D:/Gowin/dev/nestang/src/tang_nano_20k/
 -type PLL
 -rPll true
 -file_type vlg
@@ -18,16 +18,17 @@
 -fbdiv_sel 12
 -dyn_odiv_sel false
 -odiv_sel 8
--dyn_da_en true
+-dyn_da_en false
 -rst_sig false
 -rst_sig_p false
 -fclkin 27
 -clkfb_sel 0
 -en_lock false
 -clkout_bypass false
--clkout_ft_dir 1
--en_clkoutp false
+-en_clkoutp true
 -clkoutp_bypass false
+-psda_sel 10
+-dutyda_sel 8
 -en_clkoutd false
 -clkoutd_bypass false
 -en_clkoutd3 true
