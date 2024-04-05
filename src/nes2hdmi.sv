@@ -23,7 +23,6 @@ module nes2hdmi (
 	// video clocks
 	input clk_pixel,
 	input clk_5x_pixel,
-	input locked,
 
     // output [7:0] led,
 
@@ -44,11 +43,11 @@ localparam SCALE = 5;
 localparam VIDEOID = 4;
 localparam VIDEO_REFRESH = 60.0;
 
-localparam IDIV_SEL_X5 = 3;
-localparam FBDIV_SEL_X5 = 54;
-localparam ODIV_SEL_X5 = 2;
-localparam DUTYDA_SEL_X5 = "1000";
-localparam DYN_SDIV_SEL_X5 = 2;
+// localparam IDIV_SEL_X5 = 3;
+// localparam FBDIV_SEL_X5 = 54;
+// localparam ODIV_SEL_X5 = 2;
+// localparam DUTYDA_SEL_X5 = "1000";
+// localparam DYN_SDIV_SEL_X5 = 2;
   
 localparam CLKFRQ = 74250;
 

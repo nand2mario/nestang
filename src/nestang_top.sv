@@ -182,8 +182,12 @@ wire ext_audio;
 // Clocks
 ///////////////////////////
 
-wire clk, fclk, clk_sdram, clk27, clk_usb;
-assign O_sdram_clk = clk_sdram;
+wire clk;       // 21.477Mhz main clock
+wire fclk;      // 3x clk SDRAM clock
+wire hclk;      // 720p pixel clock: 74.25 Mhz
+wire hclk5;     // 5x pixel clock: 371.25 Mhz
+wire clk27;     // 27Mhz to generate hclk/hclk5
+wire clk_usb;   // 12Mhz USB clock
 
 reg sys_resetn = 0;
 reg [7:0] reset_cnt = 255;      // reset for 255 cycles before start everything
@@ -195,18 +199,14 @@ end
 
 `ifndef VERILATOR
 
-localparam FREQ = 21_477_000;
-
 `ifdef PRIMER
 // sysclk 50Mhz
 gowin_pll_27 pll_27 (.clkin(sys_clk), .clkout0(clk27));      // Primer25K: PLL to generate 27Mhz from 50Mhz
-
-gowin_pll_nes pll_nes (.clkin(sys_clk), .clkout0(clk), .clkout1(fclk), .clkout2(clk_sdram));
+gowin_pll_nes pll_nes (.clkin(sys_clk), .clkout0(clk), .clkout1(fclk), .clkout2(O_sdram_clk));
 `else
 // sys_clk 27Mhz
-wire clk27 = sys_clk;       // Nano20K: native 27Mhz system clock
-wire clk_sdram;  
-gowin_pll_nes pll_nes(.clkin(sys_clk), .clkoutd3(clk), .clkout(fclk), .clkoutp(clk_sdram));
+assign clk27 = sys_clk;       // Nano20K: native 27Mhz system clock
+gowin_pll_nes pll_nes(.clkin(sys_clk), .clkoutd3(clk), .clkout(fclk), .clkoutp(O_sdram_clk));
 `endif  // PRIMER
 
 // USB clock 12Mhz
@@ -214,10 +214,6 @@ gowin_pll_nes pll_nes(.clkin(sys_clk), .clkoutd3(clk), .clkout(fclk), .clkoutp(c
 //       .clkin(clk),
 //       .clkout(clk_usb)       // 12Mhz usb clock
 //   );
-
-// HDMI domain clocks
-wire hclk;     // 720p pixel clock: 74.25 Mhz
-wire hclk5;    // 5x pixel clock: 371.25 Mhz
 
 gowin_pll_hdmi pll_hdmi (
     .clkin(clk27),
@@ -236,7 +232,6 @@ CLKDIV #(.DIV_MODE(5)) div5 (
 // dummy clocks for verilator
 assign clk = sys_clk;
 assign fclk = sys_clk;
-assign clk_sdram = sys_clk;
 
 `endif  // verilator
 
@@ -370,7 +365,7 @@ nes2hdmi u_hdmi (     // purple: RGB=440064 (010001000_00000000_01100100), BGR5=
     .scanline(scanline), .sample(sample >> 1),
     .overlay(overlay), .overlay_x(overlay_x), .overlay_y(overlay_y),
     .overlay_color(overlay_color),
-    .clk_pixel(hclk), .clk_5x_pixel(hclk5), .locked(pll_lock),
+    .clk_pixel(hclk), .clk_5x_pixel(hclk5),
     .tmds_clk_n(tmds_clk_n), .tmds_clk_p(tmds_clk_p),
     .tmds_d_n(tmds_d_n), .tmds_d_p(tmds_d_p)
 );
