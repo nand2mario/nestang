@@ -55,7 +55,7 @@ module sdram_nes #(
 	input [21:0]      addrB,      // 4MB, bank 0/1
 	input             weB,        // cpu requests write
 	input [7:0]       dinB,       // data input from ppu
-	input             oeB /*XX synthesis syn_keep=1 */,        // cpu requests data
+	input             oeB,        // cpu requests data
 	output reg [7:0]  doutB,      // data output to ppu
 
     // RISC-V softcore
@@ -103,11 +103,11 @@ reg normal, setup;
 reg cfg_now;            // pulse for configuration
 
 // requests
-reg [21:0] addr_latch[2];
-reg [15:0] din_latch[2];
+reg [21:0] addr_latch[0:1];
+reg [15:0] din_latch[0:1];
 reg  [2:0] oe_latch;
 reg  [2:0] we_latch;
-reg  [1:0] ds[2];
+reg  [1:0] ds[0:1];
 
 localparam PORT_NONE  = 2'd0;
 
@@ -116,11 +116,11 @@ localparam PORT_B     = 2'd2;   // CPU
 
 localparam PORT_RV    = 2'd1;
 
-reg  [1:0] port[2];
-reg  [1:0] next_port[2];
-reg [21:0] next_addr[2];
-reg [15:0] next_din[2];
-reg  [1:0] next_ds[2];
+reg  [1:0] port[0:1];
+reg  [1:0] next_port[0:1];
+reg [21:0] next_addr[0:1];
+reg [15:0] next_din[0:1];
+reg  [1:0] next_ds[0:1];
 reg  [2:0] next_we;
 reg  [2:0] next_oe;
 
@@ -277,7 +277,6 @@ always @(posedge clk) begin
                 end else if (!we_latch[0] && !oe_latch[0] && !we_latch[1] && !oe_latch[1] && need_refresh) begin
                     refresh_cnt <= 0;
                     cmd <= CMD_AutoRefresh;
-//                    total_refresh <= total_refresh + 1;
                 end
             end
 
@@ -294,11 +293,12 @@ always @(posedge clk) begin
                 a[10] <= 1'b1;                // auto precharge
                 if (we_latch[0]) begin
                     dq_oen <= 0;
-                    dq_out <= din_latch[0];
 `ifdef NANO
                     SDRAM_DQM <= addr_latch[0][1] ? {~ds[0], 2'b11}  : {2'b11, ~ds[0]};
+                    dq_out <= {din_latch[0], din_latch[0]};
 `else
                     SDRAM_DQM <= ~ds[0];
+                    dq_out <= din_latch[0];
 `endif
                 end else
                     SDRAM_DQM <= 0;
@@ -316,11 +316,12 @@ always @(posedge clk) begin
                 a[10] <= 1'b1;// auto precharge
                 if (we_latch[1]) begin
                     dq_oen <= 0;
-                    dq_out <= din_latch[1];
 `ifdef NANO
                     SDRAM_DQM <= addr_latch[1][1] ? {~ds[1], 2'b11} : {2'b11, ~ds[1]};
+                    dq_out <= {din_latch[1], din_latch[1]};
 `else
                     SDRAM_DQM <= ~ds[1];
+                    dq_out <= din_latch[1];
 `endif
                 end else
                     SDRAM_DQM <= 0;
