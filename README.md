@@ -26,7 +26,7 @@ You need either the Sipeed Tang Primer 25K or Tang Nano 20K FPGA board to run th
 
 A [step-by-step instructions](https://github.com/nand2mario/snestang/blob/main/doc/installation.md) is available for installation. Here are quick instructions for the more experienced,
 
-* Tang Primer 25K needs 4 modules: Tang sdram, DVI, Dualshock2, SD and a pair of dualshock controllers. Currently these should cost ~$60 in total. Tang Nano 20K just needs controller adapters. Check [instructions]([doc/installation.md](https://github.com/nand2mario/snestang/blob/main/doc/installation.md)) for how to connect the modules / adapters.
+* Tang Primer 25K needs 4 modules: Tang sdram, DVI, Dualshock2, SD and a pair of dualshock controllers. Currently these should cost ~$60 in total. Tang Nano 20K just needs controller adapters. Check [instructions](https://github.com/nand2mario/snestang/blob/main/doc/installation.md) for how to connect the modules / adapters.
 * Download a NESTang release from [github](https://github.com/nand2mario/nestang/releases). The bitstream (`nestang_*.fs`) should be written to flash at address 0. The firmware (`firmware.bin`) should be written to 0x500000 (5MB).
 * A MicroSD card to hold ROMs.
 * Connect one or two DualShock2 controllers to the DS2 pmod. Or you can connect one USB gamepad to use the [experimental USB gamepad support](doc/usb_gamepad.md). The board only has one USB port. So use DS2 if you want two players.
