@@ -194,6 +194,7 @@ reg [7:0] reset_cnt = 255;      // reset for 255 cycles before start everything
 always @(posedge clk) begin
     reset_cnt <= reset_cnt == 0 ? 0 : reset_cnt - 1;
     if (reset_cnt == 0)
+//    if (reset_cnt == 0 && s1)     // for nano
         sys_resetn <= ~(nes_btn[5] && nes_btn[2]);    // 8BitDo Home button = Select + Down
 end
 

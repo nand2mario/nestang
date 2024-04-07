@@ -2,7 +2,7 @@
 <GAO_CONFIG>
     <Version>3.0</Version>
     <Mode>Standard</Mode>
-    <AoCore index="0" sample_clock="fclk" trig_type="0" storage_depth="2048" window_num="1" capture_amount="2048" implementation="0" trigger_pos="0" module_name="nestang_top" force_trigger_by_falling_edge="false">
+    <AoCore index="0" sample_clock="fclk" trig_type="0" storage_depth="1024" window_num="1" capture_amount="1024" implementation="0" trigger_pos="0" module_name="nestang_top" force_trigger_by_falling_edge="false">
         <SignalList>
             <Signal capture_enable="true">clk</Signal>
             <Signal capture_enable="true">loading</Signal>
@@ -136,7 +136,6 @@
                 <Signal>sdram/cycle[1]</Signal>
                 <Signal>sdram/cycle[0]</Signal>
             </Bus>
-            <Signal capture_enable="true">sdram/oeB</Signal>
             <Signal capture_enable="true">nes/prg_allow</Signal>
             <Signal capture_enable="true">nes/prg_read</Signal>
             <Bus capture_enable="true" name="loader/ines[4][7:0]">
@@ -159,6 +158,177 @@
                 <Signal>loader/ines[5][1]</Signal>
                 <Signal>loader/ines[5][0]</Signal>
             </Bus>
+            <Bus capture_enable="true" name="rv_addr_Z[9:2]">
+                <Signal>rv_addr_Z[9]</Signal>
+                <Signal>rv_addr_Z[8]</Signal>
+                <Signal>rv_addr_Z[7]</Signal>
+                <Signal>rv_addr_Z[6]</Signal>
+                <Signal>rv_addr_Z[5]</Signal>
+                <Signal>rv_addr_Z[4]</Signal>
+                <Signal>rv_addr_Z[3]</Signal>
+                <Signal>rv_addr_Z[2]</Signal>
+            </Bus>
+            <Signal capture_enable="true">rv_valid_Z</Signal>
+            <Bus capture_enable="true" name="flash_wstrb[3:0]">
+                <Signal>flash_wstrb[3]</Signal>
+                <Signal>flash_wstrb[2]</Signal>
+                <Signal>flash_wstrb[1]</Signal>
+                <Signal>flash_wstrb[0]</Signal>
+            </Bus>
+            <Bus capture_enable="true" name="rv_dout_Z[15:0]">
+                <Signal>rv_dout_Z[15]</Signal>
+                <Signal>rv_dout_Z[14]</Signal>
+                <Signal>rv_dout_Z[13]</Signal>
+                <Signal>rv_dout_Z[12]</Signal>
+                <Signal>rv_dout_Z[11]</Signal>
+                <Signal>rv_dout_Z[10]</Signal>
+                <Signal>rv_dout_Z[9]</Signal>
+                <Signal>rv_dout_Z[8]</Signal>
+                <Signal>rv_dout_Z[7]</Signal>
+                <Signal>rv_dout_Z[6]</Signal>
+                <Signal>rv_dout_Z[5]</Signal>
+                <Signal>rv_dout_Z[4]</Signal>
+                <Signal>rv_dout_Z[3]</Signal>
+                <Signal>rv_dout_Z[2]</Signal>
+                <Signal>rv_dout_Z[1]</Signal>
+                <Signal>rv_dout_Z[0]</Signal>
+            </Bus>
+            <Bus capture_enable="true" name="rv_wdata_Z[15:0]">
+                <Signal>rv_wdata_Z[15]</Signal>
+                <Signal>rv_wdata_Z[14]</Signal>
+                <Signal>rv_wdata_Z[13]</Signal>
+                <Signal>rv_wdata_Z[12]</Signal>
+                <Signal>rv_wdata_Z[11]</Signal>
+                <Signal>rv_wdata_Z[10]</Signal>
+                <Signal>rv_wdata_Z[9]</Signal>
+                <Signal>rv_wdata_Z[8]</Signal>
+                <Signal>rv_wdata_Z[7]</Signal>
+                <Signal>rv_wdata_Z[6]</Signal>
+                <Signal>rv_wdata_Z[5]</Signal>
+                <Signal>rv_wdata_Z[4]</Signal>
+                <Signal>rv_wdata_Z[3]</Signal>
+                <Signal>rv_wdata_Z[2]</Signal>
+                <Signal>rv_wdata_Z[1]</Signal>
+                <Signal>rv_wdata_Z[0]</Signal>
+            </Bus>
+            <Signal capture_enable="true">rv_req</Signal>
+            <Signal capture_enable="true">rv_req_ack_Z</Signal>
+            <Bus capture_enable="true" name="rv_ds[1:0]">
+                <Signal>rv_ds[1]</Signal>
+                <Signal>rv_ds[0]</Signal>
+            </Bus>
+            <Signal capture_enable="true">rv_word</Signal>
+            <Bus capture_enable="true" name="CMD" restorename="group_0[3:0]">
+                <Signal>O_sdram_cs_n</Signal>
+                <Signal>O_sdram_ras_n</Signal>
+                <Signal>O_sdram_cas_n</Signal>
+                <Signal>O_sdram_wen_n</Signal>
+            </Bus>
+            <Bus capture_enable="true" name="O_sdram_addr[10:0]">
+                <Signal>O_sdram_addr[10]</Signal>
+                <Signal>O_sdram_addr[9]</Signal>
+                <Signal>O_sdram_addr[8]</Signal>
+                <Signal>O_sdram_addr[7]</Signal>
+                <Signal>O_sdram_addr[6]</Signal>
+                <Signal>O_sdram_addr[5]</Signal>
+                <Signal>O_sdram_addr[4]</Signal>
+                <Signal>O_sdram_addr[3]</Signal>
+                <Signal>O_sdram_addr[2]</Signal>
+                <Signal>O_sdram_addr[1]</Signal>
+                <Signal>O_sdram_addr[0]</Signal>
+            </Bus>
+            <Bus capture_enable="true" name="IO_sdram_dq[31:0]">
+                <Signal>IO_sdram_dq[31]</Signal>
+                <Signal>IO_sdram_dq[30]</Signal>
+                <Signal>IO_sdram_dq[29]</Signal>
+                <Signal>IO_sdram_dq[28]</Signal>
+                <Signal>IO_sdram_dq[27]</Signal>
+                <Signal>IO_sdram_dq[26]</Signal>
+                <Signal>IO_sdram_dq[25]</Signal>
+                <Signal>IO_sdram_dq[24]</Signal>
+                <Signal>IO_sdram_dq[23]</Signal>
+                <Signal>IO_sdram_dq[22]</Signal>
+                <Signal>IO_sdram_dq[21]</Signal>
+                <Signal>IO_sdram_dq[20]</Signal>
+                <Signal>IO_sdram_dq[19]</Signal>
+                <Signal>IO_sdram_dq[18]</Signal>
+                <Signal>IO_sdram_dq[17]</Signal>
+                <Signal>IO_sdram_dq[16]</Signal>
+                <Signal>IO_sdram_dq[15]</Signal>
+                <Signal>IO_sdram_dq[14]</Signal>
+                <Signal>IO_sdram_dq[13]</Signal>
+                <Signal>IO_sdram_dq[12]</Signal>
+                <Signal>IO_sdram_dq[11]</Signal>
+                <Signal>IO_sdram_dq[10]</Signal>
+                <Signal>IO_sdram_dq[9]</Signal>
+                <Signal>IO_sdram_dq[8]</Signal>
+                <Signal>IO_sdram_dq[7]</Signal>
+                <Signal>IO_sdram_dq[6]</Signal>
+                <Signal>IO_sdram_dq[5]</Signal>
+                <Signal>IO_sdram_dq[4]</Signal>
+                <Signal>IO_sdram_dq[3]</Signal>
+                <Signal>IO_sdram_dq[2]</Signal>
+                <Signal>IO_sdram_dq[1]</Signal>
+                <Signal>IO_sdram_dq[0]</Signal>
+            </Bus>
+            <Bus capture_enable="true" name="O_sdram_ba[1:0]">
+                <Signal>O_sdram_ba[1]</Signal>
+                <Signal>O_sdram_ba[0]</Signal>
+            </Bus>
+            <Bus capture_enable="true" name="O_sdram_dqm[3:0]">
+                <Signal>O_sdram_dqm[3]</Signal>
+                <Signal>O_sdram_dqm[2]</Signal>
+                <Signal>O_sdram_dqm[1]</Signal>
+                <Signal>O_sdram_dqm[0]</Signal>
+            </Bus>
+            <Signal capture_enable="false">sdram/oeB</Signal>
+            <Bus capture_enable="false" name="O_sdram_addr_d[10:0]">
+                <Signal>O_sdram_addr_d[10]</Signal>
+                <Signal>O_sdram_addr_d[9]</Signal>
+                <Signal>O_sdram_addr_d[8]</Signal>
+                <Signal>O_sdram_addr_d[7]</Signal>
+                <Signal>O_sdram_addr_d[6]</Signal>
+                <Signal>O_sdram_addr_d[5]</Signal>
+                <Signal>O_sdram_addr_d[4]</Signal>
+                <Signal>O_sdram_addr_d[3]</Signal>
+                <Signal>O_sdram_addr_d[2]</Signal>
+                <Signal>O_sdram_addr_d[1]</Signal>
+                <Signal>O_sdram_addr_d[0]</Signal>
+            </Bus>
+            <Bus capture_enable="false" name="IO_sdram_dq_in[31:0]">
+                <Signal>IO_sdram_dq_in[31]</Signal>
+                <Signal>IO_sdram_dq_in[30]</Signal>
+                <Signal>IO_sdram_dq_in[29]</Signal>
+                <Signal>IO_sdram_dq_in[28]</Signal>
+                <Signal>IO_sdram_dq_in[27]</Signal>
+                <Signal>IO_sdram_dq_in[26]</Signal>
+                <Signal>IO_sdram_dq_in[25]</Signal>
+                <Signal>IO_sdram_dq_in[24]</Signal>
+                <Signal>IO_sdram_dq_in[23]</Signal>
+                <Signal>IO_sdram_dq_in[22]</Signal>
+                <Signal>IO_sdram_dq_in[21]</Signal>
+                <Signal>IO_sdram_dq_in[20]</Signal>
+                <Signal>IO_sdram_dq_in[19]</Signal>
+                <Signal>IO_sdram_dq_in[18]</Signal>
+                <Signal>IO_sdram_dq_in[17]</Signal>
+                <Signal>IO_sdram_dq_in[16]</Signal>
+                <Signal>IO_sdram_dq_in[15]</Signal>
+                <Signal>IO_sdram_dq_in[14]</Signal>
+                <Signal>IO_sdram_dq_in[13]</Signal>
+                <Signal>IO_sdram_dq_in[12]</Signal>
+                <Signal>IO_sdram_dq_in[11]</Signal>
+                <Signal>IO_sdram_dq_in[10]</Signal>
+                <Signal>IO_sdram_dq_in[9]</Signal>
+                <Signal>IO_sdram_dq_in[8]</Signal>
+                <Signal>IO_sdram_dq_in[7]</Signal>
+                <Signal>IO_sdram_dq_in[6]</Signal>
+                <Signal>IO_sdram_dq_in[5]</Signal>
+                <Signal>IO_sdram_dq_in[4]</Signal>
+                <Signal>IO_sdram_dq_in[3]</Signal>
+                <Signal>IO_sdram_dq_in[2]</Signal>
+                <Signal>IO_sdram_dq_in[1]</Signal>
+                <Signal>IO_sdram_dq_in[0]</Signal>
+            </Bus>
         </SignalList>
         <Triggers>
             <Trigger index="0">
@@ -172,8 +342,16 @@
                     <Signal>loading_r</Signal>
                 </SignalList>
             </Trigger>
-            <Trigger index="2"/>
-            <Trigger index="3"/>
+            <Trigger index="2">
+                <SignalList>
+                    <Signal>rv_valid_Z</Signal>
+                </SignalList>
+            </Trigger>
+            <Trigger index="3">
+                <SignalList>
+                    <Signal>iosys/flash_loaded</Signal>
+                </SignalList>
+            </Trigger>
             <Trigger index="4"/>
             <Trigger index="5"/>
             <Trigger index="6"/>
@@ -190,8 +368,8 @@
         <MatchUnits>
             <MatchUnit index="0" enabled="1" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="1" value1="0" trigger="0"/>
             <MatchUnit index="1" enabled="1" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="01" value1="00" trigger="1"/>
-            <MatchUnit index="2" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
-            <MatchUnit index="3" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="2" enabled="1" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="1" value1="0" trigger="2"/>
+            <MatchUnit index="3" enabled="1" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="1" value1="0" trigger="3"/>
             <MatchUnit index="4" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
             <MatchUnit index="5" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
             <MatchUnit index="6" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
@@ -206,8 +384,8 @@
             <MatchUnit index="15" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
         </MatchUnits>
         <Expressions type="Static">
-            <Expression>M1</Expression>
+            <Expression>M2</Expression>
         </Expressions>
     </AoCore>
-    <GAO_ID>1111101111011101</GAO_ID>
+    <GAO_ID>0011100010011110</GAO_ID>
 </GAO_CONFIG>

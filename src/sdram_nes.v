@@ -20,15 +20,12 @@ module sdram_nes #(
     // Clock frequency, max 66.7Mhz with current set of T_xx/CAS parameters.
     parameter         FREQ = 64_800_000,
 
-    // Time delays for 66.7Mhz max clock (min clock cycle 15ns)
-    // The SDRAM supports max 166.7Mhz (RP/RCD/RC need changes)
-    // Alliance AS4C32M16SB-7TIN 512Mb
-    parameter [3:0]   CAS  = 4'd2,     // 2/3 cycles, set in mode register
-    parameter [3:0]   T_WR = 4'd2,     // 2 cycles, write recovery
-    parameter [3:0]   T_MRD= 4'd2,     // 2 cycles, mode register set
-    parameter [3:0]   T_RP = 4'd1,     // 15ns, precharge to active
-    parameter [3:0]   T_RCD= 4'd1,     // 15ns, active to r/w
-    parameter [3:0]   T_RC = 4'd4      // 63ns, ref/active to ref/active
+    parameter [4:0]   CAS  = 4'd2,     // 2/3 cycles, set in mode register
+    parameter [4:0]   T_WR = 4'd2,     // 2 cycles, write recovery
+    parameter [4:0]   T_MRD= 4'd2,     // 2 cycles, mode register set
+    parameter [4:0]   T_RP = 4'd2,     // 15ns, precharge to active
+    parameter [4:0]   T_RCD= 4'd2,     // 15ns, active to r/w
+    parameter [4:0]   T_RC = 4'd6      // 63ns, ref/active to ref/active
 ) (    
 	inout  reg [SDRAM_DATA_WIDTH-1:0] SDRAM_DQ,   // 16 bit bidirectional data bus
 	output     [SDRAM_ROW_WIDTH-1:0] SDRAM_A,    // 13 bit multiplexed address bus
@@ -76,9 +73,9 @@ reg [SDRAM_DATA_WIDTH-1:0] dq_out;
 assign SDRAM_DQ = dq_oen ? {SDRAM_DATA_WIDTH{1'bz}} : dq_out;
 wire [SDRAM_DATA_WIDTH-1:0] dq_in = SDRAM_DQ;     // DQ input
 reg [3:0] cmd;
-reg [12:0] a;
+reg [SDRAM_ROW_WIDTH-1:0] a;
 assign {SDRAM_nCS, SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} = cmd;
-assign SDRAM_A = SDRAM_ROW_WIDTH'(a);
+assign SDRAM_A = a;
 
 assign SDRAM_CKE = 1'b1;
 
@@ -98,7 +95,7 @@ localparam [10:0] MODE_REG = {4'b0, CAS[2:0], BURST_MODE, BURST_LEN};
 localparam RFRSH_CYCLES = 9'd501;
 
 // state
-reg [11:0] cycle;       // one hot encoded
+reg [16:0] cycle;       // one hot encoded
 reg normal, setup;
 reg cfg_now;            // pulse for configuration
 
@@ -208,27 +205,29 @@ always @(posedge clk) begin
 
         // setup process
         if (setup) begin
-            cycle <= {cycle[10:0], 1'b0};       // cycle 0-11 for setup
+            cycle <= {cycle[15:0], 1'b0};       // cycle 0-16 for setup
             // configuration sequence
             if (cycle[0]) begin
                 // precharge all
                 cmd <= CMD_PreCharge;
                 a[10] <= 1'b1;
+                SDRAM_BA <= 0;
             end
-            if (cycle[T_RP]) begin
+            if (cycle[T_RP]) begin                  // 2
                 // 1st AutoRefresh
                 cmd <= CMD_AutoRefresh;
             end
-            if (cycle[T_RP+T_RC]) begin
+            if (cycle[T_RP+T_RC]) begin             // 8
                 // 2nd AutoRefresh
                 cmd <= CMD_AutoRefresh;
             end
-            if (cycle[T_RP+T_RC+T_RC]) begin
+            if (cycle[T_RP+T_RC+T_RC]) begin        // 14
                 // set register
                 cmd <= CMD_SetModeReg;
                 a[10:0] <= MODE_REG;
+                SDRAM_BA <= 0;
             end
-            if (cycle[T_RP+T_RC+T_RC+T_MRD]) begin
+            if (cycle[T_RP+T_RC+T_RC+T_MRD]) begin  // 16
                 setup <= 0;
                 normal <= 1;
                 cycle <= 1;
@@ -237,7 +236,7 @@ always @(posedge clk) begin
         end 
         if (normal) begin
             if (clkref & ~clkref_r)             // go to cycle 5 after clkref posedge
-                cycle <= 12'b0000_0010_0000;
+                cycle[5:0] <= 6'b10_0000;
             else
                 cycle[5:0] <= {cycle[4:0], cycle[5]};
             refresh_cnt <= refresh_cnt + 1'd1;
