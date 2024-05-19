@@ -44,7 +44,7 @@
 `endif
 
 module dualshock_controller #(
-   parameter    FREQ = 21_477_000   // frequency of `clk`
+   parameter    FREQ             // frequency of `clk`
 ) (
    input        clk,             // Any main clock faster than 1Mhz 
    input        I_RSTn,          //  MAIN RESET

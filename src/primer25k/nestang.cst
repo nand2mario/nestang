@@ -81,10 +81,10 @@ IO_LOC "flash_spi_clk" E7;
 IO_PORT "flash_spi_clk" PULL_MODE=NONE IO_TYPE=LVCMOS33;
 
 // One on-board USB port
- IO_LOC "usbdp" L6;      
- IO_PORT "usbdp" PULL_MODE=DOWN IO_TYPE=LVCMOS33;
- IO_LOC "usbdm" K6;      
- IO_PORT "usbdm" PULL_MODE=DOWN IO_TYPE=LVCMOS33;
+// IO_LOC "usbdp" L6;      
+// IO_PORT "usbdp" PULL_MODE=DOWN IO_TYPE=LVCMOS33;
+// IO_LOC "usbdm" K6;      
+// IO_PORT "usbdm" PULL_MODE=DOWN IO_TYPE=LVCMOS33;
 // IO_LOC "usbdp2" 56;     
 // IO_PORT "usbdp2" PULL_MODE=DOWN IO_TYPE=LVCMOS33;
 // IO_LOC "usbdm2" 54;     
@@ -172,29 +172,30 @@ IO_PORT "O_sdram_cas_n" IO_TYPE=LVCMOS33;
 IO_LOC "O_sdram_cs_n" K9;
 IO_PORT "O_sdram_cs_n" IO_TYPE=LVCMOS33;
 
+// 2 LEDs for debug
+IO_LOC "led[1]" E8;    // Ready
+IO_PORT "led[1]" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_LOC "led[0]" D7;    // Done
+IO_PORT "led[0]" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+
+//------------------------------------------------------------------------------------
 // Joystick 1 on pmod
-IO_LOC "joystick_clk" L5;
-IO_PORT "joystick_clk" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "joystick_miso" K11;
-IO_PORT "joystick_miso" PULL_MODE=UP IO_TYPE=LVCMOS33;
-IO_LOC "joystick_mosi" E11;
-IO_PORT "joystick_mosi" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "joystick_cs"  A11;
-IO_PORT "joystick_cs" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC "ds_clk" L5;
+IO_PORT "ds_clk" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC "ds_miso" K11;
+IO_PORT "ds_miso" PULL_MODE=UP IO_TYPE=LVCMOS33;
+IO_LOC "ds_mosi" E11;
+IO_PORT "ds_mosi" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC "ds_cs"  A11;
+IO_PORT "ds_cs" PULL_MODE=NONE IO_TYPE=LVCMOS33;
 
 // Joystick 2 on pmod
-IO_LOC "joystick_clk2" K5;
-IO_PORT "joystick_clk2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "joystick_miso2" L11;
-IO_PORT "joystick_miso2" PULL_MODE=UP IO_TYPE=LVCMOS33;
-IO_LOC "joystick_mosi2" E10;
-IO_PORT "joystick_mosi2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "joystick_cs2"  A10;
-IO_PORT "joystick_cs2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-
-// 2 LEDs for debug
- IO_LOC "led[1]" E8;    // Ready
- IO_PORT "led[1]" IO_TYPE=LVCMOS33 PULL_MODE=UP;
- IO_LOC "led[0]" D7;    // Done
- IO_PORT "led[0]" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_LOC "ds_clk2" K5;
+IO_PORT "ds_clk2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC "ds_miso2" L11;
+IO_PORT "ds_miso2" PULL_MODE=UP IO_TYPE=LVCMOS33;
+IO_LOC "ds_mosi2" E10;
+IO_PORT "ds_mosi2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC "ds_cs2"  A10;
+IO_PORT "ds_cs2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
 

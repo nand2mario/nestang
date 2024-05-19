@@ -2,6 +2,9 @@
 `define GW_IDE
 `define NANO
 
+`define CONTROLLER_SNES
+`define CONTROLLER_DS2
+
 package configPackage;  
 
     // total space: 4B * 2K * 256 * 4 = 8MB
