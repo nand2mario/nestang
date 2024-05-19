@@ -1,6 +1,6 @@
 
 @echo off
-set GWSH=c:\Gowin\Gowin_V1.9.9_x64\IDE\bin\gw_sh
+set GWSH=..\..\Gowin_V1.9.9_x64\IDE\bin\gw_sh
 
 echo. 
 echo ============ Building nano20k ===============

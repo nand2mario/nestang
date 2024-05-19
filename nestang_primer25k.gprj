@@ -49,23 +49,22 @@
         <File path="src/nes2hdmi.sv" type="file.verilog" enable="1"/>
         <File path="src/nestang_top.sv" type="file.verilog" enable="1"/>
         <File path="src/ppu.v" type="file.verilog" enable="1"/>
+        <File path="src/primer25k/config.v" type="file.verilog" enable="1"/>
+        <File path="src/primer25k/config_snescontroller.v" type="file.verilog" enable="0"/>
+        <File path="src/primer25k/gowin_pll_27.v" type="file.verilog" enable="1"/>
+        <File path="src/primer25k/gowin_pll_hdmi.v" type="file.verilog" enable="1"/>
+        <File path="src/primer25k/gowin_pll_nes.v" type="file.verilog" enable="1"/>
         <File path="src/sdram_nes.v" type="file.verilog" enable="1"/>
         <File path="src/t65/T65.v" type="file.verilog" enable="1"/>
         <File path="src/t65/T65_ALU.v" type="file.verilog" enable="1"/>
         <File path="src/t65/T65_MCode.v" type="file.verilog" enable="1"/>
         <File path="src/t65/T65_Pack.v" type="file.verilog" enable="1"/>
-        <File path="src/tang_primer_25k/config.sv" type="file.verilog" enable="1"/>
-        <File path="src/tang_primer_25k/gowin_pll_27.v" type="file.verilog" enable="1"/>
-        <File path="src/tang_primer_25k/gowin_pll_hdmi.v" type="file.verilog" enable="1"/>
-        <File path="src/tang_primer_25k/gowin_pll_nes.v" type="file.verilog" enable="1"/>
-        <File path="src/tang_primer_25k/gowin_pll_usb.v" type="file.verilog" enable="1"/>
         <File path="src/uart_tx_V2.v" type="file.verilog" enable="1"/>
         <File path="src/usb_hid_host.v" type="file.verilog" enable="1"/>
         <File path="src/usb_hid_host_rom.v" type="file.verilog" enable="1"/>
-        <File path="src/tang_nano_20k/nestang.cst" type="file.cst" enable="0"/>
-        <File path="src/tang_primer_25k/nestang.cst" type="file.cst" enable="1"/>
-        <File path="src/tang_nano_20k/nestang.sdc" type="file.sdc" enable="0"/>
-        <File path="src/tang_primer_25k/nestang.sdc" type="file.sdc" enable="1"/>
+        <File path="src/primer25k/nestang.cst" type="file.cst" enable="1"/>
+        <File path="src/primer25k/nestang_snescontroller.cst" type="file.cst" enable="0"/>
+        <File path="src/primer25k/nestang.sdc" type="file.sdc" enable="1"/>
         <File path="src/nes.gao" type="file.gao" enable="0"/>
     </FileList>
 </Project>

@@ -480,11 +480,11 @@ iosys #(.COLOR_LOGO(15'b01100_00000_01000), .CORE_ID(1) )     // purple nestang 
 // Controller input
 `ifdef CONTROLLER_SNES
 controller_snes joy1_snes (
-    .clk(clk), .resetn(resetn), .buttons(joy1_btns),
+    .clk(clk), .resetn(sys_resetn), .buttons(joy1_btns),
     .joy_strb(joy1_strb), .joy_clk(joy1_clk), .joy_data(joy1_data)
 );
 controller_snes joy2_snes (
-    .clk(clk), .resetn(resetn), .buttons(joy2_btns),
+    .clk(clk), .resetn(sys_resetn), .buttons(joy2_btns),
     .joy_strb(joy2_strb), .joy_clk(joy2_clk), .joy_data(joy2_data)
 );
 `endif
@@ -554,10 +554,10 @@ assign joypad2_data[0] = joypad_bits2[0];
 
 //assign led = ~{~UART_RXD, loader_done};
 //assign led = ~{~UART_RXD, usb_conerr, loader_done};
-// assign led = ~usb_btn;
+assign led = {joy1_btns[1], joy1_btns[0]};
 
 reg [23:0] led_cnt;
 always @(posedge clk) led_cnt <= led_cnt + 1;
-assign led = {led_cnt[23], led_cnt[22]};
+//assign led = {led_cnt[23], led_cnt[22]};
 
 endmodule
