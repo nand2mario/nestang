@@ -6,11 +6,12 @@
     <Device name="GW5A-25A" pn="GW5A-LV25MG121NC1/I0">gw5a25a-002</Device>
     <FileList>
         <File path="src/EEPROM_24C0x.sv" type="file.verilog" enable="1"/>
-        <File path="src/NESGamepad.v" type="file.verilog" enable="1"/>
         <File path="src/apu.v" type="file.verilog" enable="1"/>
         <File path="src/autofire.v" type="file.verilog" enable="1"/>
         <File path="src/cart.sv" type="file.verilog" enable="1"/>
         <File path="src/compat.v" type="file.verilog" enable="1"/>
+        <File path="src/controller_ds2.sv" type="file.verilog" enable="1"/>
+        <File path="src/controller_snes.v" type="file.verilog" enable="1"/>
         <File path="src/dpram.v" type="file.verilog" enable="1"/>
         <File path="src/dualshock_controller.v" type="file.verilog" enable="1"/>
         <File path="src/game_loader.v" type="file.verilog" enable="1"/>

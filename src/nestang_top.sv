@@ -49,33 +49,35 @@ module nestang_top (
     output flash_spi_wp_n,          // write protect
     output flash_spi_hold_n,        // hold operations
 
-    // Dualshock game controller
-    output joystick_clk,
-    output joystick_mosi,
-    input  joystick_miso,
-    output reg joystick_cs,
-    output joystick_clk2,
-    output joystick_mosi2,
-    input  joystick_miso2,
-    output reg joystick_cs2,
+`ifdef CONTROLLER_SNES
+    // snes controllers
+    output joy1_strb,
+    output joy1_clk,
+    input joy1_data,
+    output joy2_strb,
+    output joy2_clk,
+    input joy2_data,
+`endif
+
+`ifdef CONTROLLER_DS2
+    // dualshock controllers
+    output ds_clk,
+    input ds_miso,
+    output ds_mosi,
+    output ds_cs,
+    output ds_clk2,
+    input ds_miso2,
+    output ds_mosi2,
+    output ds_cs2,
+`endif
 
     // USB
-    inout usbdm,
-    inout usbdp,
-`ifndef PRIMER
-    inout usbdm2,
-    inout usbdp2,
-`endif
-
-    // NES gamepad
-`ifdef NANO
-    // output NES_gamepad_data_clock,
-    // output NES_gampepad_data_latch,
-    // input NES_gampead_serial_data,
-    // output NES_gamepad_data_clock2,
-    // output NES_gampepad_data_latch2,
-    // input NES_gampead_serial_data2,
-`endif
+//     inout usbdm,
+//     inout usbdp,
+// `ifndef PRIMER
+//     inout usbdm2,
+//     inout usbdp2,
+// `endif
 
     // HDMI TX
     output       tmds_clk_n,
@@ -149,8 +151,11 @@ wire [7:0] joy_rx[0:1], joy_rx2[0:1];     // 6 RX bytes for all button/axis stat
 wire [7:0] usb_btn, usb_btn2;
 wire usb_btn_x, usb_btn_y, usb_btn_x2, usb_btn_y2;
 wire usb_conerr, usb_conerr2;
-wire auto_square, auto_triangle, auto_square2, auto_triangle2;
-wire [7:0] nes_btn, nes_btn2;
+wire auto_a, auto_b, auto_a2, auto_b2;
+
+// OR together when both SNES and DS2 controllers are connected (right now only nano20k supports both simultaneously)
+wor [11:0] joy1_btns, joy2_btns;    // SNES layout (R L X A RT LT DN UP START SELECT Y B)
+                                    // Lower 8 bits are NES buttons
 
 // NES gamepad
 wire [7:0]NES_gamepad_button_state;
@@ -195,7 +200,7 @@ always @(posedge clk) begin
     reset_cnt <= reset_cnt == 0 ? 0 : reset_cnt - 1;
     if (reset_cnt == 0)
 //    if (reset_cnt == 0 && s1)     // for nano
-        sys_resetn <= ~(nes_btn[5] && nes_btn[2]);    // 8BitDo Home button = Select + Down
+        sys_resetn <= ~(joy1_btns[5] && joy1_btns[2]);    // 8BitDo Home button = Select + Down
 end
 
 `ifndef VERILATOR
@@ -209,12 +214,6 @@ gowin_pll_nes pll_nes (.clkin(sys_clk), .clkout0(clk), .clkout1(fclk), .clkout2(
 assign clk27 = sys_clk;       // Nano20K: native 27Mhz system clock
 gowin_pll_nes pll_nes(.clkin(sys_clk), .clkoutd3(clk), .clkout(fclk), .clkoutp(O_sdram_clk));
 `endif  // PRIMER
-
-// USB clock 12Mhz
-//   gowin_pll_usb pll_usb(
-//       .clkin(clk),
-//       .clkout(clk_usb)       // 12Mhz usb clock
-//   );
 
 gowin_pll_hdmi pll_hdmi (
     .clkin(clk27),
@@ -460,7 +459,7 @@ iosys #(.COLOR_LOGO(15'b01100_00000_01000), .CORE_ID(1) )     // purple nestang 
 
     .overlay(overlay), .overlay_x(overlay_x), .overlay_y(overlay_y),
     .overlay_color(overlay_color),
-    .joy1(nes_btn), .joy2(nes_btn2),
+    .joy1(joy1_btns), .joy2(joy2_btns),
 
     .rom_loading(loading), .rom_do(loader_do), .rom_do_valid(loader_do_valid), 
     .ram_busy(sdram_busy),
@@ -478,45 +477,40 @@ iosys #(.COLOR_LOGO(15'b01100_00000_01000), .CORE_ID(1) )     // purple nestang 
     .sd_dat2(sd_dat2), .sd_dat3(sd_dat3)
 );
 
-// Dualshock controller
-// joy_rx[0:1] dualshock buttons: 0:(L D R U St R3 L3 Se)  1:(□ X O △ R1 L1 R2 L2)
-// nes_btn[0:1] NES buttons:      (R L D U START SELECT B A)
-// O is A, X is B
-dualshock_controller controller (
-    .clk(clk), .I_RSTn(1'b1),
-    .O_psCLK(joystick_clk), .O_psSEL(joystick_cs), .O_psTXD(joystick_mosi),
-    .I_psRXD(joystick_miso),
-    .O_RXD_1(joy_rx[0]), .O_RXD_2(joy_rx[1]), .O_RXD_3(),
-    .O_RXD_4(), .O_RXD_5(), .O_RXD_6()
+// Controller input
+`ifdef CONTROLLER_SNES
+controller_snes joy1_snes (
+    .clk(clk), .resetn(resetn), .buttons(joy1_btns),
+    .joy_strb(joy1_strb), .joy_clk(joy1_clk), .joy_data(joy1_data)
 );
-
-dualshock_controller controller2 (
-    .clk(clk), .I_RSTn(1'b1),
-    .O_psCLK(joystick_clk2), .O_psSEL(joystick_cs2), .O_psTXD(joystick_mosi2),
-    .I_psRXD(joystick_miso2),
-    .O_RXD_1(joy_rx2[0]), .O_RXD_2(joy_rx2[1]), 
-    .O_RXD_3(), .O_RXD_4(), .O_RXD_5(), .O_RXD_6()
+controller_snes joy2_snes (
+    .clk(clk), .resetn(resetn), .buttons(joy2_btns),
+    .joy_strb(joy2_strb), .joy_clk(joy2_clk), .joy_data(joy2_data)
 );
+`endif
 
-Autofire af_square (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx[1][7] | usb_btn_y), .out(auto_square));            // B
-Autofire af_triangle (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx[1][4] | usb_btn_x), .out(auto_triangle));        // A
-Autofire af_square2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][7] | usb_btn_y2), .out(auto_square2));
-Autofire af_triangle2 (.clk(clk), .resetn(sys_resetn), .btn(~joy_rx2[1][4] | usb_btn_x2), .out(auto_triangle2));
+`ifdef CONTROLLER_DS2
+controller_ds2 joy1_ds2 (
+    .clk(clk), .snes_buttons(joy1_btns),
+    .ds_clk(ds_clk), .ds_miso(ds_miso), .ds_mosi(ds_mosi), .ds_cs(ds_cs) 
+);
+controller_ds2 joy2_ds2 (
+   .clk(clk), .snes_buttons(joy2_btns),
+   .ds_clk(ds_clk2), .ds_miso(ds_miso2), .ds_mosi(ds_mosi2), .ds_cs(ds_cs2) 
+);
+`endif
 
-assign nes_btn  =   {~joy_rx[0][5], ~joy_rx[0][7], ~joy_rx[0][6], ~joy_rx[0][4], 
-                    ~joy_rx[0][3], ~joy_rx[0][0], ~joy_rx[1][6] | auto_square, ~joy_rx[1][5] | auto_triangle};
-                    // | usb_btn
-                    // | NES_gamepad_button_state;
-assign nes_btn2 =   {~joy_rx2[0][5], ~joy_rx2[0][7], ~joy_rx2[0][6], ~joy_rx2[0][4], 
-                    ~joy_rx2[0][3], ~joy_rx2[0][0], ~joy_rx2[1][6] | auto_square2, ~joy_rx2[1][5] | auto_triangle2};
-                    // | usb_btn2
-                    // | NES_gamepad_button_state2;
+// Autofire for NES A (right) and B (left) buttons
+Autofire af_a (.clk(clk), .resetn(sys_resetn), .btn(joy1_btns[8]), .out(auto_a));
+Autofire af_b (.clk(clk), .resetn(sys_resetn), .btn(joy1_btns[9]), .out(auto_b));
+Autofire af_a2 (.clk(clk), .resetn(sys_resetn), .btn(joy2_btns[8]), .out(auto_a2));
+Autofire af_b2 (.clk(clk), .resetn(sys_resetn), .btn(joy2_btns[9]), .out(auto_b2));
 
 // Joypad handling
 always @(posedge clk) begin
     if (joypad_strobe) begin
-        joypad_bits <= nes_btn;
-        joypad_bits2 <= nes_btn2;
+        joypad_bits <= {joy1_btns[7:2], joy1_btns[1] | auto_b, joy1_btns[0] | auto_a};;
+        joypad_bits2 <= {joy2_btns[7:2], joy2_btns[1] | auto_b2, joy2_btns[0] | auto_a2};
     end
     if (!joypad_clock[0] && last_joypad_clock[0])
         joypad_bits <= {1'b1, joypad_bits[7:1]};
@@ -528,35 +522,33 @@ assign joypad1_data[0] = joypad_bits[0];
 assign joypad2_data[0] = joypad_bits2[0];
 
 //   usb_btn:      (R L D U START SELECT B A)
-wire [1:0] usb_type, usb_type2;
-wire usb_report, usb_report2;
-usb_hid_host usb_controller (
-    .usbclk(clk_usb), .usbrst_n(sys_resetn),
-    .usb_dm(usbdm), .usb_dp(usbdp),	.typ(usb_type), .report(usb_report), 
-    .game_l(usb_btn[6]), .game_r(usb_btn[7]), .game_u(usb_btn[4]), .game_d(usb_btn[5]), 
-    .game_a(usb_btn[0]), .game_b(usb_btn[1]), .game_x(usb_btn_x), .game_y(usb_btn_y), 
-    .game_sel(usb_btn[2]), .game_sta(usb_btn[3]),
-    // ignore keyboard and mouse input
-    .key_modifiers(), .key1(), .key2(), .key3(), .key4(),
-    .mouse_btn(), .mouse_dx(), .mouse_dy(),
-    .dbg_hid_report()
-);
+// wire [1:0] usb_type, usb_type2;
+// wire usb_report, usb_report2;
+// usb_hid_host usb_controller (
+//     .usbclk(clk_usb), .usbrst_n(sys_resetn),
+//     .usb_dm(usbdm), .usb_dp(usbdp),	.typ(usb_type), .report(usb_report), 
+//     .game_l(usb_btn[6]), .game_r(usb_btn[7]), .game_u(usb_btn[4]), .game_d(usb_btn[5]), 
+//     .game_a(usb_btn[0]), .game_b(usb_btn[1]), .game_x(usb_btn_x), .game_y(usb_btn_y), 
+//     .game_sel(usb_btn[2]), .game_sta(usb_btn[3]),
+//     // ignore keyboard and mouse input
+//     .key_modifiers(), .key1(), .key2(), .key3(), .key4(),
+//     .mouse_btn(), .mouse_dx(), .mouse_dy(),
+//     .dbg_hid_report()
+// );
 
-`ifndef PRIMER
-usb_hid_host usb_controller2 (
-    .usbclk(clk_usb), .usbrst_n(sys_resetn),
-    .usb_dm(usbdm2), .usb_dp(usbdp2),	.typ(usb_type2), .report(usb_report2), 
-    .game_l(usb_btn2[6]), .game_r(usb_btn2[7]), .game_u(usb_btn2[4]), .game_d(usb_btn2[5]), 
-    .game_a(usb_btn2[0]), .game_b(usb_btn2[1]), .game_x(usb_btn_x2), .game_y(usb_btn_y2), 
-    .game_sel(usb_btn2[2]), .game_sta(usb_btn2[3]),
-    // ignore keyboard and mouse input
-    .key_modifiers(), .key1(), .key2(), .key3(), .key4(),
-    .mouse_btn(), .mouse_dx(), .mouse_dy(),
-    .dbg_hid_report()
-);
-`endif
-
-// nand2mario: joypad interface changed. we'll add NESGamepad back later 
+// `ifndef PRIMER
+// usb_hid_host usb_controller2 (
+//     .usbclk(clk_usb), .usbrst_n(sys_resetn),
+//     .usb_dm(usbdm2), .usb_dp(usbdp2),	.typ(usb_type2), .report(usb_report2), 
+//     .game_l(usb_btn2[6]), .game_r(usb_btn2[7]), .game_u(usb_btn2[4]), .game_d(usb_btn2[5]), 
+//     .game_a(usb_btn2[0]), .game_b(usb_btn2[1]), .game_x(usb_btn_x2), .game_y(usb_btn_y2), 
+//     .game_sel(usb_btn2[2]), .game_sta(usb_btn2[3]),
+//     // ignore keyboard and mouse input
+//     .key_modifiers(), .key1(), .key2(), .key3(), .key4(),
+//     .mouse_btn(), .mouse_dx(), .mouse_dy(),
+//     .dbg_hid_report()
+// );
+// `endif
 
 `endif
 
