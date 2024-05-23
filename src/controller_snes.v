@@ -111,7 +111,14 @@ always @(posedge clk) begin
                 bits <= bits + 1;
                 if (bits == 4'd15) begin     // scan complete
                     state <= 3;
-                    buttons <= buttons_buf[11:0];
+                    // check if buttons_buf[15:12] are 0; if not, this is an NES controller
+                    if (buttons_buf[15:12] != 4'b0000) begin
+                        // NES controller
+                        buttons <= {0, 0, 0, 0, buttons_buf[7:0]};
+                    end else begin
+                        // SNES controller
+                        buttons <= buttons_buf[11:0];
+                    end
                 end else
                     state <= 1;
             end
