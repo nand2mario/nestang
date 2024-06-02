@@ -99,20 +99,12 @@ reg flash_start;
 wire [7:0] flash_dout;
 wire flash_out_strb;
 assign flash_spi_hold_n = 1;
-assign flash_spi_wp_n = 0;
+assign flash_spi_wp_n = 1;      // disable write protection
 reg [7:0] flash_d;
 reg [3:0] flash_wstrb;
 reg flash_wr;
-
-// Load 256KB of ROM from flash address 0x500000 into SDRAM at address 0x0
-spiflash #(.ADDR(24'h500000), .LEN(FIRMWARE_SIZE)) flash (
-    .clk(clk), .resetn(resetn),
-    .ncs(flash_spi_cs_n), .miso(flash_spi_miso), .mosi(flash_spi_mosi),
-    .sck(flash_spi_clk),
-
-    .start(flash_start), .dout(flash_dout), .dout_strb(flash_out_strb),
-    .busy()
-);
+wire [31:0] spiflash_reg_do;
+wire spiflash_reg_wait;
 
 always @(posedge clk) begin
     if (~resetn) begin
@@ -183,21 +175,30 @@ wire        romload_reg_data_sel /* synthesis syn_keep=1 */ = mem_valid && (mem_
 wire        joystick_reg_sel = mem_valid && (mem_addr == 32'h 0200_0040);
 
 wire        time_reg_sel = mem_valid && (mem_addr == 32'h0200_0050);        // milli-seconds since start-up (overflows in 49 days)
+wire        cycle_reg_sel = mem_valid && (mem_addr == 32'h0200_0054);       // cycles counter (overflows every 200 seconds)
 
 wire        id_reg_sel = mem_valid && (mem_addr == 32'h0200_0060);
 
+wire        spiflash_reg_byte_sel = mem_valid && (mem_addr == 32'h0200_0070);
+wire        spiflash_reg_word_sel = mem_valid && (mem_addr == 32'h0200_0074);
+wire        spiflash_reg_ctrl_sel = mem_valid && (mem_addr == 32'h0200_0078);
+
 assign mem_ready = ram_ready || textdisp_reg_char_sel || simpleuart_reg_div_sel || 
-            romload_reg_ctrl_sel || romload_reg_data_sel || joystick_reg_sel || time_reg_sel || id_reg_sel ||
+            romload_reg_ctrl_sel || romload_reg_data_sel || joystick_reg_sel || time_reg_sel || cycle_reg_sel || id_reg_sel ||
             (simpleuart_reg_dat_sel && !simpleuart_reg_dat_wait) ||
-            ((simplespimaster_reg_byte_sel || simplespimaster_reg_word_sel) && !simplespimaster_reg_wait);
+            ((simplespimaster_reg_byte_sel || simplespimaster_reg_word_sel) && !simplespimaster_reg_wait) ||
+            (spiflash_reg_byte_sel || spiflash_reg_word_sel) && !spiflash_reg_wait ||
+            spiflash_reg_ctrl_sel;
 
 assign mem_rdata = ram_ready ? ram_rdata :
         joystick_reg_sel ? {4'b0, joy2, 4'b0, joy1} :
         simpleuart_reg_div_sel ? simpleuart_reg_div_do :
         simpleuart_reg_dat_sel ? simpleuart_reg_dat_do : 
         time_reg_sel ? time_reg :
+        cycle_reg_sel ? cycle_reg :
         id_reg_sel ? {16'b0, CORE_ID} :
         (simplespimaster_reg_byte_sel | simplespimaster_reg_word_sel) ? simplespimaster_reg_do : 
+        (spiflash_reg_byte_sel | spiflash_reg_word_sel) ? spiflash_reg_do :
         32'h 0000_0000;
 
 picorv32 #(
@@ -240,7 +241,7 @@ always @(posedge clk) begin
     end
 end
 
-// uart @ 0x0200_0004 & 0x200_0008
+// uart @ 0x0200_0010
 simpleuart simpleuart (
     .clk         (clk         ),
     .resetn      (resetn       ),
@@ -259,7 +260,7 @@ simpleuart simpleuart (
     .reg_dat_wait(simpleuart_reg_dat_wait)
 );
 
-// spi sd card @ 0x0200_000c
+// spi sd card @ 0x0200_0020
 assign sd_dat1 = 1;
 assign sd_dat2 = 1;
 assign sd_dat3 = 0;
@@ -293,7 +294,6 @@ always @(posedge clk) begin
         rom_do_valid <= 1;
     end
 end
-
 always @(posedge clk) begin
     if (romload_reg_ctrl_sel && mem_wstrb) begin
         // control register
@@ -304,6 +304,21 @@ always @(posedge clk) begin
     end    
 end
 
+// SPI flash @ 0x02000_0070
+// Load 256KB of ROM from flash address 0x500000 into SDRAM at address 0x0
+spiflash #(.ADDR(24'h500000), .LEN(FIRMWARE_SIZE)) flash (
+    .clk(clk), .resetn(resetn),
+    .ncs(flash_spi_cs_n), .miso(flash_spi_miso), .mosi(flash_spi_mosi),
+    .sck(flash_spi_clk), 
+
+    .start(flash_start), .dout(flash_dout), .dout_strb(flash_out_strb), .busy(),
+
+    .reg_byte_we(spiflash_reg_byte_sel ? mem_wstrb[0] : 1'b0),
+    .reg_word_we(spiflash_reg_word_sel ? mem_wstrb[0] : 1'b0),
+    .reg_ctrl_we(spiflash_reg_ctrl_sel ? mem_wstrb[0] : 1'b0),
+    .reg_di(mem_wdata), .reg_do(spiflash_reg_do), .reg_wait(spiflash_reg_wait)
+);
+
 // RV memory access
 assign rv_addr = flash_loading ? flash_addr : mem_addr;
 assign rv_wdata = flash_loading ? {flash_d, flash_d, flash_d, flash_d} : mem_wdata;
@@ -313,13 +328,14 @@ assign rv_valid = flash_loading ? flash_wr : (mem_valid & ram_sel);
 assign ram_ready = rv_ready;
 
 // Time counter register
-reg [31:0] time_reg;
+reg [31:0] time_reg, cycle_reg;
 reg [$clog2(FREQ/1000)-1:0] time_cnt;
 always @(posedge clk) begin
     if (~resetn) begin
         time_reg <= 0;
         time_cnt <= 0;
     end else begin
+        cycle_reg <= cycle_reg + 1;
         time_cnt <= time_cnt + 1;
         if (time_cnt == FREQ/1000-1) begin
             time_cnt <= 0;
