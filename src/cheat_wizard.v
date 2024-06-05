@@ -78,10 +78,10 @@ always @(posedge i_clk) begin
                 wb_stall <= 1'b1;
                 cheat_data_ix <= 2'b00;
                 
-                cheats_compare_enabled[i_wb_idata[111:104]] <= i_wb_idata[96];
-                cheats_address[i_wb_idata[111:104]] <= i_wb_idata[79:64];
-                cheat_compare_value[i_wb_idata[111:104]] <= i_wb_idata[39:32];
-                cheats_replace_value[i_wb_idata[111:104]] <= i_wb_idata[7:0];
+                cheats_compare_enabled[i_wb_idata[111:104] - 1'b1] <= i_wb_idata[96];
+                cheats_address[i_wb_idata[111:104] - 1'b1] <= i_wb_idata[79:64];
+                cheat_compare_value[i_wb_idata[111:104] - 1'b1] <= i_wb_idata[39:32];
+                cheats_replace_value[i_wb_idata[111:104] - 1'b1] <= i_wb_idata[7:0];
                 
             end else 
                 wb_stall <= 1'b0;

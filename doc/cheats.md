@@ -5,9 +5,7 @@
 This new module accepts `*.cwz` binary files with the following format:
 
 - 128 bits (16 bytes) per cheat
-    - First 2 bytes are 0000
-    - Third byte is cheat number (needed by the engine)
-    - Fourth byte is compare enabled/disabled
+    - Four bytes correspond to compare enabled/disabled
     - Next 4 bytes correspond to address
     - Next 4 bytes correspond to compare value
     - Next 4 bytes correspond to replace value
@@ -16,9 +14,8 @@ Example for `Battletoads.nes`
 
 ```
 00000001 00000320 00000000 00000004
-00000101 000023a2 000000d6 00000024
-00000201 000026b5 00000001 00000000
-00000301 00004fba 00000008 0000002f
+00000001 000023a2 000000d6 00000024
+00000001 000026b5 00000001 00000000
 ...
 ```
 
