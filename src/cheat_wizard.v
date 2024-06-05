@@ -44,17 +44,17 @@ assign cheats_nr_stb = (cheats_nr_last != cheats_nr);
 assign cheat_compare_stb_0 = (~cheats_compare_enabled[0] ? 1'b1 : (i_sram_data == cheat_compare_value[0]));
 assign cheat_compare_stb_1 = (~cheats_compare_enabled[1] ? 1'b1 : (i_sram_data == cheat_compare_value[1]));
 assign cheat_compare_stb_2 = (~cheats_compare_enabled[2] ? 1'b1 : (i_sram_data == cheat_compare_value[2]));
-// assign cheat_compare_stb_3 = (~cheats_compare_enabled[3] ? 1'b1 : (i_sram_data == cheat_compare_value[3]));
+assign cheat_compare_stb_3 = (~cheats_compare_enabled[3] ? 1'b1 : (i_sram_data == cheat_compare_value[3]));
 assign o_cheat_stb = ( (i_cheats_enabled)&&(i_cheats_loaded)&&(i_sram_address == cheats_address[0])&&(cheat_compare_stb_0) ) ||
                      ( (i_cheats_enabled)&&(i_cheats_loaded)&&(i_sram_address == cheats_address[1])&&(cheat_compare_stb_1) ) ||
-                     ( (i_cheats_enabled)&&(i_cheats_loaded)&&(i_sram_address == cheats_address[2])&&(cheat_compare_stb_2) );
-                    //  ( (i_cheats_enabled)&&(i_cheats_loaded)&&(i_sram_address == cheats_address[3])&&(cheat_compare_stb_3) );
+                     ( (i_cheats_enabled)&&(i_cheats_loaded)&&(i_sram_address == cheats_address[2])&&(cheat_compare_stb_2) ) ||
+                     ( (i_cheats_enabled)&&(i_cheats_loaded)&&(i_sram_address == cheats_address[3])&&(cheat_compare_stb_3) );
 assign o_sram_data = !o_cheat_stb        ? i_sram_data :
                      cheat_compare_stb_0 ? cheats_replace_value[0] : 
                      cheat_compare_stb_1 ? cheats_replace_value[1] : 
                      cheat_compare_stb_2 ? cheats_replace_value[2] :
+                     cheat_compare_stb_3 ? cheats_replace_value[3] :
                      8'h00;
-                    //  cheat_compare_stb_3 ? cheats_replace_value[3];
 
 
 // Wishbone stuff
