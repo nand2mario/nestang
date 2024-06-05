@@ -240,8 +240,10 @@ wire [31:0] status;
 // Main NES machine
 wire [7:0] NES_memory_din_cpu;
 wire [7:0] NES_cheats_otuput_data_test;
+wire NES_top_cheats_stb;
 
-assign NES_memory_din_cpu = (NES_cheats_stb ? NES_cheats_otuput_data : memory_din_cpu);
+assign NES_top_cheats_stb= (NES_cheats_enabled)&&(NES_cheats_loaded)&&(NES_cheats_stb);
+assign NES_memory_din_cpu = (!NES_top_cheats_stb ? memory_din_cpu : NES_cheats_otuput_data);
 
 NES nes(
     .clk(clk), .reset_nes(reset_nes), .cold_reset(1'b0),
