@@ -140,6 +140,16 @@ assign o_wb_err = wb_err;
             assume(i_wb_cyc);
         end
 
+    always @(posedge i_clk)
+        if((f_past_valid)&&($past(f_past_valid))&&((~$past(i_reset_n))))
+            if($past(i_cheats_enabled))
+                assume(i_cheats_enabled == $past(i_cheats_enabled));
+    always @(posedge i_clk)
+        if((f_past_valid)&&($past(f_past_valid))&&((~$past(i_reset_n))))
+            if($past(i_cheats_loaded))
+                assume(i_cheats_loaded == $past(i_cheats_loaded));
+        
+
     // BMC Assertions
     always @(posedge i_clk)
         if((f_past_valid)&&($past(f_past_valid))&&((~$past(i_reset_n))||(~$past(i_wb_err)))) begin
@@ -166,17 +176,20 @@ assign o_wb_err = wb_err;
 
     always @(posedge i_clk)
         if((f_past_valid)&&($past(f_past_valid))&&((~$past(i_reset_n))||(~$past(i_wb_err))))
-            assert(cheat_compare_stb == (~cheats_compare_enabled[0] ? 1'b1 : (i_sram_data == cheat_compare_value[0])));
+            assert(cheat_compare_stb_0 == (~cheats_compare_enabled[0] ? 1'b1 : (i_sram_data == cheat_compare_value[0])));
     
     always @(posedge i_clk)
         if((f_past_valid)&&($past(f_past_valid))&&((~$past(i_reset_n))||(~$past(i_wb_err))))
-            if(cheat_compare_stb)
-                assert(o_cheat_stb == ( (i_cheats_enabled)&&(i_cheats_loaded)&&(i_sram_address == cheats_address[0])&&(cheat_compare_stb) ));
+            if((cheat_compare_stb_0)&&(~cheat_compare_stb_1)&&(~cheat_compare_stb_2)&&(~cheat_compare_stb_3))
+                assert(o_cheat_stb == ( (i_cheats_enabled)&&(i_cheats_loaded)&&(i_sram_address == cheats_address[0])&&(cheat_compare_stb_0) ));
     
     always @(posedge i_clk)
         if((f_past_valid)&&($past(f_past_valid))&&((~$past(i_reset_n))||(~$past(i_wb_err))))
-            if(o_cheat_stb)
-                assert(o_sram_data == cheats_replace_value[0]);
+            if((i_cheats_enabled)&&(i_cheats_loaded)&&(i_sram_address == cheats_address[0])&&(i_sram_data == cheat_compare_value[0]))
+                if((cheat_compare_stb_0)&&(~cheat_compare_stb_1)&&(~cheat_compare_stb_2)&&(~cheat_compare_stb_3)) begin
+                    assume(cheats_replace_value[0] != 0);
+                    assert(o_sram_data == cheats_replace_value[0]);
+                end
     
     // Induction assumptions
 
