@@ -187,7 +187,6 @@ assign o_wb_err = wb_err;
         if((f_past_valid)&&($past(f_past_valid))&&((~$past(i_reset_n))||(~$past(i_wb_err))))
             if((i_cheats_enabled)&&(i_cheats_loaded)&&(i_sram_address == cheats_address[0])&&(i_sram_data == cheat_compare_value[0]))
                 if((cheat_compare_stb_0)&&(~cheat_compare_stb_1)&&(~cheat_compare_stb_2)&&(~cheat_compare_stb_3)) begin
-                    assume(cheats_replace_value[0] != 0);
                     assert(o_sram_data == cheats_replace_value[0]);
                 end
     
