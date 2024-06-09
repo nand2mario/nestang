@@ -31,6 +31,7 @@
 `define PICOSOC_V
 
 module iosys #(
+    `include "wishbone_slaves.vh",
     parameter FREQ=21_477_000,
     parameter [14:0] COLOR_LOGO=15'b00000_10101_00000,
     parameter [15:0] CORE_ID=1      // 1: nestang, 2: snestang
@@ -83,7 +84,29 @@ module iosys #(
     input  sd_dat0,                 // MISO
     output sd_dat1,                 // 1
     output sd_dat2,                 // 1
-    output sd_dat3                  // 0 for SPI mode
+    output sd_dat3,                 // 0 for SPI mode
+
+    // Enhanced APU
+    output o_reg_enhanced_apu,
+
+    // Wishbone master
+	//	The return bus wires
+	input	wire            i_wb_ack, 
+    input	wire            i_wb_stall, 
+    input	wire    [31:0]  i_wb_idata,
+    input	wire            i_wb_err, 
+    // The bus control output wires
+	output  wire            o_wb_cyc,
+    output	wire            o_wb_stb,
+    output	wire            o_wb_we,
+    input	wire            o_wb_err, 
+    output	wire    [1:0]   o_wb_addr, 
+    output	wire    [128:0] o_wb_odata, 
+    output	wire    [3:0]   o_wb_sel,
+
+    // Cheats
+    output wire o_cheats_enabled,
+    output wire o_cheats_loaded
 );
 
 /* verilator lint_off PINMISSING */
@@ -182,9 +205,22 @@ wire        id_reg_sel = mem_valid && (mem_addr == 32'h0200_0060);
 wire        spiflash_reg_byte_sel = mem_valid && (mem_addr == 32'h0200_0070);
 wire        spiflash_reg_word_sel = mem_valid && (mem_addr == 32'h0200_0074);
 wire        spiflash_reg_ctrl_sel = mem_valid && (mem_addr == 32'h0200_0078);
+wire        id_reg_enhanced_apu_sel = mem_valid && (mem_addr == 32'h0200_0080);
+
+// Cheats
+wire        reg_cheats_enabled_sel = mem_valid && (mem_addr == 32'h0200_00A0);
+wire        reg_cheats_loaded_sel = mem_valid && (mem_addr == 32'h0200_00C0);
+wire        id_reg_cheats_sel_3 = mem_valid && (mem_addr == 32'h0200_00E0);     // MMSB
+wire        id_reg_cheats_sel_2 = mem_valid && (mem_addr == 32'h0200_0100);
+wire        id_reg_cheats_sel_1 = mem_valid && (mem_addr == 32'h0200_0120);
+wire        id_reg_cheats_sel_0 = mem_valid && (mem_addr == 32'h0200_0140);     // LLSB
+wire        id_reg_cheats_data_ready_sel = mem_valid && (mem_addr == 32'h0200_0160);
 
 assign mem_ready = ram_ready || textdisp_reg_char_sel || simpleuart_reg_div_sel || 
             romload_reg_ctrl_sel || romload_reg_data_sel || joystick_reg_sel || time_reg_sel || cycle_reg_sel || id_reg_sel ||
+            id_reg_enhanced_apu_sel || 
+            reg_cheats_enabled_sel || reg_cheats_loaded_sel || id_reg_cheats_data_ready_sel ||
+            id_reg_cheats_sel_0 || id_reg_cheats_sel_1 || id_reg_cheats_sel_2 || id_reg_cheats_sel_3 ||
             (simpleuart_reg_dat_sel && !simpleuart_reg_dat_wait) ||
             ((simplespimaster_reg_byte_sel || simplespimaster_reg_word_sel) && !simplespimaster_reg_wait) ||
             (spiflash_reg_byte_sel || spiflash_reg_word_sel) && !spiflash_reg_wait ||
@@ -197,6 +233,14 @@ assign mem_rdata = ram_ready ? ram_rdata :
         time_reg_sel ? time_reg :
         cycle_reg_sel ? cycle_reg :
         id_reg_sel ? {16'b0, CORE_ID} :
+        id_reg_enhanced_apu_sel ? reg_enhanced_apu :
+        reg_cheats_enabled_sel ? {32'h0, reg_cheats_enabled} :
+        reg_cheats_loaded_sel ? {32'h0, reg_cheats_loaded} :
+        id_reg_cheats_data_ready_sel ? {32'h0, reg_cheats_data_ready}:
+        id_reg_cheats_sel_3 ? reg_cheats[128:96] :
+        id_reg_cheats_sel_2 ? reg_cheats[95:64] :
+        id_reg_cheats_sel_1 ? reg_cheats[63:32] :
+        id_reg_cheats_sel_0 ? reg_cheats[31:0] :
         (simplespimaster_reg_byte_sel | simplespimaster_reg_word_sel) ? simplespimaster_reg_do : 
         (spiflash_reg_byte_sel | spiflash_reg_word_sel) ? spiflash_reg_do :
         32'h 0000_0000;
@@ -345,6 +389,137 @@ always @(posedge clk) begin
 end
 
 // assign led = ~{2'b0, (^ total_refresh[7:0]), s0, flash_cnt[12]};     // flash while loading
+
+// Enhanced RAM register
+reg reg_enhanced_apu;
+always @(posedge clk) begin
+    if(~resetn) begin
+        reg_enhanced_apu <= 0;
+    end
+    if(mem_addr == 32'h0200_0080) begin
+            reg_enhanced_apu <= mem_wdata;
+    end
+end
+
+assign o_reg_enhanced_apu = reg_enhanced_apu;
+
+//
+// Cheat engine
+//
+reg reg_cheats_enabled;
+reg reg_cheats_loaded_last;
+reg reg_cheats_loaded;
+reg reg_cheats_enabled_last;
+reg reg_cheats_data_ready;
+reg reg_cheats_data_ready_last;
+reg [128:0] reg_cheats;
+reg [128:0] reg_cheats_last;
+reg reg_cheats_data_sent;
+
+wire reg_cheats_enabled_stb;
+wire reg_cheats_loaded_stb;
+wire reg_cheats_data_ready_stb;
+wire reg_cheats_stb;
+
+initial reg_cheats_enabled = 1'b0;
+initial reg_cheats_enabled_last = 1'b0;
+initial reg_cheats_loaded = 1'b0;
+initial reg_cheats_loaded_last = 1'b0;
+initial reg_cheats_data_ready = 1'b0;
+initial reg_cheats_data_ready_last = 1'b0;
+initial reg_cheats = 0;
+initial reg_cheats_last = 0;
+
+assign reg_cheats_enabled_stb = (reg_cheats_enabled_last != reg_cheats_enabled);
+assign reg_cheats_loaded_stb = (reg_cheats_loaded_last != reg_cheats_loaded);
+assign reg_cheats_data_ready_stb = (reg_cheats_data_ready_last != reg_cheats_data_ready);
+assign reg_cheats_stb = (reg_cheats_last != reg_cheats);
+
+always @(posedge clk) begin
+    if(~resetn)
+        reg_cheats <= 0;
+    else begin
+        if(mem_addr == 32'h0200_00A0)
+            reg_cheats_enabled <= mem_wdata[0];
+        if(mem_addr == 32'h0200_00C0)
+            reg_cheats_loaded <= mem_wdata[0];
+      if(mem_addr == 32'h0200_00E0)
+            reg_cheats[127:96] <= mem_wdata;
+        if(mem_addr == 32'h0200_0100)
+            reg_cheats[95:64] <= mem_wdata;
+        if(mem_addr == 32'h0200_0120)
+            reg_cheats[63:32] <= mem_wdata;
+        if(mem_addr == 32'h0200_0140)
+            reg_cheats[31:0] <= mem_wdata;
+        if(mem_addr == 32'h0200_0160)
+            reg_cheats_data_ready <= mem_wdata[0];
+
+       
+        if(reg_cheats_enabled_stb)
+            reg_cheats_enabled_last <= reg_cheats_enabled;
+        if(reg_cheats_loaded_stb)
+            reg_cheats_loaded_last <= reg_cheats_loaded;
+        if(reg_cheats_stb)
+            reg_cheats_last <= reg_cheats;  
+        if(reg_cheats_loaded_stb)
+            reg_cheats_data_ready_last <= reg_cheats_data_ready;
+        else if((reg_cheats_data_ready)&&(~wb_cyc))
+            reg_cheats_data_ready <= 1'b0;
+    end
+end
+
+assign o_cheats_enabled = reg_cheats_enabled;
+assign o_cheats_loaded = reg_cheats_loaded;
+
+//
+// Wishbone master
+//
+reg [1:0] wb_addr;
+reg [128:0] wb_odata;
+reg wb_we;
+reg wb_cyc;
+reg wb_stb;
+reg wb_err;
+
+initial wb_err = 1'b0;
+initial	wb_cyc = 1'b0;
+initial	wb_stb = 1'b0;
+
+
+always @(posedge clk) begin
+    if((~resetn)||(i_wb_err)) begin
+        wb_cyc <= 1'b0;
+	    wb_stb <= 1'b0;
+        if(~resetn) begin
+            // ToDo: reset stuff
+        end
+    end else begin
+        // ToDo: Do bus stuff
+        // cheats_data
+        if((reg_cheats_enabled)&&(reg_cheats_data_ready)&&(~i_wb_stall)&&(~wb_cyc)) begin
+            // wb_addr <= WISHBONE_SLAVE_ADDRESS_CHEATS_DATA;
+            wb_addr <= 2'h01;
+            wb_odata <= reg_cheats;
+            wb_we <= 1'b1;
+            wb_cyc <= 1'b1;
+            wb_stb <= 1'b1;
+        end
+        if(wb_cyc) begin
+            wb_addr <= 0;
+            wb_we <= 1'b0;
+            wb_stb <= 1'b0;
+            if(i_wb_ack)
+                wb_cyc <= 1'b0;
+        end
+    end
+end
+
+assign o_wb_addr = wb_addr;
+assign o_wb_odata = wb_odata;
+assign o_wb_we = wb_we;
+assign o_wb_stb = wb_stb;
+assign o_wb_cyc = wb_cyc;
+
 
 endmodule
 
