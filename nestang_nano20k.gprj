@@ -6,11 +6,12 @@
     <Device name="GW2AR-18C" pn="GW2AR-LV18QN88C8/I7">gw2ar18c-000</Device>
     <FileList>
         <File path="src/EEPROM_24C0x.sv" type="file.verilog" enable="1"/>
-        <File path="src/NESGamepad.v" type="file.verilog" enable="1"/>
         <File path="src/apu.v" type="file.verilog" enable="1"/>
         <File path="src/autofire.v" type="file.verilog" enable="1"/>
         <File path="src/cart.sv" type="file.verilog" enable="1"/>
         <File path="src/compat.v" type="file.verilog" enable="1"/>
+        <File path="src/controller_ds2.sv" type="file.verilog" enable="1"/>
+        <File path="src/controller_snes.v" type="file.verilog" enable="1"/>
         <File path="src/dpram.v" type="file.verilog" enable="1"/>
         <File path="src/dualshock_controller.v" type="file.verilog" enable="1"/>
         <File path="src/game_loader.v" type="file.verilog" enable="1"/>
@@ -45,6 +46,9 @@
         <File path="src/mappers/generic.sv" type="file.verilog" enable="1"/>
         <File path="src/mappers/iir_filter.v" type="file.verilog" enable="1"/>
         <File path="src/mappers/misc.sv" type="file.verilog" enable="1"/>
+        <File path="src/nano20k/config.v" type="file.verilog" enable="1"/>
+        <File path="src/nano20k/gowin_pll_hdmi.v" type="file.verilog" enable="1"/>
+        <File path="src/nano20k/gowin_pll_nes.v" type="file.verilog" enable="1"/>
         <File path="src/nes.v" type="file.verilog" enable="1"/>
         <File path="src/nes2hdmi.sv" type="file.verilog" enable="1"/>
         <File path="src/nestang_top.sv" type="file.verilog" enable="1"/>
@@ -54,17 +58,11 @@
         <File path="src/t65/T65_ALU.v" type="file.verilog" enable="1"/>
         <File path="src/t65/T65_MCode.v" type="file.verilog" enable="1"/>
         <File path="src/t65/T65_Pack.v" type="file.verilog" enable="1"/>
-        <File path="src/tang_nano_20k/config.sv" type="file.verilog" enable="1"/>
-        <File path="src/tang_nano_20k/gowin_pll_hdmi.v" type="file.verilog" enable="1"/>
-        <File path="src/tang_nano_20k/gowin_pll_nes.v" type="file.verilog" enable="1"/>
         <File path="src/uart_tx_V2.v" type="file.verilog" enable="1"/>
         <File path="src/usb_hid_host.v" type="file.verilog" enable="1"/>
         <File path="src/usb_hid_host_rom.v" type="file.verilog" enable="1"/>
-        <File path="src/tang_nano_20k/nestang.cst" type="file.cst" enable="1"/>
-        <File path="src/tang_primer_25k/nestang.cst" type="file.cst" enable="0"/>
-        <File path="src/tang_nano_20k/nestang.sdc" type="file.sdc" enable="1"/>
-        <File path="src/tang_primer_25k/nestang.sdc" type="file.sdc" enable="0"/>
-        <File path="src/clock.gao" type="file.gao" enable="0"/>
+        <File path="src/nano20k/nestang.cst" type="file.cst" enable="1"/>
+        <File path="src/nano20k/nestang.sdc" type="file.sdc" enable="1"/>
         <File path="src/nes.gao" type="file.gao" enable="0"/>
     </FileList>
 </Project>

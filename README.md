@@ -12,31 +12,32 @@ Main features,
 
 - 720p HDMI output with sound.
 - Cycle accurate gameplay quality has been achieved since the NES circuits have been almost entirely replicated.
-- Rom loading from MicroSD cards with an easy-to-use menu system.
-- Playstation 2 controllers support and experimental USB gamepads support.
+- Rom loading from MicroSD cards with an easy-to-use menu system, powered by a RISC-V softcore.
+- Extensive mapper support including MMC5, Namco and more.
+- NES/SNES controllers, or DS2 controllers.
 
-## Pick a Board
+If you haven't bought your board yet, Tang Primer 25K is probably the one to get, as it supports [SNESTang](https://github.com/nand2mario/snestang) better. 
+
+## Getting the parts
 
 You need either the Sipeed Tang Primer 25K or Tang Nano 20K FPGA board to run the latest NESTang.
 
-* The Tang Primer 25K is the latest small-form-factor, modular FPGA board from Sipeed. If you want more memory and extensibility, choose Primer 25K. You need to get the [main Primer 25K dock board](https://wiki.sipeed.com/hardware/en/tang/tang-primer-25k/primer-25k.html), [DVI PMod](https://wiki.sipeed.com/hardware/en/tang/tang-PMOD/FPGA_PMOD.html#PMOD_DVI), [TF Card PMod](https://wiki.sipeed.com/hardware/en/tang/tang-PMOD/FPGA_PMOD.html#PMOD_TF-CARD), [DS2x2 PMod](https://wiki.sipeed.com/hardware/en/tang/tang-PMOD/FPGA_PMOD.html#PMOD_DS2x2) and a [Tang SDRAM](https://wiki.sipeed.com/hardware/en/tang/tang-PMOD/FPGA_PMOD.html#TANG-40P-MODULE).
-* The Tang Nano 20K is a tiny and popular FPGA dongle. The board also features 8MB of FPGA-gaming-friendly SDRAM memory. Be sure to get the [Tang Nano 20K Retro Gaming Kit](https://www.amazon.com/GW2AR-18-Computer-Debugger-Multiple-Emulator/dp/B0C5XLBQ6C), as it contains the necessary controllers and adapters.
+* If you choose the Primer 25K, get the [main Primer 25K dock board](https://wiki.sipeed.com/hardware/en/tang/tang-primer-25k/primer-25k.html), [DVI PMod](https://wiki.sipeed.com/hardware/en/tang/tang-PMOD/FPGA_PMOD.html#PMOD_DVI), [TF Card PMod](https://wiki.sipeed.com/hardware/en/tang/tang-PMOD/FPGA_PMOD.html#PMOD_TF-CARD), [DS2x2 PMod](https://wiki.sipeed.com/hardware/en/tang/tang-PMOD/FPGA_PMOD.html#PMOD_DS2x2) and a [Tang SDRAM](https://wiki.sipeed.com/hardware/en/tang/tang-PMOD/FPGA_PMOD.html#TANG-40P-MODULE).
+* For the Tang Nano 20K, we suggest the [Tang Nano 20K Retro Gaming Kit](https://www.amazon.com/GW2AR-18-Computer-Debugger-Multiple-Emulator/dp/B0C5XLBQ6C), as it contains the necessary controllers and adapters.
 
 ## Installation
 
-A [step-by-step instructions](https://github.com/nand2mario/snestang/blob/main/doc/installation.md) is available for installation. Here are quick instructions for the more experienced,
+A [step-by-step instructions](https://github.com/nand2mario/snestang/blob/main/doc/installation.md) is available. Here are quick instructions for the more experienced,
 
-* Tang Primer 25K needs 4 modules: Tang sdram, DVI, Dualshock2, SD and a pair of dualshock controllers. Currently these should cost ~$60 in total. Tang Nano 20K just needs controller adapters. Check [instructions](https://github.com/nand2mario/snestang/blob/main/doc/installation.md) for how to connect the modules / adapters.
-* Download a NESTang release from [github](https://github.com/nand2mario/nestang/releases). The bitstream (`nestang_*.fs`) should be written to flash at address 0. The firmware (`firmware.bin`) should be written to 0x500000 (5MB).
-* A MicroSD card to hold ROMs.
-* Connect one or two DualShock2 controllers to the DS2 pmod. Or you can connect one USB gamepad to use the [experimental USB gamepad support](doc/usb_gamepad.md). The board only has one USB port. So use DS2 if you want two players.
-* Insert the MicroSD card, connect an HDMI monitor or TV, and enjoy your games.
+* Assemble the board and modules: [result for the primer 25k](https://github.com/nand2mario/snestang/raw/main/doc/images/primer25k_setup.jpg), and [nano 20k](https://github.com/nand2mario/snestang/raw/main/doc/images/nano20k_setup.jpg).
+* Download a NESTang release from [github](https://github.com/nand2mario/nestang/releases). The bitstream (`nestang_*.fs`) should be written to flash at address 0. The firmware (`firmware.bin`) should be written to 0x500000 (5MB). See this [screenshot](https://github.com/nand2mario/snestang/blob/main/doc/images/programmer_firmware.png) for how to do it.
+* Put your ROM files onto a MicroSD Card (exFAT or FAT32 file system). Insert the card, connect an HDMI monitor or TV, and enjoy your games.
 
 Version 0.4 also supports [tang primer 20k](doc/primer20k.md).
 
 ## Development
 
-If you want to generate the bitstream from source, see [Build Instructions](https://nand2mario.github.io/nestang-doc/dev/build_bitstream/). The recommended Gowin IDE version is 1.9.9 commercial (requires a free license).
+If you want to generate the bitstream from source, see [Build Instructions](https://nand2mario.github.io/nestang-doc/dev/build_bitstream/). Make sure you use the Gowin IDE version 1.9.9 commercial (requires a free license).
 
 [Usb_hid_host](https://github.com/nand2mario/usb_hid_host) was development so NESTang could support USB gamepads. Follow the link if you want to use it for your FPGA projects. It supports keyboards and mice too.
 

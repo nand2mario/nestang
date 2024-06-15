@@ -2,6 +2,8 @@
 `define GW_IDE
 `define PRIMER
 
+`define CONTROLLER_DS2
+
 package configPackage;  
 
     // Tang SDRAM v1.2: 2B * 8K * 512 * 4 = 32MB
