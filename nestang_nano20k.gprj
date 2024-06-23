@@ -43,7 +43,6 @@
         <File path="src/mappers/Namco.sv" type="file.verilog" enable="1"/>
         <File path="src/mappers/Sachen.sv" type="file.verilog" enable="1"/>
         <File path="src/mappers/Sunsoft.sv" type="file.verilog" enable="1"/>
-        <File path="src/mappers/VRC.sv" type="file.verilog" enable="1"/>
         <File path="src/mappers/generic.sv" type="file.verilog" enable="1"/>
         <File path="src/mappers/iir_filter.v" type="file.verilog" enable="1"/>
         <File path="src/mappers/misc.sv" type="file.verilog" enable="1"/>
@@ -65,6 +64,5 @@
         <File path="src/nano20k/nestang.cst" type="file.cst" enable="1"/>
         <File path="src/nano20k/nestang.sdc" type="file.sdc" enable="1"/>
         <File path="src/nes.gao" type="file.gao" enable="0"/>
-        <File path="src/nestang_nano20k_apu.gao" type="file.gao" enable="1"/>
     </FileList>
 </Project>

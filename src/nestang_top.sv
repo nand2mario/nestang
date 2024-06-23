@@ -483,7 +483,7 @@ iosys #(.COLOR_LOGO(15'b01100_00000_01000), .CORE_ID(1) )     // purple nestang 
 
     .sd_clk(sd_clk), .sd_cmd(sd_cmd), .sd_dat0(sd_dat0), .sd_dat1(sd_dat1),
     .sd_dat2(sd_dat2), .sd_dat3(sd_dat3),
-    .o_reg_enhanced_apu(NES_enhanced_APU)
+    .o_reg_enhanced_apu(NES_enhanced_APU),
     // Wishbone master
     .i_wb_ack(NES_wb_slave_ack),
     .i_wb_stall(NES_wb_slave_stall),
