@@ -200,7 +200,7 @@ always @(posedge clk) begin
     reset_cnt <= reset_cnt == 0 ? 0 : reset_cnt - 1;
     if (reset_cnt == 0)
 //    if (reset_cnt == 0 && s1)     // for nano
-        sys_resetn <= ~(joy1_btns[5] && joy1_btns[3]);    // 8BitDo Home button = Select + Down
+        sys_resetn <= ~(joy1_btns[5] && joy1_btns[3]);    //  Select + Up
 end
 
 `ifndef VERILATOR
@@ -273,7 +273,9 @@ NES nes(
     .int_audio(int_audio),    // VRC6
     .ext_audio(ext_audio),
 
-    .apu_ce(), .gg(), .gg_code(), .gg_avail(), .gg_reset(), .emphasis(), .save_written()
+    .apu_ce(), .gg(), .gg_code(), .gg_avail(), .gg_reset(), .emphasis(), .save_written(),
+    // Enhanced APU
+    .i_APU_enhancements_ce(NES_enhanced_APU)
 );
 
 // loader_write -> clock when data available
@@ -458,7 +460,7 @@ always @(posedge clk) begin            // RV
         endcase
     end
 end
-
+reg NES_enhanced_APU;
 iosys #(.COLOR_LOGO(15'b01100_00000_01000), .CORE_ID(1) )     // purple nestang logo
     iosys (
     .clk(clk), .hclk(hclk), .resetn(sys_resetn),
@@ -481,7 +483,7 @@ iosys #(.COLOR_LOGO(15'b01100_00000_01000), .CORE_ID(1) )     // purple nestang 
 
     .sd_clk(sd_clk), .sd_cmd(sd_cmd), .sd_dat0(sd_dat0), .sd_dat1(sd_dat1),
     .sd_dat2(sd_dat2), .sd_dat3(sd_dat3),
-    
+    .o_reg_enhanced_apu(NES_enhanced_APU)
     // Wishbone master
     .i_wb_ack(NES_wb_slave_ack),
     .i_wb_stall(NES_wb_slave_stall),
