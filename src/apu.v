@@ -372,6 +372,123 @@ module TriangleChan (
 
 endmodule
 
+module TriangleChan_enhanced (
+    input  logic       clk,
+    input  logic       phi1,
+    input  logic       aclk1,
+    input  logic       aclk1_d,
+    input  logic       reset,
+    input  logic       cold_reset,
+    input  logic       allow_us,
+    input  logic [1:0] Addr,
+    input  logic [7:0] DIN,
+    input  logic       write,
+    input  logic [7:0] lc_load,
+    input  logic       LenCtr_Clock,
+    input  logic       LinCtr_Clock,
+    input  logic       Enabled,
+    output logic [6:0] Sample,
+    output logic       IsNonZero,
+    // Enhanced APU
+    input  logic       apu_enhanced_ce
+);
+    logic [10:0] Period, applied_period, TimerCtr;
+    logic [7:0] SeqPos;
+    logic [6:0] LinCtrPeriod, LinCtrPeriod_1, LinCtr;
+    logic LinCtrl, line_reload;
+    logic LinCtrZero;
+    logic lc;
+
+    logic LenCtrZero;
+    logic subunit_write;
+    logic [7:0] sample_latch;
+
+    assign LinCtrZero = ~|LinCtr;
+    assign IsNonZero = lc;
+    assign subunit_write = (Addr == 0 || Addr == 3) & write;
+
+    wire applied_period_valid;
+    assign applied_period_valid = applied_period > 1;
+
+    assign Sample = ((applied_period_valid)||(allow_us))    ? 
+                    (SeqPos[6:0] ^ {7{~SeqPos[7]}})         : 
+                    sample_latch;
+
+    LenCounterUnit LenTri (
+        .clk            (clk),
+        .reset          (reset),
+        .cold_reset     (cold_reset),
+        .aclk1          (aclk1),
+        .aclk1_d        (aclk1_d),
+        .len_clk        (LenCtr_Clock),
+        .load_value     (lc_load),
+        .halt_in        (DIN[7]),
+        .addr           (Addr[0]),
+        .is_triangle    (1'b1),
+        .write          (subunit_write),
+        .enabled        (Enabled),
+        .lc_on          (lc)
+    );
+
+    always_ff @(posedge clk) begin
+        if (phi1) begin
+            if (TimerCtr == 0) begin
+                TimerCtr <= Period;
+                applied_period <= Period;
+                if (IsNonZero & ~LinCtrZero)
+                    SeqPos <= SeqPos + 1;
+            end else begin
+                TimerCtr <= TimerCtr - 1;
+            end
+        end
+
+        if (aclk1) begin
+            LinCtrPeriod_1 <= LinCtrPeriod;
+        end
+
+        if (LinCtr_Clock) begin
+            if (line_reload)
+                LinCtr <= LinCtrPeriod_1;
+            else if (!LinCtrZero)
+                LinCtr <= LinCtr - 1;
+
+            if (!LinCtrl)
+                line_reload <= 0;
+        end
+
+        if (write) begin
+            case (Addr)
+                0: begin
+                    LinCtrl <= DIN[7];
+                    LinCtrPeriod <= DIN[6:0];
+                end
+                2: begin
+                    Period[7:0] <= DIN;
+                end
+                3: begin
+                    Period[10:8] <= DIN[2:0];
+                    line_reload <= 1;
+                end
+            endcase
+        end
+
+        if (reset) begin
+            sample_latch <= 8'hFF;
+            Period <= 0;
+            TimerCtr <= 0;
+            SeqPos <= 0;
+            LinCtrPeriod <= 0;
+            LinCtr <= 0;
+            LinCtrl <= 0;
+            line_reload <= 0;
+        end
+
+        if (applied_period_valid) 
+            sample_latch <= Sample;
+    end
+endmodule
+
+
 module NoiseChan (
     input  logic       clk,
     input  logic       ce,
@@ -799,7 +916,9 @@ module APU (
     output logic [15:0] Sample,
     output logic        DmaReq,         // 1 when DMC wants DMA
     output logic [15:0] DmaAddr,        // Address DMC wants to read
-    output logic        IRQ             // IRQ asserted high == asserted
+    output logic        IRQ,            // IRQ asserted high == asserted
+    // Enhanced APU
+    input  logic        apu_enhanced_ce
 );
 
     logic [7:0] len_counter_lut[32];
@@ -840,6 +959,7 @@ module APU (
 
     logic [4:0] Enabled;
     logic [3:0] Sq1Sample,Sq2Sample,TriSample,NoiSample;
+    logic [6:0] TriSample_enhanced;
     logic [6:0] DmcSample;
     logic DmcIrq;
     logic IsDmcActive;
@@ -856,7 +976,7 @@ module APU (
     assign ApuMW4 = ADDR[4:2]>=4; // DMC
     assign ApuMW5 = ADDR[4:2]==5; // Control registers
 
-    logic Sq1NonZero, Sq2NonZero, TriNonZero, NoiNonZero;
+    logic Sq1NonZero, Sq2NonZero, TriNonZero, TriNonZero_enhanced, NoiNonZero;
     logic ClkE, ClkL;
 
     logic [4:0] enabled_buffer, enabled_buffer_1;
@@ -884,8 +1004,7 @@ module APU (
     assign ClkL = (frame_half & aclk1_delayed);
 
     // Generate bus output
-    assign DOUT = {DmcIrq, irq_flag, 1'b0, IsDmcActive, NoiNonZero, TriNonZero,
-        Sq2NonZero, Sq1NonZero};
+    assign DOUT = {DmcIrq, irq_flag, 1'b0, IsDmcActive, NoiNonZero, TriNonZero, TriNonZero_enhanced, Sq2NonZero, Sq1NonZero};
 
     assign IRQ = frame_irq || DmcIrq;
 
@@ -953,6 +1072,25 @@ module APU (
         .IsNonZero    (TriNonZero)
     );
 
+    TriangleChan_enhanced Tri_enhanced (
+        .clk          (clk),
+        .phi1         (phi1),
+        .aclk1        (aclk1),
+        .aclk1_d      (aclk1_delayed),
+        .reset        (reset),
+        .cold_reset   (cold_reset),
+        .allow_us     (allow_us),
+        .Addr         (ADDR[1:0]),
+        .DIN          (DIN),
+        .write        (ApuMW2 && write),
+        .lc_load      (lc_load),
+        .LenCtr_Clock (ClkL),
+        .LinCtr_Clock (ClkE),
+        .Enabled      (Enabled[2]),
+        .Sample       (TriSample_enhanced),
+        .IsNonZero    (TriNonZero_enhanced)
+    );
+
     NoiseChan Noi (
         .clk          (clk),
         .ce           (ce),
@@ -998,7 +1136,10 @@ module APU (
         .noise        (NoiSample),
         .triangle     (TriSample),
         .dmc          (DmcSample),
-        .sample       (Sample)
+        .sample       (Sample),
+        // Enhanced APU
+        .apu_enhanced_ce(apu_enhanced_ce),
+        .triangle_enhanced(TriSample_enhanced)
     );
 
     FrameCtr frame_counter (
@@ -1034,7 +1175,10 @@ module APUMixer (
     input  logic  [3:0] triangle,
     input  logic  [3:0] noise,
     input  logic  [6:0] dmc,
-    output logic [15:0] sample
+    output logic [15:0] sample,
+    // Enhanced APU
+    input  logic        apu_enhanced_ce,
+    input  logic  [6:0] triangle_enhanced
 );
 
 logic [15:0] pulse_lut[32];
@@ -1049,6 +1193,27 @@ logic [5:0] tri_lut[16];
 assign tri_lut = '{
     6'h00, 6'h04, 6'h08, 6'h0C, 6'h10, 6'h14, 6'h18, 6'h1C,
     6'h20, 6'h24, 6'h28, 6'h2C, 6'h30, 6'h34, 6'h38, 6'h3C
+};
+
+// Enhanced APU
+logic [8:0] tri_lut_enhanced[128];  // mix mixes @9bit so 8bit is the max resolution for the
+assign tri_lut_enhanced = '{
+    8'h00, 8'h02, 8'h04, 8'h06, 8'h08, 8'h0A, 8'h0C, 8'h0E,
+    8'h10, 8'h12, 8'h14, 8'h16, 8'h18, 8'h1A, 8'h1C, 8'h1E,
+    8'h20, 8'h22, 8'h24, 8'h26, 8'h28, 8'h2A, 8'h2C, 8'h2E,
+    8'h30, 8'h32, 8'h34, 8'h36, 8'h38, 8'h3A, 8'h3C, 8'h3E,
+    8'h40, 8'h42, 8'h44, 8'h46, 8'h48, 8'h4A, 8'h4C, 8'h4E,
+    8'h50, 8'h52, 8'h54, 8'h56, 8'h58, 8'h5A, 8'h5C, 8'h5E,
+    8'h60, 8'h62, 8'h64, 8'h66, 8'h68, 8'h6A, 8'h6C, 8'h6E,
+    8'h70, 8'h72, 8'h74, 8'h76, 8'h78, 8'h7A, 8'h7C, 8'h7E,
+    8'h80, 8'h82, 8'h84, 8'h86, 8'h88, 8'h8A, 8'h8C, 8'h8E,
+    8'h90, 8'h92, 8'h94, 8'h96, 8'h98, 8'h9A, 8'h9C, 8'h9E,
+    8'hA0, 8'hA2, 8'hA4, 8'hA6, 8'hA8, 8'hAA, 8'hAC, 8'hAE,
+    8'hB0, 8'hB2, 8'hB4, 8'hB6, 8'hB8, 8'hBA, 8'hBC, 8'hBE,
+    8'hC0, 8'hC2, 8'hC4, 8'hC6, 8'hC8, 8'hCA, 8'hCC, 8'hCE,
+    8'hD0, 8'hD2, 8'hD4, 8'hD6, 8'hD8, 8'hDA, 8'hDC, 8'hDE,
+    8'hE0, 8'hE2, 8'hE4, 8'hE6, 8'hE8, 8'hEA, 8'hEC, 8'hEE,
+    8'hF0, 8'hF2, 8'hF4, 8'hF6, 8'hF8, 8'hFA, 8'hFC, 8'hFE  
 };
 
 logic [5:0] noise_lut[16];
@@ -1145,11 +1310,88 @@ assign mix_lut = '{
     16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000
 };
 
+logic [15:0] mix_lut_linear[512];
+assign mix_lut_linear = '{
+    16'h0000, 16'h005e, 16'h00bc, 16'h011a, 16'h0178, 16'h01d6, 16'h0235, 16'h0293,
+    16'h02f1, 16'h034f, 16'h03ad, 16'h040c, 16'h046a, 16'h04c8, 16'h0526, 16'h0584,
+    16'h05e3, 16'h0641, 16'h069f, 16'h06fd, 16'h075b, 16'h07ba, 16'h0818, 16'h0876,
+    16'h08d4, 16'h0932, 16'h0991, 16'h09ef, 16'h0a4d, 16'h0aab, 16'h0b09, 16'h0b68,
+    16'h0bc6, 16'h0c24, 16'h0c82, 16'h0ce0, 16'h0d3f, 16'h0d9d, 16'h0dfb, 16'h0e59,
+    16'h0eb7, 16'h0f16, 16'h0f74, 16'h0fd2, 16'h1030, 16'h108e, 16'h10ed, 16'h114b,
+    16'h11a9, 16'h1207, 16'h1265, 16'h12c4, 16'h1322, 16'h1380, 16'h13de, 16'h143c,
+    16'h149b, 16'h14f9, 16'h1557, 16'h15b5, 16'h1613, 16'h1671, 16'h16d0, 16'h172e,
+    16'h178c, 16'h17ea, 16'h1848, 16'h18a7, 16'h1905, 16'h1963, 16'h19c1, 16'h1a1f,
+    16'h1a7e, 16'h1adc, 16'h1b3a, 16'h1b98, 16'h1bf6, 16'h1c55, 16'h1cb3, 16'h1d11,
+    16'h1d6f, 16'h1dcd, 16'h1e2c, 16'h1e8a, 16'h1ee8, 16'h1f46, 16'h1fa4, 16'h2003,
+    16'h2061, 16'h20bf, 16'h211d, 16'h217b, 16'h21da, 16'h2238, 16'h2296, 16'h22f4,
+    16'h2352, 16'h23b1, 16'h240f, 16'h246d, 16'h24cb, 16'h2529, 16'h2588, 16'h25e6,
+    16'h2644, 16'h26a2, 16'h2700, 16'h275f, 16'h27bd, 16'h281b, 16'h2879, 16'h28d7,
+    16'h2936, 16'h2994, 16'h29f2, 16'h2a50, 16'h2aae, 16'h2b0d, 16'h2b6b, 16'h2bc9,
+    16'h2c27, 16'h2c85, 16'h2ce3, 16'h2d42, 16'h2da0, 16'h2dfe, 16'h2e5c, 16'h2eba,
+    16'h2f19, 16'h2f77, 16'h2fd5, 16'h3033, 16'h3091, 16'h30f0, 16'h314e, 16'h31ac,
+    16'h320a, 16'h3268, 16'h32c7, 16'h3325, 16'h3383, 16'h33e1, 16'h343f, 16'h349e,
+    16'h34fc, 16'h355a, 16'h35b8, 16'h3616, 16'h3675, 16'h36d3, 16'h3731, 16'h378f,
+    16'h37ed, 16'h384c, 16'h38aa, 16'h3908, 16'h3966, 16'h39c4, 16'h3a23, 16'h3a81,
+    16'h3adf, 16'h3b3d, 16'h3b9b, 16'h3bfa, 16'h3c58, 16'h3cb6, 16'h3d14, 16'h3d72,
+    16'h3dd1, 16'h3e2f, 16'h3e8d, 16'h3eeb, 16'h3f49, 16'h3fa8, 16'h4006, 16'h4064, 
+    16'h40c2, 16'h4120, 16'h417f, 16'h41dd, 16'h423b, 16'h4299, 16'h42f7, 16'h4355, 
+    16'h43b4, 16'h4412, 16'h4470, 16'h44ce, 16'h452c, 16'h458b, 16'h45e9, 16'h4647, 
+    16'h46a5, 16'h4703, 16'h4762, 16'h47c0, 16'h481e, 16'h487c, 16'h48da, 16'h4939, 
+    16'h4997, 16'h49f5, 16'h4a53, 16'h4ab1, 16'h4b10, 16'h4b6e, 16'h4bcc, 16'h4c2a, 
+    16'h4c88, 16'h4ce7, 16'h4d45, 16'h4da3, 16'h4e01, 16'h4e5f, 16'h4ebe, 16'h4f1c, 
+    16'h4f7a, 16'h4fd8, 16'h5036, 16'h5095, 16'h50f3, 16'h5151, 16'h51af, 16'h520d, 
+    16'h526c, 16'h52ca, 16'h5328, 16'h5386, 16'h53e4, 16'h5443, 16'h54a1, 16'h54ff, 
+    16'h555d, 16'h55bb, 16'h561a, 16'h5678, 16'h56d6, 16'h5734, 16'h5792, 16'h57f1, 
+    16'h584f, 16'h58ad, 16'h590b, 16'h5969, 16'h59c7, 16'h5a26, 16'h5a84, 16'h5ae2, 
+    16'h5b40, 16'h5b9e, 16'h5bfd, 16'h5c5b, 16'h5cb9, 16'h5d17, 16'h5d75, 16'h5dd4, 
+    16'h5e32, 16'h5e90, 16'h5eee, 16'h5f4c, 16'h5fab, 16'h6009, 16'h6067, 16'h60c5, 
+    16'h6123, 16'h6182, 16'h61e0, 16'h623e, 16'h629c, 16'h62fa, 16'h6359, 16'h63b7, 
+    16'h6415, 16'h6473, 16'h64d1, 16'h6530, 16'h658e, 16'h65ec, 16'h664a, 16'h66a8, 
+    16'h6707, 16'h6765, 16'h67c3, 16'h6821, 16'h687f, 16'h68de, 16'h693c, 16'h699a, 
+    16'h69f8, 16'h6a56, 16'h6ab5, 16'h6b13, 16'h6b71, 16'h6bcf, 16'h6c2d, 16'h6c8c, 
+    16'h6cea, 16'h6d48, 16'h6da6, 16'h6e04, 16'h6e62, 16'h6ec1, 16'h6f1f, 16'h6f7d, 
+    16'h6fdb, 16'h7039, 16'h7098, 16'h70f6, 16'h7154, 16'h71b2, 16'h7210, 16'h726f, 
+    16'h72cd, 16'h732b, 16'h7389, 16'h73e7, 16'h7446, 16'h74a4, 16'h7502, 16'h7560, 
+    16'h75be, 16'h761d, 16'h767b, 16'h76d9, 16'h7737, 16'h7795, 16'h77f4, 16'h7852, 
+    16'h78b0, 16'h790e, 16'h796c, 16'h79cb, 16'h7a29, 16'h7a87, 16'h7ae5, 16'h7b43, 
+    16'h7ba2, 16'h7c00, 16'h7c5e, 16'h7cbc, 16'h7d1a, 16'h7d79, 16'h7dd7, 16'h7e35, 
+    16'h7e93, 16'h7ef1, 16'h7f50, 16'h7fae, 16'h800c, 16'h806a, 16'h80c8, 16'h8127, 
+    16'h8185, 16'h81e3, 16'h8241, 16'h829f, 16'h82fe, 16'h835c, 16'h83ba, 16'h8418, 
+    16'h8476, 16'h84d4, 16'h8533, 16'h8591, 16'h85ef, 16'h864d, 16'h86ab, 16'h870a, 
+    16'h8768, 16'h87c6, 16'h8824, 16'h8882, 16'h88e1, 16'h893f, 16'h899d, 16'h89fb, 
+    16'h8a59, 16'h8ab8, 16'h8b16, 16'h8b74, 16'h8bd2, 16'h8c30, 16'h8c8f, 16'h8ced, 
+    16'h8d4b, 16'h8da9, 16'h8e07, 16'h8e66, 16'h8ec4, 16'h8f22, 16'h8f80, 16'h8fde, 
+    16'h903d, 16'h909b, 16'h90f9, 16'h9157, 16'h91b5, 16'h9214, 16'h9272, 16'h92d0, 
+    16'h932e, 16'h938c, 16'h93eb, 16'h9449, 16'h94a7, 16'h9505, 16'h9563, 16'h95c2, 
+    16'h9620, 16'h967e, 16'h96dc, 16'h973a, 16'h9799, 16'h97f7, 16'h9855, 16'h98b3, 
+    16'h9911, 16'h9970, 16'h99ce, 16'h9a2c, 16'h9a8a, 16'h9ae8, 16'h9b46, 16'h9ba5, 
+    16'h9c03, 16'h9c61, 16'h9cbf, 16'h9d1d, 16'h9d7c, 16'h9dda, 16'h9e38, 16'h9e96, 
+    16'h9ef4, 16'h9f53, 16'h9fb1, 16'ha00f, 16'ha06d, 16'ha0cb, 16'ha12a, 16'ha188, 
+    16'ha1e6, 16'ha244, 16'ha2a2, 16'ha301, 16'ha35f, 16'ha3bd, 16'ha41b, 16'ha479, 
+    16'ha4d8, 16'ha536, 16'ha594, 16'ha5f2, 16'ha650, 16'ha6af, 16'ha70d, 16'ha76b, 
+    16'ha7c9, 16'ha827, 16'ha886, 16'ha8e4, 16'ha942, 16'ha9a0, 16'ha9fe, 16'haa5d, 
+    16'haabb, 16'hab19, 16'hab77, 16'habd5, 16'hac34, 16'hac92, 16'hacf0, 16'had4e, 
+    16'hadac, 16'hae0b, 16'hae69, 16'haec7, 16'haf25, 16'haf83, 16'hafe2, 16'h0000, 
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000
+};
+
+// Square waves
 wire [4:0] squares = square1 + square2;
 wire [15:0] ch1 = pulse_lut[squares];
-wire [8:0] mix = 9'(tri_lut[triangle]) + 9'(noise_lut[noise]) + 9'(dmc_lut[dmc]);
-wire [15:0] ch2 = mix_lut[mix];
 
-assign sample = ch1 + ch2;
+// Normal mixer
+wire [8:0] mix_normal = 9'(tri_lut[triangle]) + 9'(noise_lut[noise]) + 9'(dmc_lut[dmc]);
+wire [15:0] ch2 = mix_lut[mix_normal];
+wire [15:0] sample_normal = ch1 + ch2;
+
+// Linear mixer + enhanced triangle wave
+wire [8:0] mix_enhanced = 9'(tri_lut_enhanced[triangle_enhanced]) + 9'(noise_lut[noise]) + 9'(dmc_lut[dmc]);
+wire [15:0] ch2_enhanced = mix_lut_linear[mix_enhanced];
+wire [15:0] sample_linear = ch1 + ch2_enhanced;
+
+assign sample = (!apu_enhanced_ce ? sample_normal : sample_linear);
 
 endmodule

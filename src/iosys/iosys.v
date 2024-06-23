@@ -202,6 +202,8 @@ wire        cycle_reg_sel = mem_valid && (mem_addr == 32'h0200_0054);       // c
 
 wire        id_reg_sel = mem_valid && (mem_addr == 32'h0200_0060);
 
+wire        id_reg_enhanced_apu_sel = mem_valid && (mem_addr == 32'h0200_0080);
+
 wire        spiflash_reg_byte_sel = mem_valid && (mem_addr == 32'h0200_0070);
 wire        spiflash_reg_word_sel = mem_valid && (mem_addr == 32'h0200_0074);
 wire        spiflash_reg_ctrl_sel = mem_valid && (mem_addr == 32'h0200_0078);
@@ -217,7 +219,7 @@ wire        id_reg_cheats_sel_0 = mem_valid && (mem_addr == 32'h0200_0140);     
 wire        id_reg_cheats_data_ready_sel = mem_valid && (mem_addr == 32'h0200_0160);
 
 assign mem_ready = ram_ready || textdisp_reg_char_sel || simpleuart_reg_div_sel || 
-            romload_reg_ctrl_sel || romload_reg_data_sel || joystick_reg_sel || time_reg_sel || cycle_reg_sel || id_reg_sel ||
+            romload_reg_ctrl_sel || romload_reg_data_sel || joystick_reg_sel || time_reg_sel || id_reg_sel || cycle_reg_sel || id_reg_sel ||
             id_reg_enhanced_apu_sel || 
             reg_cheats_enabled_sel || reg_cheats_loaded_sel || id_reg_cheats_data_ready_sel ||
             id_reg_cheats_sel_0 || id_reg_cheats_sel_1 || id_reg_cheats_sel_2 || id_reg_cheats_sel_3 ||
@@ -387,6 +389,19 @@ always @(posedge clk) begin
         end
     end
 end
+
+// Enhanced RAM register
+reg reg_enhanced_apu;
+always @(posedge clk) begin
+    if(~resetn) begin
+        reg_enhanced_apu <= 0;
+    end
+    if(mem_addr == 32'h0200_0080) begin
+            reg_enhanced_apu <= mem_wdata;
+    end
+end
+
+assign o_reg_enhanced_apu = reg_enhanced_apu;
 
 // assign led = ~{2'b0, (^ total_refresh[7:0]), s0, flash_cnt[12]};     // flash while loading
 
