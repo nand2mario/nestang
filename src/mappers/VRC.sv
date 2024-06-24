@@ -879,7 +879,7 @@ vrc6sound snd_vrc6 (
 	// VRC6 sound is mixed before amplification, and them amplified linearly
 	wire [5:0] exp_audio = vrc6sq1_out + vrc6sq2_out + vrc6saw_out;
 	wire [7:0] exp_audio_enhanced = vrc6sq1_out_enhanced + vrc6sq2_out_enhanced + vrc6saw_out_enhanced;
-	wire [15:0] audio = (i_enhanced_apu_ce ? {exp_audio_enhanced, exp_audio_enhanced} : {exp_audio, exp_audio, exp_audio[5:2]});
+	wire [15:0] audio = (i_enhanced_apu_ce ? {exp_audio_enhanced, exp_audio_enhanced, exp_audio_enhanced[5:2]} : {exp_audio, exp_audio, exp_audio[5:2]});
 
 // VRC6 audio is much louder than APU audio, so match the levels we have to reduce it 
 // to about 43% to match the audio ratio of the original Famicom with AD3. Note that the
@@ -1019,7 +1019,7 @@ assign outSaw=ch2;
 
 assign outSq1_enhanced = sq1_acc_enhanced;
 assign outSq2_enhanced = sq2_acc_enhanced;
-assign outSaw_enhanced = acc_enhanced;
+assign outSaw_enhanced = acc_enhanced >> 2;
 
 endmodule
 
