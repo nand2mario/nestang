@@ -878,7 +878,7 @@ vrc6sound snd_vrc6 (
 
 	// VRC6 sound is mixed before amplification, and them amplified linearly
 	wire [5:0] exp_audio = vrc6sq1_out + vrc6sq2_out + vrc6saw_out;
-	wire [7:0] exp_audio_enhanced = vrc6sq1_out_enhanced + vrc6sq2_out_enhanced + vrc6saw_out_enhanced;
+	wire [7:0] exp_audio_enhanced = vrc6sq1_out_enhanced + vrc6sq2_out_enhanced + vrc6saw_out_enhanced >> 2;
 	wire [15:0] audio = (i_enhanced_apu_ce ? {exp_audio_enhanced, exp_audio_enhanced, exp_audio_enhanced[5:2]} : {exp_audio, exp_audio, exp_audio[5:2]});
 
 // VRC6 audio is much louder than APU audio, so match the levels we have to reduce it 
