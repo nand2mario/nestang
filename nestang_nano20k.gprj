@@ -9,6 +9,7 @@
         <File path="src/apu.v" type="file.verilog" enable="1"/>
         <File path="src/autofire.v" type="file.verilog" enable="1"/>
         <File path="src/cart.sv" type="file.verilog" enable="1"/>
+        <File path="src/cheat_wizard.v" type="file.verilog" enable="1"/>
         <File path="src/compat.v" type="file.verilog" enable="1"/>
         <File path="src/controller_ds2.sv" type="file.verilog" enable="1"/>
         <File path="src/controller_snes.v" type="file.verilog" enable="1"/>
@@ -43,6 +44,7 @@
         <File path="src/mappers/Namco.sv" type="file.verilog" enable="1"/>
         <File path="src/mappers/Sachen.sv" type="file.verilog" enable="1"/>
         <File path="src/mappers/Sunsoft.sv" type="file.verilog" enable="1"/>
+        <File path="src/mappers/VRC.sv" type="file.verilog" enable="1"/>
         <File path="src/mappers/generic.sv" type="file.verilog" enable="1"/>
         <File path="src/mappers/iir_filter.v" type="file.verilog" enable="1"/>
         <File path="src/mappers/misc.sv" type="file.verilog" enable="1"/>
@@ -61,6 +63,7 @@
         <File path="src/uart_tx_V2.v" type="file.verilog" enable="1"/>
         <File path="src/usb_hid_host.v" type="file.verilog" enable="1"/>
         <File path="src/usb_hid_host_rom.v" type="file.verilog" enable="1"/>
+        <File path="src/wishbone_slaves.vh" type="file.verilog" enable="1"/>
         <File path="src/nano20k/nestang.cst" type="file.cst" enable="1"/>
         <File path="src/nano20k/nestang.sdc" type="file.sdc" enable="1"/>
         <File path="src/nes.gao" type="file.gao" enable="0"/>

@@ -1,0 +1,6 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1719321222" />
+    <testcase name="apu_simple_test" classname="test_apu" file="/mnt/c/Workspace/nestang/test/test_apu.py" lineno="11" time="0.001092672348022461" sim_time_ns="20.001" ratio_time="18304.66382369627" />
+  </testsuite>
+</testsuites>

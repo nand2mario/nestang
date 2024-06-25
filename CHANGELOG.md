@@ -1,5 +1,8 @@
 # Changes
 
+[25.06.2024]
+- Add APU enhancement on top of cheat engine
+
 [20.03.2024]
 - Add CHANGELOG.md
 - Set device in nestang_nano20k.gprj
