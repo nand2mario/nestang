@@ -545,7 +545,7 @@ always @(posedge clk) begin
         reg_BSRAM[mem_addr[15:0]] <= mem_wdata[7:0];
     end
     if(id_reg_save_bsram) begin
-        reg_BSRAM <= reg_BSRAM[mem_addr[15:0]];
+        reg_save_bsram <= reg_BSRAM[mem_addr[15:0]];
     end
 end
 
