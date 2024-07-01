@@ -129,6 +129,10 @@ reg flash_wr;
 wire [31:0] spiflash_reg_do;
 wire spiflash_reg_wait;
 
+// BSRAM - Use internal BRAM
+reg [7:0] reg_save_bsram;
+reg [7:0] reg_BSRAM [8191:0];
+
 always @(posedge clk) begin
     if (~resetn) begin
         flash_loaded <= 0;
@@ -218,10 +222,15 @@ wire        id_reg_cheats_sel_1 = mem_valid && (mem_addr == 32'h0200_0120);
 wire        id_reg_cheats_sel_0 = mem_valid && (mem_addr == 32'h0200_0140);     // LLSB
 wire        id_reg_cheats_data_ready_sel = mem_valid && (mem_addr == 32'h0200_0160);
 
+// BSRAM
+wire        id_reg_save_bsram = mem_valid && (mem_addr == 32'h0200_0180);
+
+
 assign mem_ready = ram_ready || textdisp_reg_char_sel || simpleuart_reg_div_sel || 
             romload_reg_ctrl_sel || romload_reg_data_sel || joystick_reg_sel || time_reg_sel || id_reg_sel || cycle_reg_sel || id_reg_sel ||
             id_reg_enhanced_apu_sel || 
             reg_cheats_enabled_sel || reg_cheats_loaded_sel || id_reg_cheats_data_ready_sel ||
+            id_reg_save_bsram ||
             id_reg_cheats_sel_0 || id_reg_cheats_sel_1 || id_reg_cheats_sel_2 || id_reg_cheats_sel_3 ||
             (simpleuart_reg_dat_sel && !simpleuart_reg_dat_wait) ||
             ((simplespimaster_reg_byte_sel || simplespimaster_reg_word_sel) && !simplespimaster_reg_wait) ||
@@ -238,7 +247,8 @@ assign mem_rdata = ram_ready ? ram_rdata :
         id_reg_enhanced_apu_sel ? reg_enhanced_apu :
         reg_cheats_enabled_sel ? {32'h0, reg_cheats_enabled} :
         reg_cheats_loaded_sel ? {32'h0, reg_cheats_loaded} :
-        id_reg_cheats_data_ready_sel ? {32'h0, reg_cheats_data_ready}:
+        id_reg_cheats_data_ready_sel ? {32'h0, reg_cheats_data_ready} :
+        id_reg_save_bsram ? {32'h0, reg_save_bsram} :
         id_reg_cheats_sel_3 ? reg_cheats[128:96] :
         id_reg_cheats_sel_2 ? reg_cheats[95:64] :
         id_reg_cheats_sel_1 ? reg_cheats[63:32] :
@@ -528,6 +538,14 @@ always @(posedge clk) begin
         end
     end
 end
+
+// BSRAM
+always @(posedge clk) begin
+    if((mem_addr >= 32'h0006_0000)&&(mem_addr < 32'h0008_0000)) begin
+        reg_BSRAM[mem_addr[15:0]] <= mem_wdata[7:0];
+    end
+end
+
 
 assign o_wb_addr = wb_addr;
 assign o_wb_odata = wb_odata;
