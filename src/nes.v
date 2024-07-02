@@ -120,7 +120,8 @@ module NES(
 	output  [2:0] emphasis,
 	output        save_written,
 	// Enhanced APU
-	input 		  i_APU_enhancements_ce
+	input 		  i_APU_enhancements_ce,
+	input		  i_APU_mapper_is_mmc3
 );
 
 
@@ -357,7 +358,8 @@ APU apu(
 	.odd_or_even    (odd_or_even),
 	.IRQ            (apu_irq),
 	.allow_us(1'b0),
-	.apu_enhanced_ce(i_APU_enhancements_ce)
+	.apu_enhanced_ce(i_APU_enhancements_ce),
+	.apu_mapper_is_mmc3(i_APU_mapper_is_mmc3)
 );
 
 assign sample = sample_a;
