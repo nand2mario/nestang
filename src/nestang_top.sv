@@ -275,7 +275,8 @@ NES nes(
 
     .apu_ce(), .gg(), .gg_code(), .gg_avail(), .gg_reset(), .emphasis(), .save_written(),
     // Enhanced APU
-    .i_APU_enhancements_ce(NES_enhanced_APU)
+    .i_APU_enhancements_ce(NES_enhanced_APU),
+    .i_APU_mapper_is_mmc3(NES_mapper == 8'h04)
 );
 
 // loader_write -> clock when data available
@@ -330,7 +331,9 @@ GameLoader loader(
     .mem_addr(loader_addr), .mem_data(loader_write_data), .mem_write(loader_write),
     .bios_download(),
     .mapper_flags(loader_flags), .busy(loader_busy), .done(loader_done),
-    .error(loader_fail), .rom_loaded()
+    .error(loader_fail), .rom_loaded(),
+    // APU Enhancement
+    .o_mapper(NES_mapper)
 );
 
 assign int_audio = 1;
@@ -461,6 +464,9 @@ always @(posedge clk) begin            // RV
     end
 end
 reg NES_enhanced_APU;
+reg [7:0] NES_mapper;
+
+assign led[0] = !(NES_mapper == 8'h04);
 iosys #(.COLOR_LOGO(15'b01100_00000_01000), .CORE_ID(1) )     // purple nestang logo
     iosys (
     .clk(clk), .hclk(hclk), .resetn(sys_resetn),

@@ -1021,7 +1021,8 @@ module APU (
     output logic [15:0] DmaAddr,        // Address DMC wants to read
     output logic        IRQ,            // IRQ asserted high == asserted
     // Enhanced APU
-    input  logic        apu_enhanced_ce
+    input  logic        apu_enhanced_ce,
+    input  logic        apu_mapper_is_mmc3
 );
 
     logic [7:0] len_counter_lut[32];
@@ -1242,7 +1243,8 @@ module APU (
         .sample       (Sample),
         // Enhanced APU
         .apu_enhanced_ce(apu_enhanced_ce),
-        .triangle_enhanced(TriSample_enhanced)
+        .apu_triangle_enhanced(TriSample_enhanced),
+        .apu_mapper_is_mmc3(apu_mapper_is_mmc3)
     );
 
     FrameCtr frame_counter (
@@ -1281,7 +1283,8 @@ module APUMixer (
     output logic [15:0] sample,
     // Enhanced APU
     input  logic        apu_enhanced_ce,
-    input  logic  [5:0] triangle_enhanced
+    input  logic  [5:0] apu_triangle_enhanced,
+    input  logic        apu_mapper_is_mmc3
 );
 
 logic [15:0] pulse_lut[32];
@@ -1479,10 +1482,10 @@ wire [15:0] ch2 = mix_lut[mix_normal];
 wire [15:0] sample_normal = ch1 + ch2;
 
 // Linear mixer + enhanced triangle wave
-wire [8:0] mix_enhanced = 9'((tri_lut_enhanced_5b[triangle_enhanced])) + 9'(noise_lut[noise]) + 9'(dmc_lut[dmc]);
+wire [8:0] mix_enhanced = 9'((tri_lut_enhanced_5b[apu_triangle_enhanced])) + 9'(noise_lut[noise]) + 9'(dmc_lut[dmc]);
 wire [15:0] ch2_enhanced = mix_lut_enhanced[mix_enhanced >> 1];
 wire [15:0] sample_linear = ch1 + ch2_enhanced << 1;
 
-assign sample = (!apu_enhanced_ce ? sample_normal : sample_linear);
+assign sample = (((!apu_enhanced_ce)||(apu_mapper_is_mmc3)) ? sample_normal : sample_linear);
 
 endmodule
