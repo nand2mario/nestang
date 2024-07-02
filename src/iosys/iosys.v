@@ -541,7 +541,7 @@ end
 
 // BSRAM
 always @(posedge clk) begin
-    if((mem_addr >= 32'h0006_0000)&&(mem_addr < 32'h0008_0000)) begin
+    if((mem_addr >= 32'h0076_0000)&&(mem_addr < 32'h0078_0000)) begin
         reg_BSRAM[mem_addr[15:0]] <= mem_wdata[7:0];
     end
     if(id_reg_save_bsram) begin
