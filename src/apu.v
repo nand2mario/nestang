@@ -1022,7 +1022,7 @@ module APU (
     output logic        IRQ,            // IRQ asserted high == asserted
     // Enhanced APU
     input  logic        apu_enhanced_ce,
-    input  logic        apu_mapper_is_mmc3
+    input  logic        apu_mapper_saturates
 );
 
     logic [7:0] len_counter_lut[32];
@@ -1244,7 +1244,7 @@ module APU (
         // Enhanced APU
         .apu_enhanced_ce(apu_enhanced_ce),
         .apu_triangle_enhanced(TriSample_enhanced),
-        .apu_mapper_is_mmc3(apu_mapper_is_mmc3)
+        .apu_mapper_saturates(apu_mapper_saturates)
     );
 
     FrameCtr frame_counter (
@@ -1284,7 +1284,7 @@ module APUMixer (
     // Enhanced APU
     input  logic        apu_enhanced_ce,
     input  logic  [5:0] apu_triangle_enhanced,
-    input  logic        apu_mapper_is_mmc3
+    input  logic        apu_mapper_saturates
 );
 
 logic [15:0] pulse_lut[32];
@@ -1486,6 +1486,6 @@ wire [8:0] mix_enhanced = 9'((tri_lut_enhanced_5b[apu_triangle_enhanced])) + 9'(
 wire [15:0] ch2_enhanced = mix_lut_enhanced[mix_enhanced >> 1];
 wire [15:0] sample_linear = ch1 + ch2_enhanced << 1;
 
-assign sample = (((!apu_enhanced_ce)||(apu_mapper_is_mmc3)) ? sample_normal : sample_linear);
+assign sample = (((!apu_enhanced_ce)||(apu_mapper_saturates)) ? sample_normal : sample_linear);
 
 endmodule
