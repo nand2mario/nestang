@@ -1,6 +1,21 @@
 
 ## Version history for NESTang - an NES emulator for Tang Primer 20K
 
+v0.11, 2/06/20024
+- Add a "Select core" menu item to switch between snestang and nestang cores. To enable it, just put the .bin core files in the /cores directory.
+
+v0.10, 23/05/2024
+- Support SNES/NES controller, in addition to DS2.
+
+v0.9, 7/04/2024
+- This version adds the iosys softcore, which snestang has used for a while.
+    - Directory support.
+    - SD cards larger than 32GB with exFAT file system is supported.
+    - In-game OSD. Press SELECT-RIGHT to activate.
+    - A transparency effect for OSD.
+    - One firmware supports both cores. The firmware in snestang repo is updated to recognize the nestang core.
+    - Support Tang PMOD TFCARD v2, instead of the old TFCARD v1.
+
 v0.8, 1/4/2024
 - Supports the Sipeed Tang SDRAM v1.2 modules (v0.8rc was for MiSTer SDRAM 3.0 modules).
 
