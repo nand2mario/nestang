@@ -88,7 +88,7 @@ module nestang_top (
 
 // Core settings
 wire arm_reset = 0;
-wire [1:0] system_type = 2'b0;
+wire [1:0] system_type;
 wire pal_video = 0;
 wire [1:0] scanlines = 2'b0;
 wire joy_swap = 0;
@@ -506,7 +506,10 @@ iosys #(.COLOR_LOGO(15'b01100_00000_01000), .CORE_ID(1) )     // purple nestang 
     .o_cheats_loaded(NES_cheats_loaded),
 
     // Debug LED
-    .o_dbg_led(led[1:0])
+    .o_dbg_led(),
+
+    // System Type
+    .o_sys_type(system_type)
 );
 
 // Controller input
