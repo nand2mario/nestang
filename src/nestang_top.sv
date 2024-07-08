@@ -88,7 +88,7 @@ module nestang_top (
 
 // Core settings
 wire arm_reset = 0;
-wire [1:0] system_type = 2'b0;
+wire [1:0] system_type;
 wire pal_video = 0;
 wire [1:0] scanlines = 2'b0;
 wire joy_swap = 0;
@@ -374,6 +374,7 @@ nes2hdmi u_hdmi (     // purple: RGB=440064 (010001000_00000000_01100100), BGR5=
     .clk(clk), .resetn(sys_resetn),
     .color(color), .cycle(cycle), 
     .scanline(scanline), .sample(sample >> 1),
+    .i_reg_aspect_ratio(NES_aspect_ratio),
     .overlay(overlay), .overlay_x(overlay_x), .overlay_y(overlay_y),
     .overlay_color(overlay_color),
     .clk_pixel(hclk), .clk_5x_pixel(hclk5),
@@ -503,7 +504,16 @@ iosys #(.COLOR_LOGO(15'b01100_00000_01000), .CORE_ID(1) )     // purple nestang 
 
     // Cheats
     .o_cheats_enabled(NES_cheats_enabled),
-    .o_cheats_loaded(NES_cheats_loaded)
+    .o_cheats_loaded(NES_cheats_loaded),
+
+    // Debug LED
+    .o_dbg_led(),
+
+    // System Type
+    .o_sys_type(system_type),
+    
+    // Aspect Ratio
+    .o_reg_aspect_ratio(NES_aspect_ratio)
 );
 
 // Controller input
@@ -634,6 +644,10 @@ cheat_wizard(
     .o_wb_stall(NES_wb_slave_stall),
     .o_wb_err(NES_wb_slave_err)    
 );
+
+// Aspect Ratio
+reg NES_aspect_ratio;
+initial NES_aspect_ratio = 1'b0;
 
 // assign led[0] = ~NES_cheats_enabled;
 // assign led[1] = ~NES_cheats_loaded;

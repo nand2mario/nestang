@@ -106,7 +106,13 @@ module iosys #(
 
     // Cheats
     output wire o_cheats_enabled,
-    output wire o_cheats_loaded
+    output wire o_cheats_loaded,
+    // Debug
+    output wire [1:0] o_dbg_led,
+    // System Type
+    output wire [1:0] o_sys_type,
+    // Aspect Ratio
+    output wire o_reg_aspect_ratio
 );
 
 /* verilator lint_off PINMISSING */
@@ -128,6 +134,12 @@ reg [3:0] flash_wstrb;
 reg flash_wr;
 wire [31:0] spiflash_reg_do;
 wire spiflash_reg_wait;
+
+// BSRAM - Use internal BRAM
+localparam NES_BSRAM_SIZE = 32'h2000;
+reg [7:0] reg_save_bsram;
+reg [7:0] reg_load_bsram;
+reg [7:0] reg_bsram [NES_BSRAM_SIZE-1:0];
 
 always @(posedge clk) begin
     if (~resetn) begin
@@ -218,10 +230,24 @@ wire        id_reg_cheats_sel_1 = mem_valid && (mem_addr == 32'h0200_0120);
 wire        id_reg_cheats_sel_0 = mem_valid && (mem_addr == 32'h0200_0140);     // LLSB
 wire        id_reg_cheats_data_ready_sel = mem_valid && (mem_addr == 32'h0200_0160);
 
+// BSRAM
+wire        id_reg_save_bsram = mem_valid && (mem_addr == 32'h0200_0180);
+wire        id_reg_load_bsram = mem_valid && (mem_addr == 32'h0200_01A0);
+
+// System Type
+wire        id_reg_sys_type = mem_valid && (mem_addr == 32'h0200_01C0);
+
+// Aspect Ratio
+wire        id_reg_aspect_ratio = mem_valid && (mem_addr == 32'h0200_01E0);
+
+
 assign mem_ready = ram_ready || textdisp_reg_char_sel || simpleuart_reg_div_sel || 
             romload_reg_ctrl_sel || romload_reg_data_sel || joystick_reg_sel || time_reg_sel || id_reg_sel || cycle_reg_sel || id_reg_sel ||
             id_reg_enhanced_apu_sel || 
             reg_cheats_enabled_sel || reg_cheats_loaded_sel || id_reg_cheats_data_ready_sel ||
+            id_reg_save_bsram || id_reg_load_bsram ||
+            id_reg_sys_type ||
+            id_reg_aspect_ratio ||
             id_reg_cheats_sel_0 || id_reg_cheats_sel_1 || id_reg_cheats_sel_2 || id_reg_cheats_sel_3 ||
             (simpleuart_reg_dat_sel && !simpleuart_reg_dat_wait) ||
             ((simplespimaster_reg_byte_sel || simplespimaster_reg_word_sel) && !simplespimaster_reg_wait) ||
@@ -236,9 +262,13 @@ assign mem_rdata = ram_ready ? ram_rdata :
         cycle_reg_sel ? cycle_reg :
         id_reg_sel ? {16'b0, CORE_ID} :
         id_reg_enhanced_apu_sel ? reg_enhanced_apu :
-        reg_cheats_enabled_sel ? {32'h0, reg_cheats_enabled} :
-        reg_cheats_loaded_sel ? {32'h0, reg_cheats_loaded} :
-        id_reg_cheats_data_ready_sel ? {32'h0, reg_cheats_data_ready}:
+        reg_cheats_enabled_sel ? {31'h0, reg_cheats_enabled} :
+        reg_cheats_loaded_sel ? {31'h0, reg_cheats_loaded} :
+        id_reg_cheats_data_ready_sel ? {31'h0, reg_cheats_data_ready} :
+        id_reg_save_bsram ? {31'h0, reg_save_bsram} :
+        id_reg_load_bsram ? {31'h0, reg_load_bsram} :
+        id_reg_sys_type ? {30'b00_0000_0000_0000, reg_sys_type} :
+        id_reg_aspect_ratio ? {31'b000_0000_0000_0000, reg_aspect_ratio} :
         id_reg_cheats_sel_3 ? reg_cheats[128:96] :
         id_reg_cheats_sel_2 ? reg_cheats[95:64] :
         id_reg_cheats_sel_1 ? reg_cheats[63:32] :
@@ -535,6 +565,60 @@ assign o_wb_we = wb_we;
 assign o_wb_stb = wb_stb;
 assign o_wb_cyc = wb_cyc;
 
+// BSRAM
+always @(posedge clk) begin
+    if(rv_wstrb) begin
+        if((mem_addr >= 32'h0000_6000)&&(mem_addr < 32'h0000_8000))
+            reg_bsram[mem_addr[15:0]] <= mem_wdata[7:0];
+    end
+end
+always @(posedge clk) begin
+        if((rv_wstrb)) begin
+            if((mem_addr >= 32'h0000_6000)&&(mem_addr < 32'h0000_8000))
+                reg_save_bsram <= mem_wdata[7:0];
+        end
+    else begin
+        if((id_reg_save_bsram)&&(mem_addr >= 32'h0000_6000)&&(mem_addr < 32'h0000_8000))
+            reg_load_bsram <= reg_bsram[mem_addr[15:0]];
+    end
+end
+
+reg dbg_led;
+initial dbg_led = 1'b1;
+always @(posedge clk)
+    if(reg_load_bsram)
+        dbg_led <= ~dbg_led;
+
+assign o_dbg_led[0] = ~reg_load_bsram;
+assign o_dbg_led[1] = dbg_led;
+
+// System Type
+reg [1:0] reg_sys_type;
+initial reg_sys_type = 2'b00;   // NTSC/Dendy
+always @(posedge clk) begin
+    if(~resetn)
+        reg_sys_type <= 2'b00;
+    else begin
+        if(mem_addr == 32'h0200_01C0)
+            reg_sys_type <= mem_wdata[1:0];
+    end
+end
+
+assign o_sys_type = reg_sys_type;
+
+// Aspect Ratio
+reg reg_aspect_ratio;
+initial reg_aspect_ratio = 1'b0;    // 1:1
+always @(posedge clk) begin
+    if(~resetn)
+        reg_aspect_ratio <= 1'b0;
+    else begin
+        if(mem_addr == 32'h0200_01E0)
+            reg_aspect_ratio <= mem_wdata[0];
+    end
+end
+
+assign o_reg_aspect_ratio = reg_aspect_ratio;
 
 endmodule
 
