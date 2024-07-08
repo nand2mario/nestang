@@ -503,7 +503,10 @@ iosys #(.COLOR_LOGO(15'b01100_00000_01000), .CORE_ID(1) )     // purple nestang 
 
     // Cheats
     .o_cheats_enabled(NES_cheats_enabled),
-    .o_cheats_loaded(NES_cheats_loaded)
+    .o_cheats_loaded(NES_cheats_loaded),
+
+    // Debug LED
+    .o_dbg_led(led[1:0])
 );
 
 // Controller input

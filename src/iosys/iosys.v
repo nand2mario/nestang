@@ -106,7 +106,9 @@ module iosys #(
 
     // Cheats
     output wire o_cheats_enabled,
-    output wire o_cheats_loaded
+    output wire o_cheats_loaded,
+    // Debug
+    output wire [1:0] o_dbg_led
 );
 
 /* verilator lint_off PINMISSING */
@@ -130,8 +132,10 @@ wire [31:0] spiflash_reg_do;
 wire spiflash_reg_wait;
 
 // BSRAM - Use internal BRAM
+localparam NES_BSRAM_SIZE = 32'h2000;
 reg [7:0] reg_save_bsram;
-reg [7:0] reg_BSRAM [8191:0];
+reg [7:0] reg_load_bsram;
+reg [7:0] reg_bsram [NES_BSRAM_SIZE-1:0];
 
 always @(posedge clk) begin
     if (~resetn) begin
@@ -224,13 +228,14 @@ wire        id_reg_cheats_data_ready_sel = mem_valid && (mem_addr == 32'h0200_01
 
 // BSRAM
 wire        id_reg_save_bsram = mem_valid && (mem_addr == 32'h0200_0180);
+wire        id_reg_load_bsram = mem_valid && (mem_addr == 32'h0200_01A0);
 
 
 assign mem_ready = ram_ready || textdisp_reg_char_sel || simpleuart_reg_div_sel || 
             romload_reg_ctrl_sel || romload_reg_data_sel || joystick_reg_sel || time_reg_sel || id_reg_sel || cycle_reg_sel || id_reg_sel ||
             id_reg_enhanced_apu_sel || 
             reg_cheats_enabled_sel || reg_cheats_loaded_sel || id_reg_cheats_data_ready_sel ||
-            id_reg_save_bsram ||
+            id_reg_save_bsram || id_reg_load_bsram ||
             id_reg_cheats_sel_0 || id_reg_cheats_sel_1 || id_reg_cheats_sel_2 || id_reg_cheats_sel_3 ||
             (simpleuart_reg_dat_sel && !simpleuart_reg_dat_wait) ||
             ((simplespimaster_reg_byte_sel || simplespimaster_reg_word_sel) && !simplespimaster_reg_wait) ||
@@ -249,6 +254,7 @@ assign mem_rdata = ram_ready ? ram_rdata :
         reg_cheats_loaded_sel ? {32'h0, reg_cheats_loaded} :
         id_reg_cheats_data_ready_sel ? {32'h0, reg_cheats_data_ready} :
         id_reg_save_bsram ? {32'h0, reg_save_bsram} :
+        id_reg_load_bsram ? {32'h0, reg_load_bsram} :
         id_reg_cheats_sel_3 ? reg_cheats[128:96] :
         id_reg_cheats_sel_2 ? reg_cheats[95:64] :
         id_reg_cheats_sel_1 ? reg_cheats[63:32] :
@@ -541,14 +547,30 @@ end
 
 // BSRAM
 always @(posedge clk) begin
-    if((mem_addr >= 32'h0076_0000)&&(mem_addr < 32'h0078_0000)) begin
-        reg_BSRAM[mem_addr[15:0]] <= mem_wdata[7:0];
+    if(rv_wstrb) begin
+        if((mem_addr >= 32'h0000_6000)&&(mem_addr < 32'h0000_8000))
+            reg_bsram[mem_addr[15:0]] <= mem_wdata[7:0];
     end
-    if(id_reg_save_bsram) begin
-        reg_save_bsram <= reg_BSRAM[mem_addr[15:0]];
+end
+always @(posedge clk) begin
+        if((rv_wstrb)) begin
+            if((mem_addr >= 32'h0000_6000)&&(mem_addr < 32'h0000_8000))
+                reg_save_bsram <= mem_wdata[7:0];
+        end
+    else begin
+        if((id_reg_save_bsram)&&(mem_addr >= 32'h0000_6000)&&(mem_addr < 32'h0000_8000))
+            reg_load_bsram <= reg_bsram[mem_addr[15:0]];
     end
 end
 
+reg dbg_led;
+initial dbg_led = 1'b1;
+always @(posedge clk)
+    if(reg_load_bsram)
+        dbg_led <= ~dbg_led;
+
+assign o_dbg_led[0] = ~reg_load_bsram;
+assign o_dbg_led[1] = dbg_led;
 
 assign o_wb_addr = wb_addr;
 assign o_wb_odata = wb_odata;
