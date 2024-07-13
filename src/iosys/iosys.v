@@ -240,6 +240,10 @@ wire        id_reg_sys_type = mem_valid && (mem_addr == 32'h0200_01C0);
 // Aspect Ratio
 wire        id_reg_aspect_ratio = mem_valid && (mem_addr == 32'h0200_01E0);
 
+// Timer Interrupts
+wire        id_reg_timer_interrupts = mem_valid && (mem_addr == 32'h0200_0200);
+// Timer0 Load Register
+wire        id_reg_timer0_load_value = mem_valid && (mem_addr == 32'h0200_0220);
 
 assign mem_ready = ram_ready || textdisp_reg_char_sel || simpleuart_reg_div_sel || 
             romload_reg_ctrl_sel || romload_reg_data_sel || joystick_reg_sel || time_reg_sel || id_reg_sel || cycle_reg_sel || id_reg_sel ||
@@ -248,6 +252,8 @@ assign mem_ready = ram_ready || textdisp_reg_char_sel || simpleuart_reg_div_sel 
             id_reg_save_bsram || id_reg_load_bsram ||
             id_reg_sys_type ||
             id_reg_aspect_ratio ||
+            id_reg_timer_interrupts || 
+            id_reg_timer0_load_value ||
             id_reg_cheats_sel_0 || id_reg_cheats_sel_1 || id_reg_cheats_sel_2 || id_reg_cheats_sel_3 ||
             (simpleuart_reg_dat_sel && !simpleuart_reg_dat_wait) ||
             ((simplespimaster_reg_byte_sel || simplespimaster_reg_word_sel) && !simplespimaster_reg_wait) ||
@@ -269,6 +275,8 @@ assign mem_rdata = ram_ready ? ram_rdata :
         id_reg_load_bsram ? {31'h0, reg_load_bsram} :
         id_reg_sys_type ? {30'b00_0000_0000_0000, reg_sys_type} :
         id_reg_aspect_ratio ? {31'b000_0000_0000_0000, reg_aspect_ratio} :
+        id_reg_timer_interrupts ? {reg_timer_interrupts} :
+        id_reg_timer0_load_value ? {reg_timer0_load_value} :
         id_reg_cheats_sel_3 ? reg_cheats[128:96] :
         id_reg_cheats_sel_2 ? reg_cheats[95:64] :
         id_reg_cheats_sel_1 ? reg_cheats[63:32] :
@@ -567,20 +575,12 @@ assign o_wb_cyc = wb_cyc;
 
 // BSRAM
 always @(posedge clk) begin
-    if(rv_wstrb) begin
-        if((mem_addr >= 32'h0000_6000)&&(mem_addr < 32'h0000_8000))
-            reg_bsram[mem_addr[15:0]] <= mem_wdata[7:0];
-    end
+    if((mem_addr >= 32'h0000_6000)&&(mem_addr < 32'h0000_8000))
+        reg_bsram[mem_addr[15:0]] <= mem_wdata[7:0];
 end
 always @(posedge clk) begin
-        if((rv_wstrb)) begin
-            if((mem_addr >= 32'h0000_6000)&&(mem_addr < 32'h0000_8000))
-                reg_save_bsram <= mem_wdata[7:0];
-        end
-    else begin
-        if((id_reg_save_bsram)&&(mem_addr >= 32'h0000_6000)&&(mem_addr < 32'h0000_8000))
-            reg_load_bsram <= reg_bsram[mem_addr[15:0]];
-    end
+        if((mem_addr >= 32'h0000_6000)&&(mem_addr < 32'h0000_8000))
+            reg_save_bsram <= mem_wdata[7:0];
 end
 
 reg dbg_led;
@@ -619,6 +619,40 @@ always @(posedge clk) begin
 end
 
 assign o_reg_aspect_ratio = reg_aspect_ratio;
+
+// Timer Interrupts
+reg [31:0] reg_timer_interrupts;
+initial reg_timer_interrupts <= 32'h0;
+always @(posedge clk)
+    if(~resetn)
+        reg_timer_interrupts <= 32'h0;
+    else begin
+        if(mem_addr == 32'h0200_0200)
+            reg_timer_interrupts <= mem_wdata[31:0];
+        if(timer0_counter == reg_timer0_load_value)
+            reg_timer_interrupts <= reg_timer_interrupts & 32'h01;
+    end
+
+// Timer0
+reg [31:0] timer0_counter;
+reg [31:0] reg_timer0_load_value;
+initial timer0_counter = 32'h0;
+initial reg_timer0_load_value = 32'h0;
+// Write register
+always @(posedge clk)
+    if(~resetn)
+        reg_timer0_load_value <= 32'h0;
+    else
+        if(mem_addr == 32'h0200_0220)
+            reg_timer0_load_value <= mem_wdata[31:0];
+// Counter
+always @(posedge clk)
+    if(~resetn)
+        timer0_counter <= 32'h0;
+    else if(timer0_counter < reg_timer0_load_value)
+        timer0_counter <= timer0_counter + 1;
+    else
+        timer0_counter <= 32'h0;
 
 endmodule
 
