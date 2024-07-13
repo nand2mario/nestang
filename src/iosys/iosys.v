@@ -576,7 +576,7 @@ assign o_wb_cyc = wb_cyc;
 // BSRAM
 always @(posedge clk) begin
     if((mem_addr >= 32'h0000_6000)&&(mem_addr < 32'h0000_8000))
-        reg_bsram[mem_addr[15:0]] <= mem_wdata[7:0];
+        reg_bsram[mem_addr[15:0] - 32'h6000] <= mem_wdata[7:0];
 end
 always @(posedge clk) begin
         if((mem_addr >= 32'h0000_6000)&&(mem_addr < 32'h0000_8000))
