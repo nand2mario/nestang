@@ -573,25 +573,6 @@ assign o_wb_we = wb_we;
 assign o_wb_stb = wb_stb;
 assign o_wb_cyc = wb_cyc;
 
-// BSRAM
-always @(posedge clk) begin
-    if((mem_addr >= 32'h0000_6000)&&(mem_addr < 32'h0000_8000))
-        reg_bsram[mem_addr[15:0] - 32'h6000] <= mem_wdata[7:0];
-end
-always @(posedge clk) begin
-        if((mem_addr >= 32'h0000_6000)&&(mem_addr < 32'h0000_8000))
-            reg_save_bsram <= mem_wdata[7:0];
-end
-
-reg dbg_led;
-initial dbg_led = 1'b1;
-always @(posedge clk)
-    if(reg_load_bsram)
-        dbg_led <= ~dbg_led;
-
-assign o_dbg_led[0] = ~reg_load_bsram;
-assign o_dbg_led[1] = dbg_led;
-
 // System Type
 reg [1:0] reg_sys_type;
 initial reg_sys_type = 2'b00;   // NTSC/Dendy
