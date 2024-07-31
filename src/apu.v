@@ -1302,12 +1302,12 @@ assign tri_lut = '{
 };
 
 // Enhanced APU
-logic [6:0] tri_lut_enhanced_5b[32];
+logic [5:0] tri_lut_enhanced_5b[32];
 assign tri_lut_enhanced_5b = '{
-    7'h00, 7'h01, 7'h02, 7'h04, 7'h06, 7'h08, 7'h0A, 7'h0C, 
-    7'h0E, 7'h10, 7'h12, 7'h14, 7'h16, 7'h18, 7'h1A, 7'h1C, 
-    7'h1E, 7'h20, 7'h22, 7'h24, 7'h26, 7'h28, 7'h2A, 7'h2C, 
-    7'h2E, 7'h30, 7'h32, 7'h34, 7'h36, 7'h38, 7'h3A, 7'h3C
+    6'h00, 6'h01, 6'h02, 6'h04, 6'h06, 6'h08, 6'h0A, 6'h0C, 
+    6'h0E, 6'h10, 6'h12, 6'h14, 6'h16, 6'h18, 6'h1A, 6'h1C, 
+    6'h1E, 6'h20, 6'h22, 6'h24, 6'h26, 6'h28, 6'h2A, 6'h2C, 
+    6'h2E, 6'h30, 6'h32, 6'h34, 6'h36, 6'h38, 6'h3A, 6'h3C
 };
 
 logic [5:0] noise_lut[16];
