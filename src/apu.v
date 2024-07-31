@@ -1487,8 +1487,7 @@ wire [15:0] ch2_enhanced = mix_lut_enhanced[mix_enhanced >> 1];
 wire [15:0] sample_linear = ch1 + ch2_enhanced << 1;
 
 // Normal mixer + enhanced triangle wave
-wire [8:0] mix_normal_enhanced_tri = 9'((tri_lut_enhanced_5b[apu_triangle_enhanced])) + 9'(noise_lut[noise]) + 9'(dmc_lut[dmc]);
-wire [15:0] ch2_mix_normal_enhanced_tri = mix_lut[mix_normal_enhanced_tri >> 1];
+wire [15:0] ch2_mix_normal_enhanced_tri = mix_lut[mix_enhanced >> 1];
 wire [15:0] sample_mix_normal_enhanced_tri = ch1 + ch2_enhanced << 1;
 
 assign sample = (((!apu_enhanced_ce)||(apu_mapper_saturates)) ? sample_normal : sample_linear);
