@@ -16,7 +16,7 @@ Main features,
 - Extensive mapper support including MMC5, Namco and more.
 - NES/SNES controllers, or DS2 controllers.
 
-If you haven't bought your board yet, Tang Primer 25K is probably the one to get, as it supports [SNESTang](https://github.com/nand2mario/snestang) better. 
+Also check out [SNESTang](https://github.com/nand2mario/snestang) and [GBATang](https://github.com/nand2mario/gbatang). 
 
 ## Getting the parts
 
