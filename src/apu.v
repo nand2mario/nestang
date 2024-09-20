@@ -372,6 +372,226 @@ module TriangleChan (
 
 endmodule
 
+module TriangleChan_enhanced_5b (
+    input  logic       clk,
+    input  logic       phi1,
+    input  logic       aclk1,
+    input  logic       aclk1_d,
+    input  logic       reset,
+    input  logic       cold_reset,
+    input  logic       allow_us,
+    input  logic [1:0] Addr,
+    input  logic [7:0] DIN,
+    input  logic       write,
+    input  logic [7:0] lc_load,
+    input  logic       LenCtr_Clock,
+    input  logic       LinCtr_Clock,
+    input  logic       Enabled,
+    output logic [4:0] Sample,       // Change output Sample to 5 bits
+    output logic       IsNonZero
+);
+    logic [10:0] Period, applied_period, TimerCtr;
+    logic [4:0] SeqPos;              // Change SeqPos to 5 bits
+    logic [6:0] LinCtrPeriod, LinCtrPeriod_1, LinCtr;
+    logic LinCtrl, line_reload;
+    logic LinCtrZero;
+    logic lc;
+
+    logic LenCtrZero;
+    logic subunit_write;
+    logic [4:0] sample_latch;        // Change sample_latch to 5 bits
+
+    assign LinCtrZero = ~|LinCtr;
+    assign IsNonZero = lc;
+    assign subunit_write = (Addr == 0 || Addr == 3) & write;
+
+    // Adjust Sample assignment for 5-bit output
+    assign Sample = (applied_period > 1 || allow_us) ? (SeqPos[4:0] ^ {5{~SeqPos[4]}}) : sample_latch;
+
+    LenCounterUnit LenTri (
+        .clk            (clk),
+        .reset          (reset),
+        .cold_reset     (cold_reset),
+        .aclk1          (aclk1),
+        .aclk1_d        (aclk1_d),
+        .len_clk        (LenCtr_Clock),
+        .load_value     (lc_load),
+        .halt_in        (DIN[7]),
+        .addr           (Addr[0]),
+        .is_triangle    (1'b1),
+        .write          (subunit_write),
+        .enabled        (Enabled),
+        .lc_on          (lc)
+    );
+
+    always_ff @(posedge clk) begin
+        if (phi1) begin
+            if (TimerCtr == 0) begin
+                TimerCtr <= Period;
+                applied_period <= Period;
+                if (IsNonZero & ~LinCtrZero)
+                    SeqPos <= SeqPos + 1'd1;
+            end else begin
+                TimerCtr <= TimerCtr - 1'd1;
+            end
+        end
+
+        if (aclk1) begin
+            LinCtrPeriod_1 <= LinCtrPeriod;
+        end
+
+        if (LinCtr_Clock) begin
+            if (line_reload)
+                LinCtr <= LinCtrPeriod_1;
+            else if (!LinCtrZero)
+                LinCtr <= LinCtr - 1'd1;
+
+            if (!LinCtrl)
+                line_reload <= 0;
+        end
+
+        if (write) begin
+            case (Addr)
+                0: begin
+                    LinCtrl <= DIN[7];
+                    LinCtrPeriod <= DIN[6:0];
+                end
+                2: begin
+                    Period[7:0] <= DIN;
+                end
+                3: begin
+                    Period[10:8] <= DIN[2:0];
+                    line_reload <= 1;
+                end
+            endcase
+        end
+
+        if (reset) begin
+            sample_latch <= 5'h1F;   // Initialize to 5-bit value
+            Period <= 0;
+            TimerCtr <= 0;
+            SeqPos <= 0;
+            LinCtrPeriod <= 0;
+            LinCtr <= 0;
+            LinCtrl <= 0;
+            line_reload <= 0;
+        end
+
+        if (applied_period > 1) sample_latch <= Sample;
+    end
+endmodule
+
+module TriangleChan_enhanced_6b (
+    input  logic       clk,
+    input  logic       phi1,
+    input  logic       aclk1,
+    input  logic       aclk1_d,
+    input  logic       reset,
+    input  logic       cold_reset,
+    input  logic       allow_us,
+    input  logic [1:0] Addr,
+    input  logic [7:0] DIN,
+    input  logic       write,
+    input  logic [7:0] lc_load,
+    input  logic       LenCtr_Clock,
+    input  logic       LinCtr_Clock,
+    input  logic       Enabled,
+    output logic [5:0] Sample,
+    output logic       IsNonZero
+);
+    logic [10:0] Period, applied_period, TimerCtr;
+    logic [5:0] SeqPos;
+    logic [6:0] LinCtrPeriod, LinCtrPeriod_1, LinCtr;
+    logic LinCtrl, line_reload;
+    logic LinCtrZero;
+    logic lc;
+
+    logic LenCtrZero;
+    logic subunit_write;
+    logic [5:0] sample_latch;
+
+    assign LinCtrZero = ~|LinCtr;
+    assign IsNonZero = lc;
+    assign subunit_write = (Addr == 0 || Addr == 3) & write;
+
+    assign Sample = (applied_period > 1 || allow_us) ? (SeqPos ^ {6{~SeqPos[5]}}) : sample_latch;
+
+    LenCounterUnit LenTri (
+        .clk            (clk),
+        .reset          (reset),
+        .cold_reset     (cold_reset),
+        .aclk1          (aclk1),
+        .aclk1_d        (aclk1_d),
+        .len_clk        (LenCtr_Clock),
+        .load_value     (lc_load),
+        .halt_in        (DIN[7]),
+        .addr           (Addr[0]),
+        .is_triangle    (1'b1),
+        .write          (subunit_write),
+        .enabled        (Enabled),
+        .lc_on          (lc)
+    );
+
+    always_ff @(posedge clk) begin
+        if (phi1) begin
+            if (TimerCtr == 0) begin
+                TimerCtr <= Period;
+                applied_period <= Period;
+                if (IsNonZero & ~LinCtrZero)
+                    SeqPos <= SeqPos + 1'd1;
+            end else begin
+                TimerCtr <= TimerCtr - 1'd1;
+            end
+        end
+
+        if (aclk1) begin
+            LinCtrPeriod_1 <= LinCtrPeriod;
+        end
+
+        if (LinCtr_Clock) begin
+            if (line_reload)
+                LinCtr <= LinCtrPeriod_1;
+            else if (!LinCtrZero)
+                LinCtr <= LinCtr - 1'd1;
+
+            if (!LinCtrl)
+                line_reload <= 0;
+        end
+
+        if (write) begin
+            case (Addr)
+                0: begin
+                    LinCtrl <= DIN[7];
+                    LinCtrPeriod <= DIN[6:0];
+                end
+                2: begin
+                    Period[7:0] <= DIN;
+                end
+                3: begin
+                    Period[10:8] <= DIN[2:0];
+                    line_reload <= 1;
+                end
+            endcase
+        end
+
+        if (reset) begin
+            sample_latch <= 6'h3F;
+            Period <= 0;
+            TimerCtr <= 0;
+            SeqPos <= 0;
+            LinCtrPeriod <= 0;
+            LinCtr <= 0;
+            LinCtrl <= 0;
+            line_reload <= 0;
+        end
+
+        if (applied_period > 1) sample_latch <= Sample;
+    end
+
+endmodule
+
+
+
 module NoiseChan (
     input  logic       clk,
     input  logic       ce,
@@ -799,7 +1019,10 @@ module APU (
     output logic [15:0] Sample,
     output logic        DmaReq,         // 1 when DMC wants DMA
     output logic [15:0] DmaAddr,        // Address DMC wants to read
-    output logic        IRQ             // IRQ asserted high == asserted
+    output logic        IRQ,            // IRQ asserted high == asserted
+    // Enhanced APU
+    input  logic        apu_enhanced_ce,
+    input  logic        apu_mapper_saturates
 );
 
     logic [7:0] len_counter_lut[32];
@@ -840,6 +1063,7 @@ module APU (
 
     logic [4:0] Enabled;
     logic [3:0] Sq1Sample,Sq2Sample,TriSample,NoiSample;
+    logic [4:0] TriSample_enhanced;
     logic [6:0] DmcSample;
     logic DmcIrq;
     logic IsDmcActive;
@@ -856,7 +1080,7 @@ module APU (
     assign ApuMW4 = ADDR[4:2]>=4; // DMC
     assign ApuMW5 = ADDR[4:2]==5; // Control registers
 
-    logic Sq1NonZero, Sq2NonZero, TriNonZero, NoiNonZero;
+    logic Sq1NonZero, Sq2NonZero, TriNonZero, TriNonZero_enhanced, NoiNonZero;
     logic ClkE, ClkL;
 
     logic [4:0] enabled_buffer, enabled_buffer_1;
@@ -884,8 +1108,7 @@ module APU (
     assign ClkL = (frame_half & aclk1_delayed);
 
     // Generate bus output
-    assign DOUT = {DmcIrq, irq_flag, 1'b0, IsDmcActive, NoiNonZero, TriNonZero,
-        Sq2NonZero, Sq1NonZero};
+    assign DOUT = {DmcIrq, irq_flag, 1'b0, IsDmcActive, NoiNonZero, TriNonZero, TriNonZero_enhanced, Sq2NonZero, Sq1NonZero};
 
     assign IRQ = frame_irq || DmcIrq;
 
@@ -953,6 +1176,25 @@ module APU (
         .IsNonZero    (TriNonZero)
     );
 
+    TriangleChan_enhanced_5b Tri_enhanced (
+        .clk          (clk),
+        .phi1         (phi1),
+        .aclk1        (aclk1),
+        .aclk1_d      (aclk1_delayed),
+        .reset        (reset),
+        .cold_reset   (cold_reset),
+        .allow_us     (allow_us),
+        .Addr         (ADDR[1:0]),
+        .DIN          (DIN),
+        .write        (ApuMW2 && write),
+        .lc_load      (lc_load),
+        .LenCtr_Clock (ClkL),
+        .LinCtr_Clock (ClkE),
+        .Enabled      (Enabled[2]),
+        .Sample       (TriSample_enhanced),
+        .IsNonZero    (TriNonZero_enhanced)
+    );
+
     NoiseChan Noi (
         .clk          (clk),
         .ce           (ce),
@@ -998,7 +1240,11 @@ module APU (
         .noise        (NoiSample),
         .triangle     (TriSample),
         .dmc          (DmcSample),
-        .sample       (Sample)
+        .sample       (Sample),
+        // Enhanced APU
+        .apu_enhanced_ce(apu_enhanced_ce),
+        .apu_triangle_enhanced(TriSample_enhanced),
+        .apu_mapper_saturates(apu_mapper_saturates)
     );
 
     FrameCtr frame_counter (
@@ -1034,7 +1280,11 @@ module APUMixer (
     input  logic  [3:0] triangle,
     input  logic  [3:0] noise,
     input  logic  [6:0] dmc,
-    output logic [15:0] sample
+    output logic [15:0] sample,
+    // Enhanced APU
+    input  logic        apu_enhanced_ce,
+    input  logic  [5:0] apu_triangle_enhanced,
+    input  logic        apu_mapper_saturates
 );
 
 logic [15:0] pulse_lut[32];
@@ -1049,6 +1299,15 @@ logic [5:0] tri_lut[16];
 assign tri_lut = '{
     6'h00, 6'h04, 6'h08, 6'h0C, 6'h10, 6'h14, 6'h18, 6'h1C,
     6'h20, 6'h24, 6'h28, 6'h2C, 6'h30, 6'h34, 6'h38, 6'h3C
+};
+
+// Enhanced APU
+logic [5:0] tri_lut_enhanced_5b[32];
+assign tri_lut_enhanced_5b = '{
+    6'h00, 6'h01, 6'h02, 6'h04, 6'h06, 6'h08, 6'h0A, 6'h0C, 
+    6'h0E, 6'h10, 6'h12, 6'h14, 6'h16, 6'h18, 6'h1A, 6'h1C, 
+    6'h1E, 6'h20, 6'h22, 6'h24, 6'h26, 6'h28, 6'h2A, 6'h2C, 
+    6'h2E, 6'h30, 6'h32, 6'h34, 6'h36, 6'h38, 6'h3A, 6'h3C
 };
 
 logic [5:0] noise_lut[16];
@@ -1145,11 +1404,94 @@ assign mix_lut = '{
     16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000
 };
 
+logic [15:0] mix_lut_enhanced[512];
+assign mix_lut_enhanced = '{
+    16'h0000, 16'h0128, 16'h024F, 16'h0374, 16'h0497, 16'h05B8, 16'h06D7, 16'h07F5,
+    16'h0911, 16'h0A2B, 16'h0B44, 16'h0C5B, 16'h0D71, 16'h0E84, 16'h0F96, 16'h10A7,
+    16'h11B6, 16'h12C3, 16'h13CF, 16'h14DA, 16'h15E2, 16'h16EA, 16'h17EF, 16'h18F4,
+    16'h19F6, 16'h1AF8, 16'h1BF7, 16'h1CF6, 16'h1DF3, 16'h1EEE, 16'h1FE9, 16'h20E1,
+    16'h21D9, 16'h22CF, 16'h23C3, 16'h24B7, 16'h25A9, 16'h2699, 16'h2788, 16'h2876,
+    16'h2963, 16'h2A4F, 16'h2B39, 16'h2C22, 16'h2D09, 16'h2DF0, 16'h2ED5, 16'h2FB9,
+    16'h309B, 16'h317D, 16'h325D, 16'h333C, 16'h341A, 16'h34F7, 16'h35D3, 16'h36AD,
+    16'h3787, 16'h385F, 16'h3936, 16'h3A0C, 16'h3AE1, 16'h3BB5, 16'h3C87, 16'h3D59,
+    16'h3E29, 16'h3EF9, 16'h3FC7, 16'h4095, 16'h4161, 16'h422C, 16'h42F7, 16'h43C0,
+    16'h4488, 16'h4550, 16'h4616, 16'h46DB, 16'h47A0, 16'h4863, 16'h4925, 16'h49E7,
+    16'h4AA7, 16'h4B67, 16'h4C25, 16'h4CE3, 16'h4DA0, 16'h4E5C, 16'h4F17, 16'h4FD1,
+    16'h508A, 16'h5142, 16'h51F9, 16'h52B0, 16'h5365, 16'h541A, 16'h54CE, 16'h5581,
+    16'h5633, 16'h56E5, 16'h5795, 16'h5845, 16'h58F4, 16'h59A2, 16'h5A4F, 16'h5AFC,
+    16'h5BA7, 16'h5C52, 16'h5CFC, 16'h5DA5, 16'h5E4E, 16'h5EF6, 16'h5F9D, 16'h6043,
+    16'h60E8, 16'h618D, 16'h6231, 16'h62D4, 16'h6377, 16'h6418, 16'h64B9, 16'h655A,
+    16'h65F9, 16'h6698, 16'h6736, 16'h67D4, 16'h6871, 16'h690D, 16'h69A8, 16'h6A43,
+    16'h6ADD, 16'h6B76, 16'h6C0F, 16'h6CA7, 16'h6D3E, 16'h6DD5, 16'h6E6B, 16'h6F00,
+    16'h6F95, 16'h7029, 16'h70BD, 16'h7150, 16'h71E2, 16'h7273, 16'h7304, 16'h7395,
+    16'h7424, 16'h74B4, 16'h7542, 16'h75D0, 16'h765D, 16'h76EA, 16'h7776, 16'h7802,
+    16'h788D, 16'h7917, 16'h79A1, 16'h7A2A, 16'h7AB3, 16'h7B3B, 16'h7BC3, 16'h7C4A,
+    16'h7CD0, 16'h7D56, 16'h7DDB, 16'h7E60, 16'h7EE4, 16'h7F68, 16'h7FEB, 16'h806E,
+    16'h80F0, 16'h8172, 16'h81F3, 16'h8274, 16'h82F4, 16'h8373, 16'h83F2, 16'h8471,
+    16'h84EF, 16'h856C, 16'h85E9, 16'h8666, 16'h86E2, 16'h875E, 16'h87D9, 16'h8853,
+    16'h88CD, 16'h8947, 16'h89C0, 16'h8A39, 16'h8AB1, 16'h8B29, 16'h8BA0, 16'h8C17,
+    16'h8C8E, 16'h8D03, 16'h8D79, 16'h8DEE, 16'h8E63, 16'h8ED7, 16'h8F4A, 16'h8FBE,
+    16'h9030, 16'h90A3, 16'h9115, 16'h9186, 16'h91F7, 16'h9268, 16'h92D8, 16'h9348,
+    16'h93B8, 16'h9427, 16'h9495, 16'h9503, 16'h9571, 16'h95DF, 16'h964C, 16'h96B8,
+    16'h9724, 16'h9790, 16'h97FB, 16'h9866, 16'h98D1, 16'h993B, 16'h99A5, 16'h9A0E,
+    16'h9A77, 16'h9AE0, 16'h9B48, 16'h9BB0, 16'h9C18, 16'h9C7F, 16'h9CE6, 16'h9D4C,
+    16'h9DB2, 16'h9E18, 16'h9E7D, 16'h9EE2, 16'h9F47, 16'h9FAB, 16'hA00F, 16'hA073,
+    16'hA0D6, 16'hA139, 16'hA19B, 16'hA1FD, 16'hA25F, 16'hA2C1, 16'hA322, 16'hA383,
+    16'hA3E3, 16'hA443, 16'hA4A3, 16'hA502, 16'hA562, 16'hA5C0, 16'hA61F, 16'hA67D,
+    16'hA6DB, 16'hA738, 16'hA796, 16'hA7F2, 16'hA84F, 16'hA8AB, 16'hA907, 16'hA963,
+    16'hA9BE, 16'hAA19, 16'hAA74, 16'hAACE, 16'hAB28, 16'hAB82, 16'hABDB, 16'hAC35,
+    16'hAC8E, 16'hACE6, 16'hAD3E, 16'hAD96, 16'hADEE, 16'hAE46, 16'hAE9D, 16'hAEF4,
+    16'hAF4A, 16'hAFA0, 16'hAFF6, 16'hB04C, 16'hB0A2, 16'hB0A2, 16'hB0A2, 16'hB0A2,
+    16'hB0A2, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000,
+    16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000, 16'h0000
+};
+
+// Square waves
 wire [4:0] squares = square1 + square2;
 wire [15:0] ch1 = pulse_lut[squares];
-wire [8:0] mix = 9'(tri_lut[triangle]) + 9'(noise_lut[noise]) + 9'(dmc_lut[dmc]);
-wire [15:0] ch2 = mix_lut[mix];
 
-assign sample = ch1 + ch2;
+// Normal mixer
+wire [8:0] mix_normal = 9'(tri_lut[triangle]) + 9'(noise_lut[noise]) + 9'(dmc_lut[dmc]);
+wire [15:0] ch2 = mix_lut[mix_normal];
+wire [15:0] sample_normal = ch1 + ch2;
+
+// Linear mixer + enhanced triangle wave
+wire [8:0] mix_enhanced = 9'((tri_lut_enhanced_5b[apu_triangle_enhanced])) + 9'(noise_lut[noise]) + 9'(dmc_lut[dmc]);
+wire [15:0] ch2_enhanced = mix_lut_enhanced[mix_enhanced >> 1];
+wire [15:0] sample_linear = ch1 + ch2_enhanced << 1;
+
+// Normal mixer + enhanced triangle wave
+wire [15:0] ch2_mix_normal_enhanced_tri = mix_lut[mix_enhanced];
+wire [15:0] sample_mix_normal_enhanced_tri = ch1 + ch2_enhanced;
+
+assign sample = !apu_enhanced_ce        ? sample_normal : 
+                !apu_mapper_saturates   ? sample_linear :
+                sample_mix_normal_enhanced_tri;
 
 endmodule

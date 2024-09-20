@@ -21,7 +21,9 @@ module GameLoader
 	output reg    busy,
 	output reg    done,
 	output reg    error,
-	output reg    rom_loaded
+	output reg    rom_loaded,
+	// APU Enhancement
+	output [7:0]  o_mapper
 );
 
 reg [7:0] prgsize;
@@ -71,6 +73,8 @@ wire [3:0] prgram = {is_nes20 ? ines[10][3:0] : 4'h0};
 wire [3:0] prg_nvram = (is_nes20 ? ines[10][7:4] : 4'h0);
 wire       piano = is_nes20 && (ines[15][5:0] == 6'h19);
 wire has_saves = ines[6][1];
+
+assign o_mapper = mapper;
 
 assign mapper_flags[63:35] = 'd0;
 assign mapper_flags[34:31] = prg_nvram; //NES 2.0 Save RAM shift size (64 << size)

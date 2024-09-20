@@ -53,7 +53,9 @@ module cart_top (
 	output reg  [1:0] diskside_auto,
 	input       [1:0] diskside,
 	input             fds_busy,       // FDS Disk Swap Busy
-	input             fds_eject       // FDS Disk Swap Pause
+	input             fds_eject,      // FDS Disk Swap Pause
+	// Enhanced APU
+	input 			  i_enhanced_apu_ce
 );
 
 tri0 prg_allow_b, vram_a10_b, vram_ce_b, chr_allow_b, irq_b;
@@ -1302,29 +1304,29 @@ NesEvent nesev(
 // Notes  : External audio needs to be mixed correctly.                        //
 // Games  : Akamajou Densetsu, Esper Dream 2, Mouryou Senki Madara             //
 //*****************************************************************************//
-// VRC6 vrc6(
-// 	.clk        (clk),
-// 	.ce         (ce),
-// 	.enable     (me[24] | me[26]),
-// 	.flags      (flags),
-// 	.prg_ain    (prg_ain),
-// 	.prg_aout_b (prg_addr_b),
-// 	.prg_read   (prg_read),
-// 	.prg_write  (prg_write),
-// 	.prg_din    (prg_din),
-// 	.prg_dout_b (prg_dout_b),
-// 	.prg_allow_b(prg_allow_b),
-// 	.chr_ain    (chr_ain),
-// 	.chr_aout_b (chr_addr_b),
-// 	.chr_read   (chr_read),
-// 	.chr_allow_b(chr_allow_b),
-// 	.vram_a10_b (vram_a10_b),
-// 	.vram_ce_b  (vram_ce_b),
-// 	.irq_b      (irq_b),
-// 	.flags_out_b(flags_out_b),
-// 	.audio_in   (vrc6_audio),
-// 	.audio_b    (audio_out_b)
-// );
+VRC6 vrc6(
+	.clk        (clk),
+	.ce         (ce),
+	.enable     (me[24] | me[26]),
+	.flags      (flags),
+	.prg_ain    (prg_ain),
+	.prg_aout_b (prg_addr_b),
+	.prg_read   (prg_read),
+	.prg_write  (prg_write),
+	.prg_din    (prg_din),
+	.prg_dout_b (prg_dout_b),
+	.prg_allow_b(prg_allow_b),
+	.chr_ain    (chr_ain),
+	.chr_aout_b (chr_addr_b),
+	.chr_read   (chr_read),
+	.chr_allow_b(chr_allow_b),
+	.vram_a10_b (vram_a10_b),
+	.vram_ce_b  (vram_ce_b),
+	.irq_b      (irq_b),
+	.flags_out_b(flags_out_b),
+	.audio_in   (vrc6_audio),
+	.audio_b    (audio_out_b)
+);
 
 //*****************************************************************************//
 // Name   : Konami VRC-7                                                       //
@@ -1828,17 +1830,18 @@ wire [15:0] vrc7_audio;
 // );
 
 wire [15:0] vrc6_audio;
-// vrc6_mixed snd_vrc6 (
-// 	.clk(clk),
-// 	.ce(ce),
-// 	.enable(me[24] | me[26] | (me[31] && exp_audioe[0])),
-// 	.wren(prg_write),
-// 	.addr_invert(me[26]),
-// 	.addr_in(prg_ain),
-// 	.data_in(prg_din),
-// 	.audio_in(audio_in),
-// 	.audio_out(vrc6_audio)
-// );
+vrc6_mixed snd_vrc6 (
+	.clk(clk),
+	.ce(ce),
+	.enable(me[24] | me[26] | (me[31] && exp_audioe[0])),
+	.wren(prg_write),
+	.addr_invert(me[26]),
+	.addr_in(prg_ain),
+	.data_in(prg_din),
+	.audio_in(audio_in),
+	.audio_out(vrc6_audio),
+	.i_enhanced_apu_ce(i_enhanced_apu_ce)
+);
 
 
 reg [6:0] prg_mask;
