@@ -1490,7 +1490,6 @@ wire [15:0] sample_linear = ch1 + ch2_enhanced << 1;
 wire [15:0] ch2_mix_normal_enhanced_tri = mix_lut[mix_enhanced];
 wire [15:0] sample_mix_normal_enhanced_tri = ch1 + ch2_enhanced;
 
-assign sample = (((!apu_enhanced_ce)||(apu_mapper_saturates)) ? sample_normal : sample_linear);
 assign sample = !apu_enhanced_ce        ? sample_normal : 
                 !apu_mapper_saturates   ? sample_linear :
                 sample_mix_normal_enhanced_tri;
