@@ -1,5 +1,5 @@
 if {$argc == 0} {
-    puts "Usage: $argv0 <device> [<controller>]"
+    puts "Usage: $argv0 <device> <controller>"
     puts "          device: nano20k, primer25k"
     puts "      controller: snes, ds2"
     puts "Note: nano20k supports both controllers simultaneously, so build with just: gw_sh build.tcl nano20k"
