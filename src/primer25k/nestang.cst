@@ -48,18 +48,18 @@ IO_PORT "sd_dat2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
 IO_LOC "sd_dat3" G11;       // 1
 IO_PORT "sd_dat3" PULL_MODE=NONE IO_TYPE=LVCMOS33;
 // sipeed pmod tfcardv1
-IO_LOC "sd_clk" D10;
-IO_PORT "sd_clk" PULL_MODE=NONE IO_TYPE=LVCMOS33; 
-IO_LOC "sd_cmd" D11;        // MOSI
-IO_PORT "sd_cmd" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "sd_dat0" B11;       // MISO or SD card DO, needs pull-up
-IO_PORT "sd_dat0" PULL_MODE=UP IO_TYPE=LVCMOS33;
-IO_LOC "sd_dat1" C11;       // 1
-IO_PORT "sd_dat1" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "sd_dat2" G11;       // 1
-IO_PORT "sd_dat2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "sd_dat3" G10;       // 1
-IO_PORT "sd_dat3" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+// IO_LOC "sd_clk" D10;
+// IO_PORT "sd_clk" PULL_MODE=NONE IO_TYPE=LVCMOS33; 
+// IO_LOC "sd_cmd" D11;        // MOSI
+// IO_PORT "sd_cmd" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+// IO_LOC "sd_dat0" B11;       // MISO or SD card DO, needs pull-up
+// IO_PORT "sd_dat0" PULL_MODE=UP IO_TYPE=LVCMOS33;
+// IO_LOC "sd_dat1" C11;       // 1
+// IO_PORT "sd_dat1" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+// IO_LOC "sd_dat2" G11;       // 1
+// IO_PORT "sd_dat2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+// IO_LOC "sd_dat3" G10;       // 1
+// IO_PORT "sd_dat3" PULL_MODE=NONE IO_TYPE=LVCMOS33;
 // old MUSELab SDCARD 1.0
 // IO_LOC "sd_clk" D10;
 // IO_PORT "sd_clk" PULL_MODE=NONE IO_TYPE=LVCMOS33; 
