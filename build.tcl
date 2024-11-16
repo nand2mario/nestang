@@ -117,7 +117,7 @@ set_option -synthesis_tool gowinsynthesis
 set_option -top_module nestang_top
 set_option -verilog_std sysv2017
 set_option -rw_check_on_ram 1
-# set_option -place_option 2
+set_option -place_option 2
 set_option -use_mspi_as_gpio 1
 set_option -use_ready_as_gpio 1
 set_option -use_done_as_gpio 1
