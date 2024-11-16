@@ -1,0 +1,180 @@
+IO_LOC "sys_clk" V22;
+IO_PORT "sys_clk" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=OFF;
+
+// IO_LOC "s0" AA13;        // active low
+// IO_PORT "s0" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=OFF BANK_VCCIO=3.3;
+IO_LOC "s1" AB13;       
+IO_PORT "s1" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=OFF BANK_VCCIO=3.3;
+// IO_LOC "s2" Y12;        
+// IO_PORT "s2" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=OFF BANK_VCCIO=3.3;
+
+// HDMI
+IO_LOC "tmds_clk_p" G15;
+IO_PORT "tmds_clk_p" PULL_MODE=NONE IO_TYPE=LVCMOS33D;
+IO_LOC "tmds_clk_n" G16;
+IO_PORT "tmds_clk_n" PULL_MODE=NONE IO_TYPE=LVCMOS33D;
+IO_LOC "tmds_d_p[0]" J14;
+IO_PORT "tmds_d_p[0]" PULL_MODE=NONE IO_TYPE=LVCMOS33D;
+IO_LOC "tmds_d_n[0]" H14;
+IO_PORT "tmds_d_n[0]" PULL_MODE=NONE IO_TYPE=LVCMOS33D;
+IO_LOC "tmds_d_p[1]" J15;
+IO_PORT "tmds_d_p[1]" PULL_MODE=NONE IO_TYPE=LVCMOS33D;
+IO_LOC "tmds_d_n[1]" H15;
+IO_PORT "tmds_d_n[1]" PULL_MODE=NONE IO_TYPE=LVCMOS33D;
+IO_LOC "tmds_d_p[2]" K17;
+IO_PORT "tmds_d_p[2]" PULL_MODE=NONE IO_TYPE=LVCMOS33D;
+IO_LOC "tmds_d_n[2]" J17;
+IO_PORT "tmds_d_n[2]" PULL_MODE=NONE IO_TYPE=LVCMOS33D;
+
+// SDCard on board
+IO_LOC "sd_clk" V15;
+IO_PORT "sd_clk" PULL_MODE=NONE IO_TYPE=LVCMOS33; 
+IO_LOC "sd_cmd" Y16;        // MOSI
+IO_PORT "sd_cmd" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC "sd_dat0" AA15;       // MISO or SD card DO, needs pull-up
+IO_PORT "sd_dat0" PULL_MODE=UP IO_TYPE=LVCMOS33;
+IO_LOC "sd_dat1" AB15;       // 1
+IO_PORT "sd_dat1" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC "sd_dat2" W14;       // 1
+IO_PORT "sd_dat2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC "sd_dat3" W15;       // 1
+IO_PORT "sd_dat3" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+
+// UART through USB-C port
+IO_LOC "UART_RXD" Y14;
+IO_LOC "UART_TXD" U15;
+IO_PORT "UART_RXD" IO_TYPE=LVCMOS33;
+IO_PORT "UART_TXD" IO_TYPE=LVCMOS33;
+
+// 128Mbit NOR Flash (MSPI pins)
+IO_LOC "flash_spi_cs_n" T19;
+IO_PORT "flash_spi_cs_n" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC "flash_spi_wp_n" P21;
+IO_PORT "flash_spi_wp_n" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC "flash_spi_hold_n" R21;      // NC/SIO3 ?
+IO_PORT "flash_spi_hold_n" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC "flash_spi_mosi" P22;
+IO_PORT "flash_spi_mosi" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC "flash_spi_miso" R22;
+IO_PORT "flash_spi_miso" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC "flash_spi_clk" L12;
+IO_PORT "flash_spi_clk" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+
+// Joystick 1 on pmod0
+IO_LOC  "ds_clk" R18;
+IO_PORT "ds_clk" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC  "ds_miso" P16;
+IO_PORT "ds_miso" PULL_MODE=UP IO_TYPE=LVCMOS33;
+IO_LOC  "ds_mosi" T21;
+IO_PORT "ds_mosi" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC  "ds_cs"  P19;
+IO_PORT "ds_cs" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+
+IO_LOC  "ds_clk2" T18;
+IO_PORT "ds_clk2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC  "ds_miso2" R17;
+IO_PORT "ds_miso2" PULL_MODE=UP IO_TYPE=LVCMOS33;
+IO_LOC  "ds_mosi2" U21;
+IO_PORT "ds_mosi2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+IO_LOC  "ds_cs2"  R19;
+IO_PORT "ds_cs2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+
+// LED on pmod1
+IO_LOC "led[0]" AB20;// P19;
+IO_LOC "led[1]" AA19;// R19;
+IO_PORT "led[0]" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_PORT "led[1]" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+// IO_LOC "led[2]" AA21;// T21;
+// IO_LOC "led[3]" AA20;// U21;
+// IO_LOC "led[4]" AB22;// P16;
+// IO_LOC "led[5]" AB21;// R17;
+// IO_LOC "led[6]" Y22;// R18;
+// IO_LOC "led[7]" Y21;// T18;
+// IO_PORT "led[2]" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+// IO_PORT "led[3]" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+// IO_PORT "led[4]" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+// IO_PORT "led[5]" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+// IO_PORT "led[6]" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+// IO_PORT "led[7]" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+
+// SDRAM
+IO_LOC "IO_sdram_dq[0]" E14;
+IO_PORT "IO_sdram_dq[0]" IO_TYPE=LVCMOS33;
+IO_LOC "IO_sdram_dq[1]" E13;
+IO_PORT "IO_sdram_dq[1]" IO_TYPE=LVCMOS33;
+IO_LOC "IO_sdram_dq[2]" C15;
+IO_PORT "IO_sdram_dq[2]" IO_TYPE=LVCMOS33;
+IO_LOC "IO_sdram_dq[3]" C14;
+IO_PORT "IO_sdram_dq[3]" IO_TYPE=LVCMOS33;
+IO_LOC "IO_sdram_dq[4]" B13;
+IO_PORT "IO_sdram_dq[4]" IO_TYPE=LVCMOS33;
+IO_LOC "IO_sdram_dq[5]" C13;
+IO_PORT "IO_sdram_dq[5]" IO_TYPE=LVCMOS33;
+IO_LOC "IO_sdram_dq[6]" A14;
+IO_PORT "IO_sdram_dq[6]" IO_TYPE=LVCMOS33;
+IO_LOC "IO_sdram_dq[7]" A13;
+IO_PORT "IO_sdram_dq[7]" IO_TYPE=LVCMOS33;
+IO_LOC "IO_sdram_dq[8]" B21;
+IO_PORT "IO_sdram_dq[8]" IO_TYPE=LVCMOS33;
+IO_LOC "IO_sdram_dq[9]" A21;
+IO_PORT "IO_sdram_dq[9]" IO_TYPE=LVCMOS33;
+IO_LOC "IO_sdram_dq[10]" B20;
+IO_PORT "IO_sdram_dq[10]" IO_TYPE=LVCMOS33;
+IO_LOC "IO_sdram_dq[11]" A20;
+IO_PORT "IO_sdram_dq[11]" IO_TYPE=LVCMOS33;
+IO_LOC "IO_sdram_dq[12]" A15;
+IO_PORT "IO_sdram_dq[12]" IO_TYPE=LVCMOS33;
+IO_LOC "IO_sdram_dq[13]" A16;
+IO_PORT "IO_sdram_dq[13]" IO_TYPE=LVCMOS33;
+IO_LOC "IO_sdram_dq[14]" B15;
+IO_PORT "IO_sdram_dq[14]" IO_TYPE=LVCMOS33;
+IO_LOC "IO_sdram_dq[15]" B16;
+IO_PORT "IO_sdram_dq[15]" IO_TYPE=LVCMOS33;
+
+IO_LOC "O_sdram_addr[0]" D19;
+IO_PORT "O_sdram_addr[0]" IO_TYPE=LVCMOS33;
+IO_LOC "O_sdram_addr[1]" E19;
+IO_PORT "O_sdram_addr[1]" IO_TYPE=LVCMOS33;
+IO_LOC "O_sdram_addr[2]" C19;
+IO_PORT "O_sdram_addr[2]" IO_TYPE=LVCMOS33;
+IO_LOC "O_sdram_addr[3]" C18;
+IO_PORT "O_sdram_addr[3]" IO_TYPE=LVCMOS33;
+IO_LOC "O_sdram_addr[4]" E16;
+IO_PORT "O_sdram_addr[4]" IO_TYPE=LVCMOS33;
+IO_LOC "O_sdram_addr[5]" D15;
+IO_PORT "O_sdram_addr[5]" IO_TYPE=LVCMOS33;
+IO_LOC "O_sdram_addr[6]" D14;
+IO_PORT "O_sdram_addr[6]" IO_TYPE=LVCMOS33;
+IO_LOC "O_sdram_addr[7]" A19;
+IO_PORT "O_sdram_addr[7]" IO_TYPE=LVCMOS33;
+IO_LOC "O_sdram_addr[8]" A18;
+IO_PORT "O_sdram_addr[8]" IO_TYPE=LVCMOS33;
+IO_LOC "O_sdram_addr[9]" C17;
+IO_PORT "O_sdram_addr[9]" IO_TYPE=LVCMOS33;
+IO_LOC "O_sdram_addr[10]" D20;
+IO_PORT "O_sdram_addr[10]" IO_TYPE=LVCMOS33;
+IO_LOC "O_sdram_addr[11]" D17;
+IO_PORT "O_sdram_addr[11]" IO_TYPE=LVCMOS33;
+IO_LOC "O_sdram_addr[12]" B18;
+IO_PORT "O_sdram_addr[12]" IO_TYPE=LVCMOS33;
+
+IO_LOC "O_sdram_ba[0]" F15;
+IO_PORT "O_sdram_ba[0]" IO_TYPE=LVCMOS33;
+IO_LOC "O_sdram_ba[1]" C20;
+IO_PORT "O_sdram_ba[1]" IO_TYPE=LVCMOS33;
+
+IO_LOC "O_sdram_dqm[0]" F14;
+IO_PORT "O_sdram_dqm[0]" IO_TYPE=LVCMOS33;
+IO_LOC "O_sdram_dqm[1]" F13;
+IO_PORT "O_sdram_dqm[1]" IO_TYPE=LVCMOS33;
+
+IO_LOC "O_sdram_clk" B17;
+IO_PORT "O_sdram_clk" IO_TYPE=LVCMOS33;
+IO_LOC "O_sdram_wen_n" D16;
+IO_PORT "O_sdram_wen_n" IO_TYPE=LVCMOS33;
+IO_LOC "O_sdram_ras_n" F16;
+IO_PORT "O_sdram_ras_n" IO_TYPE=LVCMOS33;
+IO_LOC "O_sdram_cas_n" E17;
+IO_PORT "O_sdram_cas_n" IO_TYPE=LVCMOS33;
+IO_LOC "O_sdram_cs_n" F19;
+IO_PORT "O_sdram_cs_n" IO_TYPE=LVCMOS33;

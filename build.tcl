@@ -1,6 +1,6 @@
 if {$argc == 0} {
     puts "Usage: $argv0 <device> <controller>"
-    puts "          device: nano20k, primer25k"
+    puts "          device: nano20k, primer25k, mega60k"
     puts "      controller: snes, ds2"
     puts "Note: nano20k supports both controllers simultaneously, so build with just: gw_sh build.tcl nano20k"
     exit 1
@@ -33,6 +33,22 @@ if {$dev eq "nano20k"} {
     } else {
         error "Unknown controller $controller"
     }
+    add_file -type verilog "src/primer25k/gowin_pll_27.v"
+    add_file -type verilog "src/primer25k/gowin_pll_hdmi.v"
+    add_file -type verilog "src/primer25k/gowin_pll_nes.v"
+    set_option -output_base_name nestang_${dev}_${controller}
+} elseif {$dev eq "mega60k"} {
+    set_device GW5AT-LV60PG484AC1/10 -device_version B
+    if {$controller eq "snes"} {
+        add_file src/mega60k/config_snescontroller.v
+        add_file -type cst "src/mega60k/nestang_snescontroller.cst"
+    } elseif {$controller eq "ds2"} {
+        add_file src/mega60k/config.v
+        add_file -type cst "src/mega60k/nestang.cst"
+    } else {
+        error "Unknown controller $controller"
+    }
+    # mega60k uses the same PLL as primer25k
     add_file -type verilog "src/primer25k/gowin_pll_27.v"
     add_file -type verilog "src/primer25k/gowin_pll_hdmi.v"
     add_file -type verilog "src/primer25k/gowin_pll_nes.v"
