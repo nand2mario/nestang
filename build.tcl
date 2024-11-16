@@ -20,6 +20,7 @@ if {$dev eq "nano20k"} {
     add_file -type cst "src/nano20k/nestang.cst"
     add_file -type verilog "src/nano20k/gowin_pll_hdmi.v"
     add_file -type verilog "src/nano20k/gowin_pll_nes.v"
+    add_file -type sdc "src/nano20k/nestang.sdc"
     # nano20k supports both controllers simultaneously
     set_option -output_base_name nestang_${dev}
 } elseif {$dev eq "primer25k"} {
@@ -36,9 +37,10 @@ if {$dev eq "nano20k"} {
     add_file -type verilog "src/primer25k/gowin_pll_27.v"
     add_file -type verilog "src/primer25k/gowin_pll_hdmi.v"
     add_file -type verilog "src/primer25k/gowin_pll_nes.v"
+    add_file -type sdc "src/primer25k/nestang.sdc"
     set_option -output_base_name nestang_${dev}_${controller}
 } elseif {$dev eq "mega60k"} {
-    set_device GW5AT-LV60PG484AC1/10 -device_version B
+    set_device GW5AT-LV60PG484AC1/I0 -device_version B
     if {$controller eq "snes"} {
         add_file src/mega60k/config_snescontroller.v
         add_file -type cst "src/mega60k/nestang_snescontroller.cst"
@@ -52,6 +54,7 @@ if {$dev eq "nano20k"} {
     add_file -type verilog "src/primer25k/gowin_pll_27.v"
     add_file -type verilog "src/primer25k/gowin_pll_hdmi.v"
     add_file -type verilog "src/primer25k/gowin_pll_nes.v"
+    add_file -type sdc "src/primer25k/nestang.sdc"
     set_option -output_base_name nestang_${dev}_${controller}
 } else {
     error "Unknown device $dev"
@@ -114,6 +117,7 @@ set_option -synthesis_tool gowinsynthesis
 set_option -top_module nestang_top
 set_option -verilog_std sysv2017
 set_option -rw_check_on_ram 1
+# set_option -place_option 2
 set_option -use_mspi_as_gpio 1
 set_option -use_ready_as_gpio 1
 set_option -use_done_as_gpio 1

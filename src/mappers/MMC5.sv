@@ -83,7 +83,7 @@ reg [7:0] multiplier_2;
 wire [15:0] multiply_result = multiplier_1 * multiplier_2;
 
 // nand2mario FIXME: this uses registers instead of BRAM on 1.9.10_03
-reg [7:0] expansion_ram[0:1023]; // Block RAM, otherwise we need to time multiplex..
+reg [7:0] expansion_ram[0:1023] /* synthesis syn_ramstyle="block_ram" */ ; // Block RAM, otherwise we need to time multiplex..
 reg [7:0] last_read_ram;
 reg [7:0] last_read_exattr;
 reg [7:0] last_read_vram;
