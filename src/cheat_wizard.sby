@@ -1,0 +1,27 @@
+[tasks]
+bound
+prf
+cvr
+
+[options]
+bound:  mode bmc
+bound:  depth 128
+prf:    mode prove
+prf:    depth 64
+cvr:    mode cover
+cvr:    depth 64
+cvr:    append 20
+
+
+[engines]
+bound:  smtbmc
+prf:    smtbmc yices
+cvr:    smtbmc
+
+[script]
+read_verilog -formal cheat_wizard.v
+prep -top cheat_wizard
+
+[files]
+cheat_wizard.v
+wishbone_slaves.vh

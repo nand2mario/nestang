@@ -605,7 +605,9 @@ module MAPVRC6(     //signal descriptions in powerpak.v
 
 	input ce,// add
 	//output [15:0] audio,
-	input mapper26
+	input mapper26,
+	// Enhanced APU
+	input i_enhanced_apu_ce
 
 );
 	//wire [15:0] ain=prgain;                             //MAP18
@@ -842,7 +844,8 @@ module vrc6_mixed (
 	input  [15:0] addr_in,
 	input   [7:0] data_in,
 	input  [15:0] audio_in,    // Inverted audio from APU
-	output [15:0] audio_out
+	output [15:0] audio_out,
+	input		  i_enhanced_apu_ce
 );
 
 vrc6sound snd_vrc6 (
@@ -855,7 +858,11 @@ vrc6sound snd_vrc6 (
 	.din(data_in),
 	.outSq1(vrc6sq1_out),
 	.outSq2(vrc6sq2_out),
-	.outSaw(vrc6saw_out)
+	.outSaw(vrc6saw_out),
+	// Enhanced APU
+	.outSq1_enhanced(vrc6sq1_out_enhanced),
+	.outSq2_enhanced(vrc6sq2_out_enhanced),
+	.outSaw_enhanced(vrc6saw_out_enhanced)
 );
 
 //sound
@@ -864,10 +871,15 @@ vrc6sound snd_vrc6 (
 	wire [3:0] vrc6sq1_out;
 	wire [3:0] vrc6sq2_out;
 	wire [4:0] vrc6saw_out;
+	// Enhanced APU
+	wire [3:0] vrc6sq1_out_enhanced;
+	wire [3:0] vrc6sq2_out_enhanced;
+	wire [7:0] vrc6saw_out_enhanced;
 
 	// VRC6 sound is mixed before amplification, and them amplified linearly
 	wire [5:0] exp_audio = vrc6sq1_out + vrc6sq2_out + vrc6saw_out;
-	wire [15:0] audio = {exp_audio, exp_audio, exp_audio[5:2]};
+	wire [7:0] exp_audio_enhanced = vrc6sq1_out_enhanced + vrc6sq2_out_enhanced + vrc6saw_out_enhanced >> 2;
+	wire [15:0] audio = (i_enhanced_apu_ce ? {exp_audio_enhanced, exp_audio_enhanced, exp_audio_enhanced[5:2]} : {exp_audio, exp_audio, exp_audio[5:2]});
 
 // VRC6 audio is much louder than APU audio, so match the levels we have to reduce it 
 // to about 43% to match the audio ratio of the original Famicom with AD3. Note that the
@@ -886,9 +898,12 @@ module vrc6sound(
 	input addr_invert,
 	input [15:0] addr_in,
 	input [7:0] din,
-	output [3:0] outSq1,       //range=0..0x0F
-	output [3:0] outSq2,       //range=0..0x0F
-	output [4:0] outSaw        //range=0..0x1F
+	output [3:0] outSq1,       			//range=0..0x0F
+	output [3:0] outSq2,       			//range=0..0x0F
+	output [4:0] outSaw,       			//range=0..0x1F
+	output [7:0] outSq1_enhanced,       //range=0..0xFF
+    output [7:0] outSq2_enhanced,       //range=0..0xFF
+	output [7:0] outSaw_enhanced        //range=0..0xFF
 );
 
 wire [15:0] ain=addr_invert ? {addr_in[15:2],addr_in[0],addr_in[1]} :  addr_in; //MAP1A : MAP18
@@ -905,6 +920,10 @@ reg en0, en1, en2;
 reg [3:0] duty0cnt, duty1cnt;
 reg [2:0] duty2cnt;
 reg [7:0] acc;
+reg [7:0] acc_enhanced;
+
+reg [7:0] sq1_acc_enhanced;
+reg [7:0] sq2_acc_enhanced;
 
 always@(posedge clk) begin
 	if(~enable) begin
@@ -960,6 +979,34 @@ always@(posedge clk) begin
 	end
 end
 
+always @(posedge clk) begin
+    if (enable && ce) begin
+        // Calculate enhanced square waveforms
+        if (sq1_acc_enhanced == 0) begin
+            sq1_acc_enhanced <= 255;
+        end else begin
+            sq1_acc_enhanced <= sq1_acc_enhanced - 1;
+        end
+        
+        if (sq2_acc_enhanced == 0) begin
+            sq2_acc_enhanced <= 255;
+        end else begin
+            sq2_acc_enhanced <= sq2_acc_enhanced - 1;
+        end
+    end
+end
+
+always @(posedge clk) begin
+    if (enable && ce) begin
+        // Calculate enhanced sawtooth waveform
+        if (acc_enhanced == 0) begin
+            acc_enhanced <= 255;
+        end else begin
+            acc_enhanced <= acc_enhanced - 1;
+        end
+    end
+end
+
 wire [4:0] duty0pos=duty0cnt+{1'b1,~duty0};
 wire [4:0] duty1pos=duty1cnt+{1'b1,~duty1};
 wire [3:0] ch0=((~duty0pos[4]|mode0)&en0)?vol0:4'd0;
@@ -969,6 +1016,10 @@ wire [4:0] ch2=en2?acc[7:3]:5'd0;
 assign outSq1=ch0;
 assign outSq2=ch1;
 assign outSaw=ch2;
+
+assign outSq1_enhanced = sq1_acc_enhanced;
+assign outSq2_enhanced = sq2_acc_enhanced;
+assign outSaw_enhanced = acc_enhanced >> 2;
 
 endmodule
 

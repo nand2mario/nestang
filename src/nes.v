@@ -118,7 +118,10 @@ module NES(
 	output        gg_avail,
 	input         gg_reset,
 	output  [2:0] emphasis,
-	output        save_written
+	output        save_written,
+	// Enhanced APU
+	input 		  i_APU_enhancements_ce,
+	input		  i_APU_mapper_saturates
 );
 
 
@@ -331,6 +334,7 @@ DmaController dma(
 wire apu_cs = addr >= 'h4000 && addr < 'h4018;
 wire [7:0] apu_dout;
 wire [15:0] sample_apu;
+wire NES_APU_enhancements_ce;
 
 APU apu(
 	.MMC5           (1'b0),
@@ -353,7 +357,9 @@ APU apu(
 	.DmaData        (from_data_bus),
 	.odd_or_even    (odd_or_even),
 	.IRQ            (apu_irq),
-	.allow_us(1'b0)
+	.allow_us(1'b0),
+	.apu_enhanced_ce(i_APU_enhancements_ce),
+	.apu_mapper_saturates(i_APU_mapper_saturates)
 );
 
 assign sample = sample_a;
@@ -494,7 +500,9 @@ cart_top multi_mapper (
 	.fds_eject         (fds_eject),               // Used to trigger FDS disk changes
 	.fds_busy          (fds_busy),                // Used to trigger FDS disk changes
 	.diskside_auto     (diskside_req),
-	.diskside          (diskside)
+	.diskside          (diskside),
+	// Enhanced APU
+	.i_enhanced_apu_ce(NES_APU_enhancements_ce)
 );
 
 wire genie_ovr;

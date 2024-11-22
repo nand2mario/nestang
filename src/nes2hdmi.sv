@@ -12,7 +12,9 @@ module nes2hdmi (
     input [8:0] cycle,
     input [8:0] scanline,
     input [15:0] sample,
-    input aspect_8x7,       // 1: 8x7 pixel aspect ratio mode
+
+    // Aspect Ratio
+    input wire i_reg_aspect_ratio,
 
     // overlay interface
     input overlay,
@@ -72,9 +74,6 @@ localparam BAUDRATE=115200;
 `ifdef VERILATOR
 `define EMBED_GAME
 `endif
-
-// flags
-logic asp8x7_on = 1'b1;
 
 // video stuff
 wire [9:0] cy, frameHeight;
@@ -212,7 +211,7 @@ end
 // - For 8:7, total width is 36*24 + 13 = 877. Therefore x goes from 201 to 1077.
 reg r2_active;
 reg [4:0] xs, r_xs, r2_xs;       // x step for each 7 NES pixel group, 0-23 for 8:7 pixel aspect ratio, or 0-20 for 1:1 pixel aspect ratio
-wire xload = asp8x7_on ? 
+wire xload = i_reg_aspect_ratio ? 
         (xs == 5'd0 || xs == 5'd3 || xs == 5'd6 || xs == 5'd10 || xs == 5'd13 || xs == 5'd17 || xs == 5'd20)
     : (xs == 5'd0 || xs == 5'd3 || xs == 5'd6 || xs == 5'd9 || xs == 5'd12 || xs == 5'd15 || xs == 5'd18);
 reg r_xload;
@@ -224,7 +223,7 @@ reg [23:0] NES_PALETTE [0:63];
 // Mix ratio of border pixels for 8x7 pixel aspect ratio
 reg [15:0] mixratio;
 reg mix;
-wire [15:0] next_mixratio = ~asp8x7_on ? 16'b0 :            // no mixing for 1:1 pixel aspect ratio
+wire [15:0] next_mixratio = ~i_reg_aspect_ratio ? 16'b0 :            // no mixing for 1:1 pixel aspect ratio
                         r_xs == 5'd3 ? {8'd110,8'd146} :
                         r_xs == 5'd6 ? {8'd219,8'd37} :
                         r_xs == 5'd10 ? {8'd73,8'd183} :
@@ -242,9 +241,9 @@ reg overlay_active;
 // calc rgb value to hdmi
 always_ff @(posedge clk_pixel) begin
     reg [23:0] rgb_nes;
-    if (asp8x7_on && cx == 11'd198 || ~asp8x7_on && cx == 11'd253)
+    if (i_reg_aspect_ratio && cx == 11'd198 || ~i_reg_aspect_ratio && cx == 11'd253)
         active <= 1'b1;
-    if (asp8x7_on && cx == 11'd1075 || ~asp8x7_on && cx == 11'd1021)
+    if (i_reg_aspect_ratio && cx == 11'd1075 || ~i_reg_aspect_ratio && cx == 11'd1021)
         active <= 1'b0;
     if (cx == 11'd256 && cy >= 10'd24 && cy < 10'd696)
         overlay_active <= 1;
@@ -257,7 +256,7 @@ always_ff @(posedge clk_pixel) begin
     r_active <= active; r2_active <= r_active;
     r_xs <= xs; r2_xs <= r_xs;
     if (active) begin
-        if (asp8x7_on)
+        if (i_reg_aspect_ratio)
             xs <= xs == 5'd23 ? 0 : xs + 1;
         else
             xs <= xs == 5'd20 ? 0 : xs + 1;
@@ -274,7 +273,7 @@ always_ff @(posedge clk_pixel) begin
 
     // 2 - mix rgb and output
     if (r2_active) begin
-        if (asp8x7_on && mix)
+        if (i_reg_aspect_ratio && mix)
             rgb_nes = {rmix[15:8], gmix[15:8], bmix[15:8]};
         else
             rgb_nes = rgbv;
