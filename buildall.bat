@@ -23,6 +23,11 @@ echo ============ Building mega60k with ds2 controller ===============
 echo.
 %GWSH_NEW% build.tcl mega60k ds2
 
+echo.
+echo ============ Building console60k with ds2 controller ===============
+echo.
+%GWSH_NEW% build.tcl console60k ds2
+
 dir impl\pnr\*.fs
 
 echo "All done."

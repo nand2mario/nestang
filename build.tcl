@@ -56,6 +56,23 @@ if {$dev eq "nano20k"} {
     add_file -type verilog "src/primer25k/gowin_pll_nes.v"
     add_file -type sdc "src/primer25k/nestang.sdc"
     set_option -output_base_name nestang_${dev}_${controller}
+} elseif {$dev eq "console60k"} {
+    set_device GW5AT-LV60PG484AC1/I0 -device_version B
+    if {$controller eq "snes"} {
+        add_file src/console60k/config_snescontroller.v
+        add_file -type cst "src/console60k/nestang_snescontroller.cst"
+    } elseif {$controller eq "ds2"} {
+        add_file src/console60k/config.v
+        add_file -type cst "src/console60k/nestang.cst"
+    } else {
+        error "Unknown controller $controller"
+    }
+    # mega60k uses the same PLL as primer25k
+    add_file -type verilog "src/primer25k/gowin_pll_27.v"
+    add_file -type verilog "src/primer25k/gowin_pll_hdmi.v"
+    add_file -type verilog "src/primer25k/gowin_pll_nes.v"
+    add_file -type sdc "src/primer25k/nestang.sdc"
+    set_option -output_base_name nestang_${dev}_${controller}
 } else {
     error "Unknown device $dev"
 }
