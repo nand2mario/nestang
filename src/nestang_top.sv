@@ -354,9 +354,9 @@ GameData game_data(
 
 // For physical board, there's HDMI, iosys, joypads, and USB
 wire overlay;                   // iosys controls overlay
-wire [10:0] overlay_x;
-wire [9:0]  overlay_y;
-wire [15:0] overlay_color;      // BGR5
+wire [7:0] overlay_x;
+wire [7:0]  overlay_y;
+wire [14:0] overlay_color;      // BGR5
 
 // HDMI output
 nes2hdmi u_hdmi (     // purple: RGB=440064 (010001000_00000000_01100100), BGR5=01100_00000_01000

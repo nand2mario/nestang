@@ -16,9 +16,9 @@ module nes2hdmi (
 
     // overlay interface
     input overlay,
-    output [10:0] overlay_x,
-    output [9:0] overlay_y,
-    input [15:0] overlay_color, // BGR5, [15] is opacity
+    output [7:0] overlay_x,
+    output [7:0] overlay_y,
+    input [14:0] overlay_color, // BGR5
 
 	// video clocks
 	input clk_pixel,
@@ -33,7 +33,8 @@ module nes2hdmi (
 	output [2:0] tmds_d_p
 );
 
-// include from tang_primer_25k/config.sv and tang_nano_20k/config.sv
+// NES generates 256x240. We assume the center 256x224 is visible and scale that to 4:3 aspect ratio.
+// https://www.nesdev.org/wiki/Overscan
 
 localparam FRAMEWIDTH = 1280;
 localparam FRAMEHEIGHT = 720;
@@ -58,36 +59,9 @@ localparam POWERUPNS = 100000000.0;
 localparam CLKPERNS = (1.0/CLKFRQ)*1000000.0;
 localparam int POWERUPCYCLES = $rtoi($ceil( POWERUPNS/CLKPERNS ));
 
-// Main clock frequency
-localparam FREQ=27_000_000;          // at least 10x baudrate
-// localparam FREQ=37_800_000;
-
-// UART baudrate: BAUDRATE <= FREQ/10
-localparam BAUDRATE=115200;
-// localparam BAUDRATE=921600;
-
-// define this to execute one NES cycle per 0.01 second and print the operation done
-// `define STEP_TRACING
-
-`ifdef VERILATOR
-`define EMBED_GAME
-`endif
-
-// flags
-logic asp8x7_on = 1'b1;
-
 // video stuff
 wire [9:0] cy, frameHeight;
 wire [10:0] cx, frameWidth;
-logic [7:0] ONE_THIRD[0:768];     // lookup table for divide-by-3
-
-assign overlay_x = cx;
-assign overlay_y = cy;
-
-logic active;
-logic r_active;
-logic [7:0] x;                    // NES pixel position
-wire [7:0] y;
 
 //
 // BRAM frame buffer
@@ -102,10 +76,6 @@ logic mem_portA_we;
 
 wire [15:0] mem_portB_addr;
 logic [5:0] mem_portB_rdata;
-
-logic initializing = 1;
-logic [7:0] init_y = 0;
-logic [7:0] init_x = 0; 
 
 // BRAM port A read/write
 always_ff @(posedge clk) begin
@@ -123,21 +93,6 @@ initial begin
     $readmemb("background.txt", mem);
 end
 
-// localparam [0:65] LOGO [0:12] = '{
-//     'b11110000110011111111001111001111111110000000000000000000000000000,
-//     'b11110000110011111111011111101111111110000000000000000000000000000,
-//     'b11111000110011100000011100100001110000000000000000000000000000000,
-//     'b11111000110011100000011100000001110000011111000111111100001111110,
-//     'b11011100110011111110001110000001110000110011100111001110011100111,
-//     'b11001110110011111110000111000001110000000011100110001110011000111,
-//     'b11001111110011000000000011100001110000111111100110001110111000111,
-//     'b11000111110011000000110011100001110001111111100110001110111000111,
-//     'b11000011110011111110111111100001100001110011100110001110011001111,
-//     'b11000011110011111110011111000001100000111111100110001110001111111,
-//     'b00000000000000000000000000000000000000000000000000000000000000111,
-//     'b00000000000000000000000000000000000000000000000000000000011001110,
-//     'b00000000000000000000000000000000000000000000000000000000011111100
-// };
 
 // 
 // Data input and initial background loading
@@ -145,32 +100,13 @@ end
 logic [8:0] r_scanline;
 logic [8:0] r_cycle;
 always @(posedge clk) begin
-    if (~resetn) begin
-        initializing <= 1;
-        init_y <= 0;
-        init_x <= 0;
-        mem_portA_we <= 0;
-    end else if (initializing) begin    // setup background at initialization
-        init_x <= init_x + 1;
-        init_y <= init_x == 255 ? init_y + 1 : init_y;
-        if (init_y == 240)
-            initializing <= 0;
-        mem_portA_we <= 1;
-        mem_portA_addr <= {init_y, init_x};
-        mem_portA_wdata <= 0;          // grey
-        // if (init_x >= 96 && init_x <= 160 && init_y >= 212 && init_y <= 224 && LOGO[init_y - 212][init_x - 96])
-        //     mem_portA_wdata <= 4;       // blue logo
-        // else
-        //     mem_portA_wdata <= 13;      // black
-    end else begin
-        r_scanline <= scanline;
-        r_cycle <= cycle;
-        mem_portA_we <= 1'b0;
-        if ((r_scanline != scanline || r_cycle != cycle) && scanline < 9'd240 && ~cycle[8]) begin
-            mem_portA_addr <= {scanline[7:0], cycle[7:0]};
-            mem_portA_wdata <= color;
-            mem_portA_we <= 1'b1;
-        end
+    r_scanline <= scanline;
+    r_cycle <= cycle;
+    mem_portA_we <= 1'b0;
+    if ((r_scanline != scanline || r_cycle != cycle) && scanline < 9'd240 && ~cycle[8]) begin
+        mem_portA_addr <= {scanline[7:0], cycle[7:0]};
+        mem_portA_wdata <= color;
+        mem_portA_we <= 1'b1;
     end
 end
 
@@ -202,96 +138,81 @@ end
 
 //
 // Video
+// Scale 256x224 to 1280x720
 //
-// We support both 1:1 pixel aspect ratio, and 8:7
-// - 7 NES pixels are mapped to 21 or 24 HDMI pixels horizontally in these 2 modes.
-// - For 8:7, the follows are "border" HDMI pixels (0 to 23) that combine 2 neighboring NES pixels
-//      3:  110,146  6: 219,37   10: 73,183; 
-//      13: 183,73   17: 37,219  20: 146,110
-//   For 1:1, there's no border pixels. Each NES pixel is expanded to 3 HDMI pixels.
-// - For 8:7, total width is 36*24 + 13 = 877. Therefore x goes from 201 to 1077.
-reg r2_active;
-reg [4:0] xs, r_xs, r2_xs;       // x step for each 7 NES pixel group, 0-23 for 8:7 pixel aspect ratio, or 0-20 for 1:1 pixel aspect ratio
-wire xload = asp8x7_on ? 
-        (xs == 5'd0 || xs == 5'd3 || xs == 5'd6 || xs == 5'd10 || xs == 5'd13 || xs == 5'd17 || xs == 5'd20)
-    : (xs == 5'd0 || xs == 5'd3 || xs == 5'd6 || xs == 5'd9 || xs == 5'd12 || xs == 5'd15 || xs == 5'd18);
-reg r_xload;
-// x is incremented whenver xload is 1
-assign y = ONE_THIRD[cy];
-assign mem_portB_addr = {y, x};
-// assign led = ~{2'b0, mem_portB_rdata}; 
-reg [23:0] NES_PALETTE [0:63];
-// Mix ratio of border pixels for 8x7 pixel aspect ratio
-reg [15:0] mixratio;
-reg mix;
-wire [15:0] next_mixratio = ~asp8x7_on ? 16'b0 :            // no mixing for 1:1 pixel aspect ratio
-                        r_xs == 5'd3 ? {8'd110,8'd146} :
-                        r_xs == 5'd6 ? {8'd219,8'd37} :
-                        r_xs == 5'd10 ? {8'd73,8'd183} :
-                        r_xs == 5'd13 ? {8'd183,8'd73} :
-                        r_xs == 5'd17 ? {8'd37,8'd219} :
-                        r_xs == 5'd20 ? {8'd146,8'd110} : 16'b0;
-wire next_mix = r_xs == 5'd3 || r_xs == 5'd6 || r_xs == 5'd10 || r_xs == 5'd13 || r_xs == 5'd17 || r_xs == 5'd20;
-reg [23:0] rgbv, r_rgbv;
-wire [15:0] rmix = r_rgbv[23:16]*mixratio[15:8] + rgbv[23:16]*mixratio[7:0];
-wire [15:0] gmix = r_rgbv[15:8]*mixratio[15:8] + rgbv[15:8]*mixratio[7:0];
-wire [15:0] bmix = r_rgbv[7:0]*mixratio[15:8] + rgbv[7:0]*mixratio[7:0];
-reg [23:0] rgb;     // actual RGB output
-reg overlay_active;
+localparam WIDTH=256;
+localparam HEIGHT=240;
+reg [23:0] rgb;             // actual RGB output
+reg active                  /* xsynthesis syn_keep=1 */;
+reg [$clog2(WIDTH)-1:0] xx  /* xsynthesis syn_keep=1 */; // scaled-down pixel position
+reg [$clog2(HEIGHT)-1:0] yy /* xsynthesis syn_keep=1 */;
+reg [10:0] xcnt             /* xsynthesis syn_keep=1 */;
+reg [10:0] ycnt             /* xsynthesis syn_keep=1 */;                  // fractional scaling counters
+reg [9:0] cy_r;
+assign mem_portB_addr = yy * WIDTH + xx + 8*256;
+assign overlay_x = xx;
+assign overlay_y = yy;
+localparam XSTART = (1280 - 960) / 2;   // 960:720 = 4:3
+localparam XSTOP = (1280 + 960) / 2;
 
-// calc rgb value to hdmi
-always_ff @(posedge clk_pixel) begin
-    reg [23:0] rgb_nes;
-    if (asp8x7_on && cx == 11'd198 || ~asp8x7_on && cx == 11'd253)
-        active <= 1'b1;
-    if (asp8x7_on && cx == 11'd1075 || ~asp8x7_on && cx == 11'd1021)
-        active <= 1'b0;
-    if (cx == 11'd256 && cy >= 10'd24 && cy < 10'd696)
-        overlay_active <= 1;
-    if (cx == 11'd1023)
-        overlay_active <= 0;
+// address calculation
+// Assume the video occupies fully on the Y direction, we are upscaling the video by `720/height`.
+// xcnt and ycnt are fractional scaling counters.
+always @(posedge clk_pixel) begin
+    reg active_t;
+    reg [10:0] xcnt_next;
+    reg [10:0] ycnt_next;
+    xcnt_next = xcnt + 256;
+    ycnt_next = ycnt + 224;
 
-    // calculate pixel rgb through 3 cycles
-    // 0 - load: xmem_portB_rdata = mem[{y,x}]
-    r_xload <= xload;
-    r_active <= active; r2_active <= r_active;
-    r_xs <= xs; r2_xs <= r_xs;
-    if (active) begin
-        if (asp8x7_on)
-            xs <= xs == 5'd23 ? 0 : xs + 1;
-        else
-            xs <= xs == 5'd20 ? 0 : xs + 1;
+    active_t = 0;
+    if (cx == XSTART - 1) begin
+        active_t = 1;
+        active <= 1;
+    end else if (cx == XSTOP - 1) begin
+        active_t = 0;
+        active <= 0;
     end
 
-    // 1 - look up palette and load mixratio
-    if (r_active && r_xload) begin
-        x <= x + 1;
-        rgbv <= NES_PALETTE[mem_portB_rdata];
-        r_rgbv <= rgbv;
+    if (active_t | active) begin        // increment xx
+        xcnt <= xcnt_next;
+        if (xcnt_next >= 960) begin
+            xcnt <= xcnt_next - 960;
+            xx <= xx + 1;
+        end
     end
-    mixratio <= next_mixratio;
-    mix <= next_mix;
 
-    // 2 - mix rgb and output
-    if (r2_active) begin
-        if (asp8x7_on && mix)
-            rgb_nes = {rmix[15:8], gmix[15:8], bmix[15:8]};
-        else
-            rgb_nes = rgbv;
-    end else
-        rgb_nes = 24'b0;
-
-    if (overlay) begin      // transparency effect for overlay
-        rgb <= {2'b0, rgb_nes[23:18], 2'b0, rgb_nes[15:10], 2'b0, rgb_nes[7:2]};  
-        if (overlay_active && overlay_color[15])  // overlay_color is BGR5
-            rgb <= {overlay_color[4:0], 3'b0, overlay_color[9:5], 3'b0, overlay_color[14:10], 3'b0};
-    end else
-        rgb <= rgb_nes;     // normal NES display
+    cy_r <= cy;
+    if (cy[0] != cy_r[0]) begin         // increment yy at new lines
+        ycnt <= ycnt_next;
+        if (ycnt_next >= 720) begin
+            ycnt <= ycnt_next - 720;
+            yy <= yy + 1;
+        end
+    end
 
     if (cx == 0) begin
-        x <= 0;
-        xs <= 0; r_xs <= 0; r2_xs <= 0;
+        xx <= 0;
+        xcnt <= 0;
     end
+    
+    if (cy == 0) begin
+        yy <= 0;
+        ycnt <= 0;
+    end 
+
+end
+
+// calc rgb value to hdmi
+reg [23:0] NES_PALETTE [0:63];
+always @(posedge clk_pixel) begin
+    if (active) begin
+        if (overlay)
+            rgb <= {overlay_color[4:0],3'b0,overlay_color[9:5],3'b0,overlay_color[14:10],3'b0};       // BGR5 to RGB8
+        else
+            rgb <= NES_PALETTE[mem_portB_rdata];
+    end else
+        rgb <= 24'h303030;
 end
 
 // HDMI output.
@@ -310,7 +231,7 @@ hdmi( .clk_pixel_x5(clk_5x_pixel),
         .clk_pixel(clk_pixel), 
         .clk_audio(clk_audio),
         .rgb(rgb), 
-        .reset( ~resetn ),
+        .reset( 0 ),
         .audio_sample_word(audio_sample_word),
         .tmds(tmds), 
         .tmds_clock(tmdsClk), 
@@ -325,14 +246,6 @@ ELVDS_OBUF tmds_bufds [3:0] (
     .O({tmds_clk_p, tmds_d_p}),
     .OB({tmds_clk_n, tmds_d_n})
 );
-
-// divide by three lookup table
-genvar i;
-generate
-    for (i = 0; i < 768; i = i + 1) begin : gen_one_third
-        assign ONE_THIRD[i] = i / 3;
-    end
-endgenerate
 
 // 2C02 palette: https://www.nesdev.org/wiki/PPU_palettes
 assign NES_PALETTE[0] = 24'h545454;  assign NES_PALETTE[1] = 24'h001e74;  assign NES_PALETTE[2] = 24'h081090;  assign NES_PALETTE[3] = 24'h300088;  

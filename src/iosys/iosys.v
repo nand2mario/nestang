@@ -43,8 +43,8 @@ module iosys #(
 
     // OSD display interface
     output overlay,
-    input [10:0] overlay_x,         // 720p
-    input [9:0] overlay_y,
+    input [7:0] overlay_x,         // 720p
+    input [7:0] overlay_y,
     output [15:0] overlay_color,    // BGR5, [15] is opacity
     input [11:0] joy1,              // joystick 1: (R L X A RT LT DN UP START SELECT Y B)
     input [11:0] joy2,              // joystick 2
@@ -219,7 +219,7 @@ picorv32 #(
 // text display @ 0x0200_0000
 textdisp #(.COLOR_LOGO(COLOR_LOGO)) disp (
     .clk(clk), .hclk(hclk), .resetn(resetn),
-    .overlay_x(overlay_x), .overlay_y(overlay_y), .overlay_color(overlay_color),
+    .x(overlay_x), .y(overlay_y), .color(overlay_color),
     .reg_char_we(textdisp_reg_char_sel ? mem_wstrb : 4'b0),
     .reg_char_di(mem_wdata) 
 );
