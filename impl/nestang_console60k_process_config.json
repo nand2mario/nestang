@@ -50,7 +50,7 @@
  "MULTIJUMP_MODE" : "Normal",
  "MULTIJUMP_SPI_FLASH_ADDRESS" : "000000",
  "Multi_Boot" : false,
- "OUTPUT_BASE_NAME" : "nes",
+ "OUTPUT_BASE_NAME" : "nestang",
  "POWER_ON_RESET_MONITOR" : true,
  "PRINT_BSRAM_VALUE" : true,
  "PROGRAM_DONE_BYPASS" : false,

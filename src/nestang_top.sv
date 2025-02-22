@@ -341,7 +341,7 @@ nes2hdmi u_hdmi (     // purple: RGB=440064 (010001000_00000000_01100100), BGR5=
 // sys module for menu, rom loading...
 sys #(.COLOR_LOGO(15'b01100_00000_01000), .FREQ(21_477_000), .CORE_ID(1) )     // purple nestang logo
     sys_inst (
-    .clk(clk), .hclk(hclk), .resetn(sys_resetn),
+    .clk(clk), .clk50(sys_clk), .hclk(hclk), .resetn(sys_resetn),
 
     .overlay(overlay), .overlay_x(overlay_x), .overlay_y(overlay_y), .overlay_color(overlay_color),
     .joy1(joy1_btns), .joy2(joy2_btns),

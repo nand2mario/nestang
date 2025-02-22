@@ -11,6 +11,7 @@ module sys #(
 )
 (
     input clk,                      // main logic clock
+    input clk50,                    // 50mhz clock for UART
     input hclk,                     // hdmi clock
     input resetn,
 
@@ -39,7 +40,7 @@ localparam [8*STR_LEN-1:0] CONF_STR = "Tangcores;-;O12,OSD key,Right+Select,Sele
 
 // Remove SPI parameters and add UART parameters
 localparam CLK_FREQ = FREQ;
-localparam BAUD_RATE = 2_000_000;
+localparam BAUD_RATE = 1_000_000;
 
 reg overlay_reg = 1;
 assign overlay = overlay_reg;
@@ -55,23 +56,23 @@ reg tx_valid;
 wire tx_ready;
 
 // Instantiate UART modules
- uart_rx #(
-     .CLK_FREQ(CLK_FREQ),
-     .BAUD_RATE(BAUD_RATE)
- ) uart_receiver (
-     .clk(clk),
-     .resetn(resetn),
-     .rx(uart_rx),
-     .data(rx_data),
-     .valid(rx_valid),
-     .error(rx_error)
- );
+uart_rx #(
+    .CLK_FREQ(50_000_000),
+    .BAUD_RATE(BAUD_RATE)
+) uart_receiver (
+    .clk(clk50),
+    .resetn(resetn),
+    .rx(uart_rx),
+    .data(rx_data),
+    .valid(rx_valid),
+    .error(rx_error)
+);
 
 uart_tx #(
-    .CLK_FREQ(CLK_FREQ),
+    .CLK_FREQ(50_000_000),
     .BAUD_RATE(BAUD_RATE)
 ) uart_transmitter (
-    .clk(clk),
+    .clk(clk50),
     .resetn(resetn),
     .tx(uart_tx),
     .data(tx_data),
@@ -114,7 +115,7 @@ reg send_config_string_ack;
  // 6 loading_state[7:0]    set loading state (rom_loading)
  // 7 len[23:0] <data>      load len bytes of data to rom_do
 // Command processing state machine (RX)
-always @(posedge clk) begin
+always @(posedge clk50) begin
     if (!resetn) begin
         recv_state <= RECV_IDLE;
         cmd_reg <= 0;
@@ -216,13 +217,13 @@ localparam SEND_JOYPAD = 2;
 
 reg [1:0] send_state;
 reg [2:0] send_idx;
-localparam JOY_UPDATE_INTERVAL = CLK_FREQ / 50; // 20ms interval for 50Hz
+localparam JOY_UPDATE_INTERVAL = 50_000_000 / 50; // 20ms interval for 50Hz
 reg [31:0] joy_timer;
 reg [15:0] joy1_reg;
 reg [15:0] joy2_reg;
 
 // UART transmission logic (TX)
-always @(posedge clk) begin
+always @(posedge clk50) begin
     if (!resetn) begin
         joy_timer <= 0;
         send_state <= 0;
@@ -288,7 +289,7 @@ end
 // text display
 `ifndef SIM
 textdisp #(.COLOR_LOGO(COLOR_LOGO)) disp (
-    .clk(clk), .hclk(hclk), .resetn(resetn),
+    .clk(clk50), .hclk(hclk), .resetn(resetn),
     .x(overlay_x), .y(overlay_y), .color(overlay_color),
     .x_wr(x_wr), .y_wr(y_wr), .char_wr(char_wr),
     .we(we)
