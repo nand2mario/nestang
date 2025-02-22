@@ -1,62 +1,68 @@
+
+// UART TX with fractional clock divider.
+// Baud rate = frequency of `clk` / (DIV_NUM / DIV_DEN)
 module uart_tx #(
-    parameter CLK_FREQ = 50_000_000,
-    parameter BAUD_RATE = 2_000_000
+    parameter DIV_NUM = 25,
+    parameter DIV_DEN = 1
 )(
     input clk,
     input resetn,
-    output reg tx,
     input [7:0] data,
     input valid,
+    output reg tx,
     output ready
 );
 
-localparam CLKS_PER_BIT = (CLK_FREQ + BAUD_RATE/2)/ BAUD_RATE;
-localparam IDLE = 0, START = 1, DATA = 2, STOP = 3;
-
-reg [1:0] state;
-reg [15:0] clk_count;
+reg [3:0] state;
+reg [$clog2(DIV_NUM)-1:0] cnt, cnt_next;
 reg [2:0] bit_index;
 reg [7:0] tx_data;
 
-assign ready = (state == IDLE);
+assign ready = (state == 0);
 
 always @(posedge clk) begin
     if (!resetn) begin
-        state <= IDLE;
+        state <= 0;
         tx <= 1;
+        cnt <= 0;
     end else begin
+        reg cnt_overflow;
+        cnt_next = cnt + DIV_DEN;
+        cnt_overflow = cnt_next >= DIV_NUM;
+        if (state != 0) 
+            cnt <= cnt_overflow ? cnt_next - DIV_NUM : cnt_next;
+
         case (state)
-            IDLE: begin
+            0: begin // Idle
                 if (valid) begin
                     tx_data <= data;
-                    state <= START;
-                    clk_count <= 0;
-                    bit_index <= 0;
+                    state <= 1;
+                    tx <= 0; // Start bit
+                    cnt <= 0;
                 end
             end
-            START: begin
-                tx <= 0;
-                if (clk_count == CLKS_PER_BIT-1) begin
-                    state <= DATA;
-                    clk_count <= 0;
-                end else clk_count <= clk_count + 1;
+            1: begin // Start bit
+                if (cnt_overflow) begin
+                    state <= 2;
+                    bit_index <= 0;
+                    tx <= tx_data[0];
+                end
             end
-            DATA: begin
-                tx <= tx_data[bit_index];
-                if (clk_count == CLKS_PER_BIT-1) begin
+            2: begin // Data bits
+                if (cnt_overflow) begin
                     if (bit_index == 7) begin
-                        state <= STOP;
+                        state <= 3;
+                        tx <= 1; // Stop bit
                     end else begin
                         bit_index <= bit_index + 1;
+                        tx <= tx_data[bit_index + 1];
                     end
-                    clk_count <= 0;
-                end else clk_count <= clk_count + 1;
+                end
             end
-            STOP: begin
-                tx <= 1;
-                if (clk_count == CLKS_PER_BIT-1) begin
-                    state <= IDLE;
-                end else clk_count <= clk_count + 1;
+            3: begin // Stop bit
+                if (cnt_overflow) begin
+                    state <= 0;
+                end
             end
         endcase
     end

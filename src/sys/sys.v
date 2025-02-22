@@ -11,7 +11,7 @@ module sys #(
 )
 (
     input clk,                      // main logic clock
-    input clk50,                    // 50mhz clock for UART
+    // input clk50,                    // 50mhz clock for UART
     input hclk,                     // hdmi clock
     input resetn,
 
@@ -48,7 +48,6 @@ assign overlay = overlay_reg;
 // UART receiver signals
 wire [7:0] rx_data;
 wire rx_valid;
-wire rx_error;
 
 // UART transmitter signals
 reg [7:0] tx_data;
@@ -57,22 +56,21 @@ wire tx_ready;
 
 // Instantiate UART modules
 uart_rx #(
-    .CLK_FREQ(50_000_000),
-    .BAUD_RATE(BAUD_RATE)
+    .DIV_NUM(CLK_FREQ/1000),
+    .DIV_DEN(BAUD_RATE/1000)
 ) uart_receiver (
-    .clk(clk50),
+    .clk(clk),
     .resetn(resetn),
     .rx(uart_rx),
     .data(rx_data),
-    .valid(rx_valid),
-    .error(rx_error)
+    .valid(rx_valid)
 );
 
 uart_tx #(
-    .CLK_FREQ(50_000_000),
-    .BAUD_RATE(BAUD_RATE)
+    .DIV_NUM(CLK_FREQ/1000),
+    .DIV_DEN(BAUD_RATE/1000)
 ) uart_transmitter (
-    .clk(clk50),
+    .clk(clk),
     .resetn(resetn),
     .tx(uart_tx),
     .data(tx_data),
@@ -115,7 +113,7 @@ reg send_config_string_ack;
  // 6 loading_state[7:0]    set loading state (rom_loading)
  // 7 len[23:0] <data>      load len bytes of data to rom_do
 // Command processing state machine (RX)
-always @(posedge clk50) begin
+always @(posedge clk) begin
     if (!resetn) begin
         recv_state <= RECV_IDLE;
         cmd_reg <= 0;
@@ -223,7 +221,7 @@ reg [15:0] joy1_reg;
 reg [15:0] joy2_reg;
 
 // UART transmission logic (TX)
-always @(posedge clk50) begin
+always @(posedge clk) begin
     if (!resetn) begin
         joy_timer <= 0;
         send_state <= 0;
@@ -289,7 +287,7 @@ end
 // text display
 `ifndef SIM
 textdisp #(.COLOR_LOGO(COLOR_LOGO)) disp (
-    .clk(clk50), .hclk(hclk), .resetn(resetn),
+    .clk(clk), .hclk(hclk), .resetn(resetn),
     .x(overlay_x), .y(overlay_y), .color(overlay_color),
     .x_wr(x_wr), .y_wr(y_wr), .char_wr(char_wr),
     .we(we)
