@@ -1,6 +1,7 @@
-
 // UART TX with fractional clock divider.
 // Baud rate = frequency of `clk` / (DIV_NUM / DIV_DEN)
+//
+// Author: nand2mario, Feb 2025
 module uart_tx #(
     parameter DIV_NUM = 25,
     parameter DIV_DEN = 1
