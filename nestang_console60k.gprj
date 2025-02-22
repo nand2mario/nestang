@@ -10,6 +10,7 @@
         <File path="src/autofire.v" type="file.verilog" enable="1"/>
         <File path="src/cart.sv" type="file.verilog" enable="1"/>
         <File path="src/compat.v" type="file.verilog" enable="1"/>
+        <File path="src/console60k/config.v" type="file.verilog" enable="1"/>
         <File path="src/controller_ds2.sv" type="file.verilog" enable="1"/>
         <File path="src/controller_snes.v" type="file.verilog" enable="1"/>
         <File path="src/dpram.v" type="file.verilog" enable="1"/>
@@ -25,15 +26,6 @@
         <File path="src/hdmi2/serializer.sv" type="file.verilog" enable="1"/>
         <File path="src/hdmi2/source_product_description_info_frame.sv" type="file.verilog" enable="1"/>
         <File path="src/hdmi2/tmds_channel.sv" type="file.verilog" enable="1"/>
-        <File path="src/hw_uart.v" type="file.verilog" enable="1"/>
-        <File path="src/iosys/gowin_dpb_menu.v" type="file.verilog" enable="1"/>
-        <File path="src/iosys/iosys.v" type="file.verilog" enable="1"/>
-        <File path="src/iosys/picorv32.v" type="file.verilog" enable="1"/>
-        <File path="src/iosys/simplespimaster.v" type="file.verilog" enable="1"/>
-        <File path="src/iosys/simpleuart.v" type="file.verilog" enable="1"/>
-        <File path="src/iosys/spi_master.v" type="file.verilog" enable="1"/>
-        <File path="src/iosys/spiflash.v" type="file.verilog" enable="1"/>
-        <File path="src/iosys/textdisp.v" type="file.verilog" enable="1"/>
         <File path="src/mappers/JYCompany.sv" type="file.verilog" enable="1"/>
         <File path="src/mappers/MMC1.sv" type="file.verilog" enable="1"/>
         <File path="src/mappers/MMC2.sv" type="file.verilog" enable="1"/>
@@ -45,7 +37,6 @@
         <File path="src/mappers/generic.sv" type="file.verilog" enable="1"/>
         <File path="src/mappers/iir_filter.v" type="file.verilog" enable="1"/>
         <File path="src/mappers/misc.sv" type="file.verilog" enable="1"/>
-        <File path="src/console60k/config.v" type="file.verilog" enable="1"/>
         <File path="src/nes.v" type="file.verilog" enable="1"/>
         <File path="src/nes2hdmi.sv" type="file.verilog" enable="1"/>
         <File path="src/nestang_top.sv" type="file.verilog" enable="1"/>
@@ -54,11 +45,15 @@
         <File path="src/primer25k/gowin_pll_hdmi.v" type="file.verilog" enable="1"/>
         <File path="src/primer25k/gowin_pll_nes.v" type="file.verilog" enable="1"/>
         <File path="src/sdram_nes.v" type="file.verilog" enable="1"/>
+        <File path="src/sys/gowin_dpb_menu.v" type="file.verilog" enable="1"/>
+        <File path="src/sys/sys.v" type="file.verilog" enable="1"/>
+        <File path="src/sys/textdisp.v" type="file.verilog" enable="1"/>
+        <File path="src/sys/uart_rx.v" type="file.verilog" enable="1"/>
+        <File path="src/sys/uart_tx.v" type="file.verilog" enable="1"/>
         <File path="src/t65/T65.v" type="file.verilog" enable="1"/>
         <File path="src/t65/T65_ALU.v" type="file.verilog" enable="1"/>
         <File path="src/t65/T65_MCode.v" type="file.verilog" enable="1"/>
         <File path="src/t65/T65_Pack.v" type="file.verilog" enable="1"/>
-        <File path="src/uart_tx_V2.v" type="file.verilog" enable="1"/>
         <File path="src/usb_hid_host.v" type="file.verilog" enable="1"/>
         <File path="src/usb_hid_host_rom.v" type="file.verilog" enable="1"/>
         <File path="src/console60k/nestang.cst" type="file.cst" enable="1"/>

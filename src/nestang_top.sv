@@ -33,22 +33,6 @@ module nestang_top (
     output [1:0] O_sdram_ba,        // two banks
     output [SDRAM_DATA_WIDTH/8-1:0] O_sdram_dqm,    
 
-    // MicroSD
-    output sd_clk,
-    inout  sd_cmd,      // MOSI
-    input  sd_dat0,     // MISO
-    output sd_dat1,     // 1
-    output sd_dat2,     // 1
-    output sd_dat3,     // 1
-
-    // SPI flash
-    output flash_spi_cs_n,          // chip select
-    input flash_spi_miso,           // master in slave out
-    output flash_spi_mosi,          // mster out slave in
-    output flash_spi_clk,           // spi clock
-    output flash_spi_wp_n,          // write protect
-    output flash_spi_hold_n,        // hold operations
-
 `ifdef CONTROLLER_SNES
     // snes controllers
     output joy1_strb,
@@ -129,22 +113,6 @@ wire [1:0] nes_ce;
 wire loading;                 // from iosys or game_data
 wire [7:0] loader_do;
 wire loader_do_valid;
-
-// iosys softcore
-wire        rv_valid;
-reg         rv_ready;
-wire [22:0] rv_addr;
-wire [31:0] rv_wdata;
-wire [3:0]  rv_wstrb;
-reg  [15:0] rv_dout0;
-wire [31:0] rv_rdata = {rv_dout, rv_dout0};
-reg         rv_valid_r;
-reg         rv_word;           // which word
-reg         rv_req;
-wire        rv_req_ack;
-wire [15:0] rv_dout;
-reg [1:0]   rv_ds;
-reg         rv_new_req;
 
 // Controller
 wire [7:0] joy_rx[0:1], joy_rx2[0:1];     // 6 RX bytes for all button/axis state
@@ -307,9 +275,9 @@ sdram_nes sdram (
     .dinB(loading ? loader_write_data_mem : memory_dout_cpu),
     .oeB(~loading & memory_read_cpu), .doutB(memory_din_cpu),
 
-    // IOSys risc-v softcore
-    .rv_addr({rv_addr[20:2], rv_word}), .rv_din(rv_word ? rv_wdata[31:16] : rv_wdata[15:0]), 
-    .rv_ds(rv_ds), .rv_dout(rv_dout), .rv_req(rv_req), .rv_req_ack(rv_req_ack), .rv_we(rv_wstrb != 0)
+    // removed: IOSys risc-v softcore
+    .rv_addr(), .rv_din(), 
+    .rv_ds(), .rv_dout(), .rv_req(), .rv_req_ack(), .rv_we()
 );
 
 // ROM parser
@@ -370,111 +338,16 @@ nes2hdmi u_hdmi (     // purple: RGB=440064 (010001000_00000000_01100100), BGR5=
     .tmds_d_n(tmds_d_n), .tmds_d_p(tmds_d_p)
 );
 
-// IOSys for menu, rom loading...
-localparam RV_IDLE_REQ0 = 3'd0;
-localparam RV_WAIT0_REQ1 = 3'd1;
-localparam RV_DATA0 = 3'd2;
-localparam RV_WAIT1 = 3'd3;
-localparam RV_DATA1 = 3'd4;
-reg [2:0]   rvst;
-
-always @(posedge clk) begin            // RV
-    if (~sys_resetn) begin
-        rvst <= RV_IDLE_REQ0;
-        rv_ready <= 0;
-    end else begin
-        reg write = rv_wstrb != 0;
-        reg rv_new_req_t = rv_valid & ~rv_valid_r;
-        if (rv_new_req_t) rv_new_req <= 1;
-
-        rv_ready <= 0;
-        rv_valid_r <= rv_valid;
-
-        case (rvst)
-        RV_IDLE_REQ0: if (rv_new_req || rv_new_req_t) begin
-            rv_new_req <= 0;
-            rv_req <= ~rv_req;
-            if (write && rv_wstrb[1:0] == 2'b0) begin
-                // shortcut for only writing the upper word
-                rv_word <= 1;
-                rv_ds <= rv_wstrb[3:2];
-                rvst <= RV_WAIT1;
-            end else begin
-                rv_word <= 0;
-                if (write)
-                    rv_ds <= rv_wstrb[1:0];
-                else
-                    rv_ds <= 2'b11;
-                rvst <= RV_WAIT0_REQ1;
-            end
-        end
-
-        RV_WAIT0_REQ1: begin
-            if (rv_req == rv_req_ack) begin
-                rv_req <= ~rv_req;      // request 1
-                rv_word <= 1;
-                if (write) begin
-                    rvst <= RV_WAIT1;
-                    if (rv_wstrb[3:2] == 2'b0) begin
-                        // shortcut for only writing the lower word
-                        rv_req <= rv_req;
-                        rv_ready <= 1;
-                        rvst <= RV_IDLE_REQ0;
-                    end
-                    rv_ds <= rv_wstrb[3:2];
-                end else begin
-                    rv_ds <= 2'b11;
-                    rvst <= RV_DATA0;
-                end
-            end
-        end
-
-        RV_DATA0: begin
-            rv_dout0 <= rv_dout;
-            rvst <= RV_WAIT1;
-        end
-            
-        RV_WAIT1: 
-            if (rv_req == rv_req_ack) begin
-                if (write)  begin
-                    rv_ready <= 1;
-                    rvst <= RV_IDLE_REQ0;
-                end else
-                    rvst <= RV_DATA1;
-            end
-
-        RV_DATA1: begin
-            rv_ready <= 1;
-            rvst <= RV_IDLE_REQ0;
-        end
-
-        default:;
-        endcase
-    end
-end
-
-iosys #(.COLOR_LOGO(15'b01100_00000_01000), .CORE_ID(1) )     // purple nestang logo
-    iosys (
+// sys module for menu, rom loading...
+sys #(.COLOR_LOGO(15'b01100_00000_01000), .FREQ(21_477_000), .CORE_ID(1) )     // purple nestang logo
+    sys_inst (
     .clk(clk), .hclk(hclk), .resetn(sys_resetn),
 
-    .overlay(overlay), .overlay_x(overlay_x), .overlay_y(overlay_y),
-    .overlay_color(overlay_color),
+    .overlay(overlay), .overlay_x(overlay_x), .overlay_y(overlay_y), .overlay_color(overlay_color),
     .joy1(joy1_btns), .joy2(joy2_btns),
-
-    .rom_loading(loading), .rom_do(loader_do), .rom_do_valid(loader_do_valid), 
-    .ram_busy(sdram_busy),
-
-    .rv_valid(rv_valid), .rv_ready(rv_ready), .rv_addr(rv_addr),
-    .rv_wdata(rv_wdata), .rv_wstrb(rv_wstrb), .rv_rdata(rv_rdata),
-
-    .flash_spi_cs_n(flash_spi_cs_n), .flash_spi_miso(flash_spi_miso),
-    .flash_spi_mosi(flash_spi_mosi), .flash_spi_clk(flash_spi_clk),
-    .flash_spi_wp_n(flash_spi_wp_n), .flash_spi_hold_n(flash_spi_hold_n),
-
     .uart_tx(UART_TXD), .uart_rx(UART_RXD),
 
-    .sd_clk(sd_clk), .sd_cmd(sd_cmd), .sd_dat0(sd_dat0), .sd_dat1(sd_dat1),
-    .sd_dat2(sd_dat2), .sd_dat3(sd_dat3)
+    .rom_loading(loading), .rom_do(loader_do), .rom_do_valid(loader_do_valid)
 );
 
 // Controller input
