@@ -107,20 +107,20 @@ reg response_ack;
 
 // The TangCore companion UART protocol:
 // Commmands from BL616 to FPGA:
-// 1                       get core ID (response: 0x11, followed by one byte of core ID)
-//                         this is used to identify the core and check whether the core is ready
-// 2                       get core config string (response: 0x22, followed by null-terminated string)
-// 3 x[31:0]               set core config status
-// 4 x[7:0] y[7:0]         move overlay text cursor to (x, y)
-// 5 <string>              display null-terminated string from cursor
-// 6 loading_state[7:0]    set loading state (rom_loading)
-// 7 len[23:0] <data>      load len (MSB-first) bytes of data to rom_do
-// 8 x[7:0]                turn overlay on/off
+// 0x01                       get core ID (response: 0x11, followed by one byte of core ID)
+//                            this is used to identify the core and check whether the core is ready
+// 0x02                       get core config string (response: 0x22, followed by null-terminated string)
+// 0x03 x[31:0]               set core config status
+// 0x04 x[7:0] y[7:0]         move overlay text cursor to (x, y)
+// 0x05 <string>              display null-terminated string from cursor
+// 0x06 loading_state[7:0]    set loading state (rom_loading)
+// 0x07 len[23:0] <data>      load len (MSB-first) bytes of data to rom_do
+// 0x08 x[7:0]                turn overlay on/off
 //
 // Messages from FPGA to BL616:
-// 0x1 joy1[7:0] joy1[15:8] joy2[7:0] joy2[15:8]     Every 20ms, send joypad state
-// 0x11 core_id[7:0]       Send core ID
-// 0x22 <string>           Send null-terminated core config string
+// 0x01 joy1[7:0] joy1[15:8] joy2[7:0] joy2[15:8]     Every 20ms, send joypad state
+// 0x11 core_id[7:0]          send core ID
+// 0x22 <string>              send null-terminated core config string
 
 // Command processing state machine (RX)
 always @(posedge clk) begin
