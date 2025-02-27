@@ -1,11 +1,9 @@
-// IOSys - PicoRV32-based IO subsystem for snestang
+// IOSys_picorv32 - PicoRV32-based IO subsystem
 //
-// IOSys provides the following functionality,
+// IOSys_picorv32 provides the following functionality,
 // - Menu system
 // - ROM file loading
 // - Configuration options
-// - (Future) USB controller handling
-// - (Future) Savestate handling
 //
 // This is similar to the IO controller of MIST, or HPS of MiSTer.
 //
@@ -13,6 +11,8 @@
 // loaded from SPI flash on the board. Firmware source is in /snestang/firmware.
 // 
 // Author: nand2mario, 1/2024
+
+`define MCU_PICORV32
 
 `ifndef PICORV32_REGS
 `ifdef PICORV32_V
@@ -30,7 +30,7 @@
 // design are read in the correct order.
 `define PICOSOC_V
 
-module iosys #(
+module iosys_picorv32 #(
     parameter FREQ=21_477_000,
     parameter [14:0] COLOR_LOGO=15'b00000_10101_00000,
     parameter [15:0] CORE_ID=1      // 1: nestang, 2: snestang

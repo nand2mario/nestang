@@ -1,16 +1,22 @@
 if {$argc == 0} {
-    puts "Usage: $argv0 <device> <controller>"
+    puts "Usage: $argv0 <device> <controller> <mcu>"
     puts "          device: nano20k, primer25k, mega60k"
     puts "      controller: snes, ds2"
+    puts "             mcu: bl616, picorv32"
     puts "Note: nano20k supports both controllers simultaneously, so build with just: gw_sh build.tcl nano20k"
     exit 1
 }
 
 set dev [lindex $argv 0]
-if {$argc == 2} {
+if {$argc >= 2} {
     set controller [lindex $argv 1]
 } else {
     set controller ""
+}
+if {$argc >= 3} {
+    set mcu [lindex $argv 2]
+} else {
+    set mcu "bl616"
 }
 
 # process $dev and $controller
@@ -77,6 +83,21 @@ if {$dev eq "nano20k"} {
     error "Unknown device $dev"
 }
 
+if {$mcu eq "bl616"} {
+    add_file -type verilog "src/iosys/iosys_bl616.v"
+    add_file -type verilog "src/iosys/uart_fractional.v"
+} elseif {$mcu eq "picorv32"} {
+    add_file -type verilog "src/iosys/iosys_picorv32.v"
+    add_file -type verilog "src/iosys/simplespimaster.v"
+    add_file -type verilog "src/iosys/simpleuart.v"
+    add_file -type verilog "src/iosys/spi_master.v"
+    add_file -type verilog "src/iosys/spiflash.v"
+} else {
+    error "Unknown MCU $mcu"
+}
+add_file -type verilog "src/iosys/gowin_dpb_menu.v"
+add_file -type verilog "src/iosys/textdisp.v"
+
 add_file -type verilog "src/apu.v"
 add_file -type verilog "src/autofire.v"
 add_file -type verilog "src/cart.sv"
@@ -98,14 +119,6 @@ add_file -type verilog "src/hdmi2/serializer.sv"
 add_file -type verilog "src/hdmi2/source_product_description_info_frame.sv"
 add_file -type verilog "src/hdmi2/tmds_channel.sv"
 add_file -type verilog "src/hw_uart.v"
-add_file -type verilog "src/iosys/gowin_dpb_menu.v"
-add_file -type verilog "src/iosys/iosys.v"
-add_file -type verilog "src/iosys/picorv32.v"
-add_file -type verilog "src/iosys/simplespimaster.v"
-add_file -type verilog "src/iosys/simpleuart.v"
-add_file -type verilog "src/iosys/spi_master.v"
-add_file -type verilog "src/iosys/spiflash.v"
-add_file -type verilog "src/iosys/textdisp.v"
 add_file -type verilog "src/mappers/generic.sv"
 add_file -type verilog "src/mappers/iir_filter.v"
 add_file -type verilog "src/mappers/JYCompany.sv"

@@ -370,6 +370,22 @@ nes2hdmi u_hdmi (     // purple: RGB=440064 (010001000_00000000_01100100), BGR5=
     .tmds_d_n(tmds_d_n), .tmds_d_p(tmds_d_p)
 );
 
+
+`ifdef MCU_BL616
+// Connect to BL616 companion MCU for sys module for menu, rom loading...
+iosys_bl616 #(.COLOR_LOGO(15'b01100_00000_01000), .FREQ(21_492_000), .CORE_ID(1) )     // purple nestang logo
+    sys_inst (
+    .clk(clk), .hclk(hclk), .resetn(sys_resetn),
+
+    .overlay(overlay), .overlay_x(overlay_x), .overlay_y(overlay_y), .overlay_color(overlay_color),
+    .joy1(joy1_btns), .joy2(joy2_btns),
+    .uart_tx(UART_TXD), .uart_rx(UART_RXD),
+
+    .rom_loading(loading), .rom_do(loader_do), .rom_do_valid(loader_do_valid)
+);
+
+`else
+// PicoRV32 softcore
 // IOSys for menu, rom loading...
 localparam RV_IDLE_REQ0 = 3'd0;
 localparam RV_WAIT0_REQ1 = 3'd1;
@@ -453,7 +469,7 @@ always @(posedge clk) begin            // RV
     end
 end
 
-iosys #(.COLOR_LOGO(15'b01100_00000_01000), .CORE_ID(1) )     // purple nestang logo
+iosys_picorv32 #(.COLOR_LOGO(15'b01100_00000_01000), .CORE_ID(1) )     // purple nestang logo
     iosys (
     .clk(clk), .hclk(hclk), .resetn(sys_resetn),
 
@@ -476,6 +492,7 @@ iosys #(.COLOR_LOGO(15'b01100_00000_01000), .CORE_ID(1) )     // purple nestang 
     .sd_clk(sd_clk), .sd_cmd(sd_cmd), .sd_dat0(sd_dat0), .sd_dat1(sd_dat1),
     .sd_dat2(sd_dat2), .sd_dat3(sd_dat3)
 );
+`endif
 
 // Controller input
 `ifdef CONTROLLER_SNES
@@ -520,35 +537,6 @@ always @(posedge clk) begin
 end
 assign joypad1_data[0] = joypad_bits[0];
 assign joypad2_data[0] = joypad_bits2[0];
-
-//   usb_btn:      (R L D U START SELECT B A)
-// wire [1:0] usb_type, usb_type2;
-// wire usb_report, usb_report2;
-// usb_hid_host usb_controller (
-//     .usbclk(clk_usb), .usbrst_n(sys_resetn),
-//     .usb_dm(usbdm), .usb_dp(usbdp),	.typ(usb_type), .report(usb_report), 
-//     .game_l(usb_btn[6]), .game_r(usb_btn[7]), .game_u(usb_btn[4]), .game_d(usb_btn[5]), 
-//     .game_a(usb_btn[0]), .game_b(usb_btn[1]), .game_x(usb_btn_x), .game_y(usb_btn_y), 
-//     .game_sel(usb_btn[2]), .game_sta(usb_btn[3]),
-//     // ignore keyboard and mouse input
-//     .key_modifiers(), .key1(), .key2(), .key3(), .key4(),
-//     .mouse_btn(), .mouse_dx(), .mouse_dy(),
-//     .dbg_hid_report()
-// );
-
-// `ifndef PRIMER
-// usb_hid_host usb_controller2 (
-//     .usbclk(clk_usb), .usbrst_n(sys_resetn),
-//     .usb_dm(usbdm2), .usb_dp(usbdp2),	.typ(usb_type2), .report(usb_report2), 
-//     .game_l(usb_btn2[6]), .game_r(usb_btn2[7]), .game_u(usb_btn2[4]), .game_d(usb_btn2[5]), 
-//     .game_a(usb_btn2[0]), .game_b(usb_btn2[1]), .game_x(usb_btn_x2), .game_y(usb_btn_y2), 
-//     .game_sel(usb_btn2[2]), .game_sta(usb_btn2[3]),
-//     // ignore keyboard and mouse input
-//     .key_modifiers(), .key1(), .key2(), .key3(), .key4(),
-//     .mouse_btn(), .mouse_dx(), .mouse_dy(),
-//     .dbg_hid_report()
-// );
-// `endif
 
 `endif
 

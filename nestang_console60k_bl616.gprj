@@ -1,0 +1,65 @@
+<?xml version="1" encoding="UTF-8"?>
+<!DOCTYPE gowin-fpga-project>
+<Project>
+    <Template>FPGA</Template>
+    <Version>5</Version>
+    <Device name="GW5AT-60B" pn="GW5AT-LV60PG484AC1/I0">gw5at60b-002</Device>
+    <FileList>
+        <File path="src/iosys/iosys_bl616.v" type="file.verilog" enable="1"/>
+        <File path="src/EEPROM_24C0x.sv" type="file.verilog" enable="1"/>
+        <File path="src/apu.v" type="file.verilog" enable="1"/>
+        <File path="src/autofire.v" type="file.verilog" enable="1"/>
+        <File path="src/cart.sv" type="file.verilog" enable="1"/>
+        <File path="src/compat.v" type="file.verilog" enable="1"/>
+        <File path="src/console60k/config.v" type="file.verilog" enable="1"/>
+        <File path="src/controller_ds2.sv" type="file.verilog" enable="1"/>
+        <File path="src/controller_snes.v" type="file.verilog" enable="1"/>
+        <File path="src/dpram.v" type="file.verilog" enable="1"/>
+        <File path="src/dualshock_controller.v" type="file.verilog" enable="1"/>
+        <File path="src/game_loader.v" type="file.verilog" enable="1"/>
+        <File path="src/hdmi2/audio_clock_regeneration_packet.sv" type="file.verilog" enable="1"/>
+        <File path="src/hdmi2/audio_info_frame.sv" type="file.verilog" enable="1"/>
+        <File path="src/hdmi2/audio_sample_packet.sv" type="file.verilog" enable="1"/>
+        <File path="src/hdmi2/auxiliary_video_information_info_frame.sv" type="file.verilog" enable="1"/>
+        <File path="src/hdmi2/hdmi.sv" type="file.verilog" enable="1"/>
+        <File path="src/hdmi2/packet_assembler.sv" type="file.verilog" enable="1"/>
+        <File path="src/hdmi2/packet_picker.sv" type="file.verilog" enable="1"/>
+        <File path="src/hdmi2/serializer.sv" type="file.verilog" enable="1"/>
+        <File path="src/hdmi2/source_product_description_info_frame.sv" type="file.verilog" enable="1"/>
+        <File path="src/hdmi2/tmds_channel.sv" type="file.verilog" enable="1"/>
+        <File path="src/mappers/JYCompany.sv" type="file.verilog" enable="1"/>
+        <File path="src/mappers/MMC1.sv" type="file.verilog" enable="1"/>
+        <File path="src/mappers/MMC2.sv" type="file.verilog" enable="1"/>
+        <File path="src/mappers/MMC3.sv" type="file.verilog" enable="1"/>
+        <File path="src/mappers/MMC5.sv" type="file.verilog" enable="1"/>
+        <File path="src/mappers/Namco.sv" type="file.verilog" enable="1"/>
+        <File path="src/mappers/Sachen.sv" type="file.verilog" enable="1"/>
+        <File path="src/mappers/Sunsoft.sv" type="file.verilog" enable="1"/>
+        <File path="src/mappers/generic.sv" type="file.verilog" enable="1"/>
+        <File path="src/mappers/iir_filter.v" type="file.verilog" enable="1"/>
+        <File path="src/mappers/misc.sv" type="file.verilog" enable="1"/>
+        <File path="src/nes.v" type="file.verilog" enable="1"/>
+        <File path="src/nes2hdmi.sv" type="file.verilog" enable="1"/>
+        <File path="src/nestang_top.sv" type="file.verilog" enable="1"/>
+        <File path="src/ppu.v" type="file.verilog" enable="1"/>
+        <File path="src/primer25k/gowin_pll_27.v" type="file.verilog" enable="1"/>
+        <File path="src/primer25k/gowin_pll_hdmi.v" type="file.verilog" enable="1"/>
+        <File path="src/primer25k/gowin_pll_nes.v" type="file.verilog" enable="1"/>
+        <File path="src/sdram_nes.v" type="file.verilog" enable="1"/>
+        <File path="src/iosys/gowin_dpb_menu.v" type="file.verilog" enable="1"/>
+        <File path="src/iosys/textdisp.v" type="file.verilog" enable="1"/>
+        <File path="src/iosys/uart_fractional.v" type="file.verilog" enable="1"/>
+        <File path="src/t65/T65.v" type="file.verilog" enable="1"/>
+        <File path="src/t65/T65_ALU.v" type="file.verilog" enable="1"/>
+        <File path="src/t65/T65_MCode.v" type="file.verilog" enable="1"/>
+        <File path="src/t65/T65_Pack.v" type="file.verilog" enable="1"/>
+        <File path="src/usb_hid_host.v" type="file.verilog" enable="1"/>
+        <File path="src/usb_hid_host_rom.v" type="file.verilog" enable="1"/>
+        <File path="src/console60k/nestang.cst" type="file.cst" enable="1"/>
+        <File path="src/primer25k/nestang.cst" type="file.cst" enable="0"/>
+        <File path="src/primer25k/nestang_snescontroller.cst" type="file.cst" enable="0"/>
+        <File path="src/primer25k/nestang.sdc" type="file.sdc" enable="1"/>
+        <File path="src/nes.gao" type="file.gao" enable="0"/>
+        <File path="src/nestang_console60k.rao" type="file.gao" enable="0"/>
+    </FileList>
+</Project>
