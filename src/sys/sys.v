@@ -1,5 +1,5 @@
 // Sys - Tangcores system components 
-// This manages slave SPI connection to the companion MCU, accepts ROM loading and other requests,
+// This manages UART connection to the companion MCU, accepts ROM loading and other requests,
 // and display the text overlay when needed.
 // 
 // Author: nand2mario, 1/2024
@@ -81,8 +81,8 @@ uart_tx #(
 // Command processing state machine
 localparam RECV_IDLE = 0;     // waiting for command
 localparam RECV_PARAM = 1;    // receiving parameters
-localparam RECV_RESPONSE_REQ = 2; // sending response
-localparam RECV_RESPONSE_ACK = 3; // waiting for response ack
+localparam RECV_RESPONSE_REQ = 2; // start sending response
+localparam RECV_RESPONSE_ACK = 3; // waiting for response sending to finish
 reg [2:0] recv_state;
 
 // UART command buffer
@@ -117,7 +117,10 @@ reg response_ack;
 // 7 len[23:0] <data>      load len (MSB-first) bytes of data to rom_do
 // 8 x[7:0]                turn overlay on/off
 //
-// Every 20ms, send joypad state (0x01, joy1[7:0], joy1[15:8], joy2[7:0], joy2[15:8])
+// Messages from FPGA to BL616:
+// 0x1 joy1[7:0] joy1[15:8] joy2[7:0] joy2[15:8]     Every 20ms, send joypad state
+// 0x11 core_id[7:0]       Send core ID
+// 0x22 <string>           Send null-terminated core config string
 
 // Command processing state machine (RX)
 always @(posedge clk) begin
