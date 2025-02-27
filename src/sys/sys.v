@@ -1,4 +1,4 @@
-// Sys - Tangcores system components 
+// Sys - TangCore system components 
 // This manages UART connection to the companion MCU, accepts ROM loading and other requests,
 // and display the text overlay when needed.
 // 
