@@ -61,7 +61,7 @@ if {$dev eq "nano20k"} {
     add_file -type verilog "src/primer25k/gowin_pll_hdmi.v"
     add_file -type verilog "src/primer25k/gowin_pll_nes.v"
     add_file -type sdc "src/primer25k/nestang.sdc"
-    set_option -output_base_name nestang_${dev}_${controller}
+    set_option -output_base_name nestang_${dev}_${controller}_${mcu}
 } elseif {$dev eq "console60k"} {
     set_device GW5AT-LV60PG484AC1/I0 -device_version B
     if {$controller eq "snes"} {
@@ -78,7 +78,7 @@ if {$dev eq "nano20k"} {
     add_file -type verilog "src/primer25k/gowin_pll_hdmi.v"
     add_file -type verilog "src/primer25k/gowin_pll_nes.v"
     add_file -type sdc "src/primer25k/nestang.sdc"
-    set_option -output_base_name nestang_${dev}_${controller}
+    set_option -output_base_name nestang_${dev}_${controller}_${mcu}
 } else {
     error "Unknown device $dev"
 }
