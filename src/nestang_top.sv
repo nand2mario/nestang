@@ -31,7 +31,7 @@ module nestang_top (
     inout [SDRAM_DATA_WIDTH-1:0] IO_sdram_dq,      // bidirectional data bus
     output [SDRAM_ROW_WIDTH-1:0] O_sdram_addr,     // multiplexed address bus
     output [1:0] O_sdram_ba,        // two banks
-    output [SDRAM_DATA_WIDTH/8-1:0] O_sdram_dqm,    
+    output [SDRAM_DATA_WIDTH/8-1:0] O_sdram_dqm,  
 
     // MicroSD
     output sd_clk,
@@ -307,9 +307,15 @@ sdram_nes sdram (
     .dinB(loading ? loader_write_data_mem : memory_dout_cpu),
     .oeB(~loading & memory_read_cpu), .doutB(memory_din_cpu),
 
+`ifdef MCU_BL616
+    // IOSys risc-v softcore
+    .rv_addr(), .rv_din(), 
+    .rv_ds(), .rv_dout(), .rv_req(), .rv_req_ack(), .rv_we()
+`else
     // IOSys risc-v softcore
     .rv_addr({rv_addr[20:2], rv_word}), .rv_din(rv_word ? rv_wdata[31:16] : rv_wdata[15:0]), 
     .rv_ds(rv_ds), .rv_dout(rv_dout), .rv_req(rv_req), .rv_req_ack(rv_req_ack), .rv_we(rv_wstrb != 0)
+`endif
 );
 
 // ROM parser

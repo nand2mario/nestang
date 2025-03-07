@@ -43,7 +43,7 @@ localparam [8*STR_LEN-1:0] CONF_STR = "Tangcores;-;O12,OSD key,Right+Select,Sele
 
 // Remove SPI parameters and add UART parameters
 localparam CLK_FREQ = FREQ;
-localparam BAUD_RATE = 1_000_000;
+localparam BAUD_RATE = 2_000_000;
 
 reg overlay_reg = 1;
 assign overlay = overlay_reg;
@@ -57,29 +57,58 @@ reg [7:0] tx_data;
 reg tx_valid;
 wire tx_ready;
 
+// synchronize uart_rx to clk
+reg uart_rx_r = 1, uart_rx_rr = 1;
+always @(posedge clk) begin
+    uart_rx_r <= uart_rx;
+    uart_rx_rr <= uart_rx_r;
+end
+
 // Instantiate UART modules
-uart_rx_fractional #(
-    .DIV_NUM(CLK_FREQ/1000),
-    .DIV_DEN(BAUD_RATE/1000)
+async_receiver #(
+    .ClkFrequency(CLK_FREQ),
+    .Baud(BAUD_RATE)
 ) uart_receiver (
     .clk(clk),
-    .resetn(resetn),
-    .rx(uart_rx),
-    .data(rx_data),
-    .valid(rx_valid)
+    .RxD(uart_rx_rr),
+    .RxD_data(rx_data),
+    .RxD_data_ready(rx_valid)
 );
 
-uart_tx_fractional #(
-    .DIV_NUM(CLK_FREQ/1000),
-    .DIV_DEN(BAUD_RATE/1000)
+async_transmitter #(
+    .ClkFrequency(CLK_FREQ),
+    .Baud(BAUD_RATE)
 ) uart_transmitter (
     .clk(clk),
-    .resetn(resetn),
-    .tx(uart_tx),
-    .data(tx_data),
-    .valid(tx_valid),
-    .ready(tx_ready)
+    .TxD(uart_tx),
+    .TxD_data(tx_data),
+    .TxD_start(tx_valid),
+    .TxD_busy(tx_busy)
 );
+assign tx_ready = ~tx_busy;
+
+// uart_rx_fractional #(
+//     .DIV_NUM(CLK_FREQ/1000),
+//     .DIV_DEN(BAUD_RATE/1000)
+// ) uart_receiver (
+//     .clk(clk),
+//     .resetn(resetn),
+//     .rx(uart_rx),
+//     .data(rx_data),
+//     .valid(rx_valid)
+// );
+
+// uart_tx_fractional #(
+//     .DIV_NUM(CLK_FREQ/1000),
+//     .DIV_DEN(BAUD_RATE/1000)
+// ) uart_transmitter (
+//     .clk(clk),
+//     .resetn(resetn),
+//     .tx(uart_tx),
+//     .data(tx_data),
+//     .valid(tx_valid),
+//     .ready(tx_ready)
+// );
 
 // Command processing state machine
 localparam RECV_IDLE = 0;     // waiting for command
@@ -150,7 +179,7 @@ always @(posedge clk) begin
                 cmd_reg <= rx_data;
                 if (rx_data == 1 || rx_data == 2)
                     recv_state <= RECV_RESPONSE_REQ;
-                else
+                else if (rx_data <= 8)
                     recv_state <= RECV_PARAM;
                 data_cnt <= 0;
             end
@@ -194,6 +223,8 @@ always @(posedge clk) begin
                     7: begin
                         if (data_cnt < 3) begin
                             rom_remain <= {rom_remain[15:0], rx_data};
+                            if (data_cnt == 2 && {rom_remain[15:0], rx_data} == 0)   // shortcut return
+                                recv_state <= RECV_IDLE;
                         end else begin
                             rom_do <= rx_data;
                             rom_do_valid <= 1;      // pulse data valid
@@ -242,7 +273,7 @@ localparam SEND_JOYPAD = 4;
 reg [2:0] send_state;
 reg [$clog2(STR_LEN+1)-1:0] send_idx;
 localparam JOY_UPDATE_INTERVAL = 50_000_000 / 50; // 20ms interval for 50Hz
-reg [31:0] joy_timer;
+reg [$clog2(JOY_UPDATE_INTERVAL+1)-1:0] joy_timer;
 reg [15:0] joy1_reg;
 reg [15:0] joy2_reg;
 
@@ -255,17 +286,15 @@ always @(posedge clk) begin
         tx_valid <= 0;
         
         // Joypad state transmission logic
-        joy_timer <= joy_timer + 1;
-        if (joy_timer >= JOY_UPDATE_INTERVAL) begin
-            joy_timer <= 0;
-            joy1_reg <= joy1;
-            joy2_reg <= joy2;
-        end
+        joy_timer <= joy_timer == 0 ? 0 : joy_timer - 1;
 
         // UART transmission state machine
         case (send_state)
             SEND_IDLE: begin
-                if (joy_timer >= JOY_UPDATE_INTERVAL) begin
+                if (joy_timer == 0 && (joy1 != joy1_reg || joy2 != joy2_reg)) begin
+                    joy_timer <= JOY_UPDATE_INTERVAL;
+                    joy1_reg <= joy1;
+                    joy2_reg <= joy2;
                     send_state <= SEND_JOYPAD;
                     send_idx <= 0;
                 end else if (response_req != response_ack) begin
