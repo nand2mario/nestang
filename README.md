@@ -16,9 +16,9 @@ Main features,
 - Extensive mapper support including MMC5, Namco and more.
 - NES/SNES controllers, or DS2 controllers.
 
-NESTang is now part of the [TangCore](https://github.com/nand2mario/tangcore) distribution, which also includes [SNESTang](https://github.com/nand2mario/snestang), [GBATang](https://github.com/nand2mario/gbatang) and [MDTang](https://github.com/nand2mario/mdtang). The major new feature is USB support and utilization of the onboard BL616 MCU.
+NESTang has been integrated into [TangCore](https://github.com/nand2mario/tangcore), along with [SNESTang](https://github.com/nand2mario/snestang), [GBATang](https://github.com/nand2mario/gbatang) and [MDTang](https://github.com/nand2mario/mdtang). Key new features include native USB support and utilization of the onboard BL616 MCU.
 
-**For installing NESTang as part of TangCore, go to [TangCore](https://github.com/nand2mario/tangcore)**. The rest of the README is for the previous standalone version (<= v0.12).
+**To install the latest NESTang, follow the [TangCore](https://github.com/nand2mario/tangcore) installation instructions**. The rest of the README documents the legacy standalone version (≤ v0.12).
 
 ## Getting the parts
 
