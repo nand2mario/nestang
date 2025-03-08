@@ -18,9 +18,7 @@ Main features,
 
 NESTang is now part of the [TangCore](https://github.com/nand2mario/tangcore) distribution, which also includes [SNESTang](https://github.com/nand2mario/snestang), [GBATang](https://github.com/nand2mario/gbatang) and [MDTang](https://github.com/nand2mario/mdtang). The major new feature is USB support and utilization of the onboard BL616 MCU.
 
-**For installing NESTang as part of TangCore, go to [TangCore](https://github.com/nand2mario/tangcore)**.
-
-The rest of the README is for the previous standalone version (<= v0.12).
+**For installing NESTang as part of TangCore, go to [TangCore](https://github.com/nand2mario/tangcore)**. The rest of the README is for the previous standalone version (<= v0.12).
 
 ## Getting the parts
 
