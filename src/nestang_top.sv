@@ -156,6 +156,9 @@ wire auto_a, auto_b, auto_a2, auto_b2;
 // OR together when both SNES and DS2 controllers are connected (right now only nano20k supports both simultaneously)
 wor [11:0] joy1_btns, joy2_btns;    // SNES layout (R L X A RT LT DN UP START SELECT Y B)
                                     // Lower 8 bits are NES buttons
+wire [11:0] hid1, hid2;             // From BL616
+wire [11:0] joy1 = joy1_btns | hid1;
+wire [11:0] joy2 = joy2_btns | hid2;
 
 // NES gamepad
 wire [7:0]NES_gamepad_button_state;
@@ -385,6 +388,7 @@ iosys_bl616 #(.COLOR_LOGO(15'b01100_00000_01000), .FREQ(21_492_000), .CORE_ID(1)
 
     .overlay(overlay), .overlay_x(overlay_x), .overlay_y(overlay_y), .overlay_color(overlay_color),
     .joy1(joy1_btns), .joy2(joy2_btns),
+    .hid1(hid1), .hid2(hid2),
     .uart_tx(UART_TXD), .uart_rx(UART_RXD),
 
     .rom_loading(loading), .rom_do(loader_do), .rom_do_valid(loader_do_valid)
@@ -524,16 +528,16 @@ controller_ds2 joy2_ds2 (
 `endif
 
 // Autofire for NES A (right) and B (left) buttons
-Autofire af_a (.clk(clk), .resetn(sys_resetn), .btn(joy1_btns[8]), .out(auto_a));
-Autofire af_b (.clk(clk), .resetn(sys_resetn), .btn(joy1_btns[9]), .out(auto_b));
-Autofire af_a2 (.clk(clk), .resetn(sys_resetn), .btn(joy2_btns[8]), .out(auto_a2));
-Autofire af_b2 (.clk(clk), .resetn(sys_resetn), .btn(joy2_btns[9]), .out(auto_b2));
+Autofire af_a (.clk(clk), .resetn(sys_resetn), .btn(joy1[8]), .out(auto_a));
+Autofire af_b (.clk(clk), .resetn(sys_resetn), .btn(joy1[9]), .out(auto_b));
+Autofire af_a2 (.clk(clk), .resetn(sys_resetn), .btn(joy2[8]), .out(auto_a2));
+Autofire af_b2 (.clk(clk), .resetn(sys_resetn), .btn(joy2[9]), .out(auto_b2));
 
 // Joypad handling
 always @(posedge clk) begin
     if (joypad_strobe) begin
-        joypad_bits <= {joy1_btns[7:2], joy1_btns[1] | auto_b, joy1_btns[0] | auto_a};;
-        joypad_bits2 <= {joy2_btns[7:2], joy2_btns[1] | auto_b2, joy2_btns[0] | auto_a2};
+        joypad_bits <= {joy1[7:2], joy1[1] | auto_b, joy1[0] | auto_a};;
+        joypad_bits2 <= {joy2[7:2], joy2[1] | auto_b2, joy2[0] | auto_a2};
     end
     if (!joypad_clock[0] && last_joypad_clock[0])
         joypad_bits <= {1'b1, joypad_bits[7:1]};
@@ -548,7 +552,7 @@ assign joypad2_data[0] = joypad_bits2[0];
 
 //assign led = ~{~UART_RXD, loader_done};
 //assign led = ~{~UART_RXD, usb_conerr, loader_done};
-assign led = {joy1_btns[1], joy1_btns[0]};
+assign led = {joy1[1], joy1[0]};
 
 reg [23:0] led_cnt;
 always @(posedge clk) led_cnt <= led_cnt + 1;

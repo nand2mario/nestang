@@ -23,8 +23,10 @@ module iosys_bl616 #(
     input [7:0] overlay_x,          // 0-255
     input [7:0] overlay_y,          // 0-223
     output [14:0] overlay_color,    // BGR5
-    input [11:0] joy1,              // joystick 1: (R L X A RT LT DN UP START SELECT Y B)
-    input [11:0] joy2,              // joystick 2
+    input [11:0] joy1,              // DS2/SNES joystick 1: (R L X A RT LT DN UP START SELECT Y B)
+    input [11:0] joy2,              // DS2/SNES joystick 2
+    output reg [15:0] hid1,         // USB HID joystick 1
+    output reg [15:0] hid2,         // USB HID joystick 2
 
     // ROM loading interface
     output reg [7:0] rom_loading,   // 0-to-1 loading starts, 1-to-0 loading is finished
@@ -87,29 +89,6 @@ async_transmitter #(
 );
 assign tx_ready = ~tx_busy;
 
-// uart_rx_fractional #(
-//     .DIV_NUM(CLK_FREQ/1000),
-//     .DIV_DEN(BAUD_RATE/1000)
-// ) uart_receiver (
-//     .clk(clk),
-//     .resetn(resetn),
-//     .rx(uart_rx),
-//     .data(rx_data),
-//     .valid(rx_valid)
-// );
-
-// uart_tx_fractional #(
-//     .DIV_NUM(CLK_FREQ/1000),
-//     .DIV_DEN(BAUD_RATE/1000)
-// ) uart_transmitter (
-//     .clk(clk),
-//     .resetn(resetn),
-//     .tx(uart_tx),
-//     .data(tx_data),
-//     .valid(tx_valid),
-//     .ready(tx_ready)
-// );
-
 // Command processing state machine
 localparam RECV_IDLE = 0;     // waiting for command
 localparam RECV_PARAM = 1;    // receiving parameters
@@ -148,9 +127,10 @@ reg response_ack;
 // 0x06 loading_state[7:0]    set loading state (rom_loading)
 // 0x07 len[23:0] <data>      load len (MSB-first) bytes of data to rom_do
 // 0x08 x[7:0]                turn overlay on/off
+// 0x09 hid1[7:0] hid1[15:8] hid2[7:0] hid2[15:8]     Send USB HID state to FPGA
 //
 // Messages from FPGA to BL616:
-// 0x01 joy1[7:0] joy1[15:8] joy2[7:0] joy2[15:8]     Every 20ms, send joypad state
+// 0x01 joy1[7:0] joy1[15:8] joy2[7:0] joy2[15:8]     Every 20ms, send DS2/SNES joypad state to BL616
 // 0x11 core_id[7:0]          send core ID
 // 0x22 <string>              send null-terminated core config string
 
@@ -179,7 +159,7 @@ always @(posedge clk) begin
                 cmd_reg <= rx_data;
                 if (rx_data == 1 || rx_data == 2)
                     recv_state <= RECV_RESPONSE_REQ;
-                else if (rx_data <= 8)
+                else if (rx_data <= 9)
                     recv_state <= RECV_PARAM;
                 data_cnt <= 0;
             end
@@ -238,6 +218,18 @@ always @(posedge clk) begin
                     8: begin
                         overlay_reg <= rx_data[0];
                         recv_state <= RECV_IDLE;    // Single byte command
+                    end
+                    9: begin
+                        case (data_cnt)
+                            0: hid1[7:0] <= rx_data;
+                            1: hid1[15:8] <= rx_data;
+                            2: hid2[7:0] <= rx_data;
+                            3: begin
+                                hid2[15:8] <= rx_data;
+                                recv_state <= RECV_IDLE;
+                            end
+                            default: recv_state <= RECV_IDLE;
+                        endcase
                     end
                     default:
                         recv_state <= RECV_IDLE;
