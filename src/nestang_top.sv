@@ -19,7 +19,7 @@ module nestang_top (
     output UART_TXD,
 
     // LEDs
-    output [1:0] led,
+    output [7:0] led,
 
     // SDRAM - Tang SDRAM pmod 1.2 for primer 25k, on-chip 32-bit 8MB SDRAM for nano 20k
     output O_sdram_clk,
@@ -71,13 +71,11 @@ module nestang_top (
     output ds_cs2,
 `endif
 
-    // USB
-//     inout usbdm,
-//     inout usbdp,
-// `ifndef PRIMER
-//     inout usbdm2,
-//     inout usbdp2,
-// `endif
+    // USB1 and USB2
+    inout usb1_dp,
+    inout usb1_dn,
+    inout usb2_dp,
+    inout usb2_dn,
 
     // HDMI TX
     output       tmds_clk_n,
@@ -153,12 +151,14 @@ wire usb_btn_x, usb_btn_y, usb_btn_x2, usb_btn_y2;
 wire usb_conerr, usb_conerr2;
 wire auto_a, auto_b, auto_a2, auto_b2;
 
+
 // OR together when both SNES and DS2 controllers are connected (right now only nano20k supports both simultaneously)
 wor [11:0] joy1_btns, joy2_btns;    // SNES layout (R L X A RT LT DN UP START SELECT Y B)
                                     // Lower 8 bits are NES buttons
+wire [11:0] joy_usb1, joy_usb2;
 wire [11:0] hid1, hid2;             // From BL616
-wire [11:0] joy1 = joy1_btns | hid1;
-wire [11:0] joy2 = joy2_btns | hid2;
+wire [11:0] joy1 = joy1_btns | hid1 | joy_usb1;
+wire [11:0] joy2 = joy2_btns | hid2 | joy_usb2;
 
 // NES gamepad
 wire [7:0]NES_gamepad_button_state;
@@ -380,129 +380,18 @@ nes2hdmi u_hdmi (     // purple: RGB=440064 (010001000_00000000_01100100), BGR5=
 );
 
 
-`ifdef MCU_BL616
 // Connect to BL616 companion MCU for sys module for menu, rom loading...
 iosys_bl616 #(.COLOR_LOGO(15'b01100_00000_01000), .FREQ(21_492_000), .CORE_ID(1) )     // purple nestang logo
     sys_inst (
     .clk(clk), .hclk(hclk), .resetn(sys_resetn),
 
     .overlay(overlay), .overlay_x(overlay_x), .overlay_y(overlay_y), .overlay_color(overlay_color),
-    .joy1(joy1_btns), .joy2(joy2_btns),
+    .joy1(joy1_btns | joy_usb1), .joy2(joy2_btns | joy_usb2),
     .hid1(hid1), .hid2(hid2),
     .uart_tx(UART_TXD), .uart_rx(UART_RXD),
 
     .rom_loading(loading), .rom_do(loader_do), .rom_do_valid(loader_do_valid)
 );
-
-`else
-// PicoRV32 softcore
-// IOSys for menu, rom loading...
-localparam RV_IDLE_REQ0 = 3'd0;
-localparam RV_WAIT0_REQ1 = 3'd1;
-localparam RV_DATA0 = 3'd2;
-localparam RV_WAIT1 = 3'd3;
-localparam RV_DATA1 = 3'd4;
-reg [2:0]   rvst;
-
-always @(posedge clk) begin            // RV
-    if (~sys_resetn) begin
-        rvst <= RV_IDLE_REQ0;
-        rv_ready <= 0;
-    end else begin
-        reg write = rv_wstrb != 0;
-        reg rv_new_req_t = rv_valid & ~rv_valid_r;
-        if (rv_new_req_t) rv_new_req <= 1;
-
-        rv_ready <= 0;
-        rv_valid_r <= rv_valid;
-
-        case (rvst)
-        RV_IDLE_REQ0: if (rv_new_req || rv_new_req_t) begin
-            rv_new_req <= 0;
-            rv_req <= ~rv_req;
-            if (write && rv_wstrb[1:0] == 2'b0) begin
-                // shortcut for only writing the upper word
-                rv_word <= 1;
-                rv_ds <= rv_wstrb[3:2];
-                rvst <= RV_WAIT1;
-            end else begin
-                rv_word <= 0;
-                if (write)
-                    rv_ds <= rv_wstrb[1:0];
-                else
-                    rv_ds <= 2'b11;
-                rvst <= RV_WAIT0_REQ1;
-            end
-        end
-
-        RV_WAIT0_REQ1: begin
-            if (rv_req == rv_req_ack) begin
-                rv_req <= ~rv_req;      // request 1
-                rv_word <= 1;
-                if (write) begin
-                    rvst <= RV_WAIT1;
-                    if (rv_wstrb[3:2] == 2'b0) begin
-                        // shortcut for only writing the lower word
-                        rv_req <= rv_req;
-                        rv_ready <= 1;
-                        rvst <= RV_IDLE_REQ0;
-                    end
-                    rv_ds <= rv_wstrb[3:2];
-                end else begin
-                    rv_ds <= 2'b11;
-                    rvst <= RV_DATA0;
-                end
-            end
-        end
-
-        RV_DATA0: begin
-            rv_dout0 <= rv_dout;
-            rvst <= RV_WAIT1;
-        end
-            
-        RV_WAIT1: 
-            if (rv_req == rv_req_ack) begin
-                if (write)  begin
-                    rv_ready <= 1;
-                    rvst <= RV_IDLE_REQ0;
-                end else
-                    rvst <= RV_DATA1;
-            end
-
-        RV_DATA1: begin
-            rv_ready <= 1;
-            rvst <= RV_IDLE_REQ0;
-        end
-
-        default:;
-        endcase
-    end
-end
-
-iosys_picorv32 #(.COLOR_LOGO(15'b01100_00000_01000), .CORE_ID(1) )     // purple nestang logo
-    iosys (
-    .clk(clk), .hclk(hclk), .resetn(sys_resetn),
-
-    .overlay(overlay), .overlay_x(overlay_x), .overlay_y(overlay_y),
-    .overlay_color(overlay_color),
-    .joy1(joy1_btns), .joy2(joy2_btns),
-
-    .rom_loading(loading), .rom_do(loader_do), .rom_do_valid(loader_do_valid), 
-    .ram_busy(sdram_busy),
-
-    .rv_valid(rv_valid), .rv_ready(rv_ready), .rv_addr(rv_addr),
-    .rv_wdata(rv_wdata), .rv_wstrb(rv_wstrb), .rv_rdata(rv_rdata),
-
-    .flash_spi_cs_n(flash_spi_cs_n), .flash_spi_miso(flash_spi_miso),
-    .flash_spi_mosi(flash_spi_mosi), .flash_spi_clk(flash_spi_clk),
-    .flash_spi_wp_n(flash_spi_wp_n), .flash_spi_hold_n(flash_spi_hold_n),
-
-    .uart_tx(UART_TXD), .uart_rx(UART_RXD),
-
-    .sd_clk(sd_clk), .sd_cmd(sd_cmd), .sd_dat0(sd_dat0), .sd_dat1(sd_dat1),
-    .sd_dat2(sd_dat2), .sd_dat3(sd_dat3)
-);
-`endif
 
 // Controller input
 `ifdef CONTROLLER_SNES
@@ -525,6 +414,33 @@ controller_ds2 joy2_ds2 (
    .clk(clk), .snes_buttons(joy2_btns),
    .ds_clk(ds_clk2), .ds_miso(ds_miso2), .ds_mosi(ds_mosi2), .ds_cs(ds_cs2) 
 );
+`endif
+
+`ifdef CONSOLE
+wire clk12;
+wire pll_lock_12;
+wire usb_conerr;
+wire [1:0] usb_type;
+pll_12 pll12(.clkin(sys_clk), .clkout0(clk12), .lock(pll_lock_12));
+usb_hid_host usb_hid_host (
+    .usbclk(clk12), .usbrst_n(pll_lock_12),
+    .usb_dm(usb1_dn), .usb_dp(usb1_dp),
+    .game_snes(joy_usb1), .typ(usb_type), .conerr(usb_conerr)
+);
+usb_hid_host usb_hid_host2 (
+    .usbclk(clk12), .usbrst_n(pll_lock_12),
+    .usb_dm(usb2_dn), .usb_dp(usb2_dp),
+    .game_snes(joy_usb2)
+);
+
+assign led = ~{joy_usb1[4:0], usb_type, usb_conerr};
+
+`else
+assign joy_usb1 = 12'b0;
+assign joy_usb2 = 12'b0;
+
+assign led = ~{6'b0, joy1[1], joy1[0]};
+
 `endif
 
 // Autofire for NES A (right) and B (left) buttons
@@ -552,7 +468,6 @@ assign joypad2_data[0] = joypad_bits2[0];
 
 //assign led = ~{~UART_RXD, loader_done};
 //assign led = ~{~UART_RXD, usb_conerr, loader_done};
-assign led = {joy1[1], joy1[0]};
 
 reg [23:0] led_cnt;
 always @(posedge clk) led_cnt <= led_cnt + 1;

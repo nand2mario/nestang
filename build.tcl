@@ -88,6 +88,8 @@ if {$dev eq "nano20k"} {
     add_file -type verilog "src/primer25k/gowin_pll_27.v"
     add_file -type verilog "src/primer25k/gowin_pll_hdmi.v"
     add_file -type verilog "src/primer25k/gowin_pll_nes.v"
+    add_file -type verilog "src/console60k/pll_12.v"
+    add_file -type verilog "src/usb_hid_host.v"
     add_file -type sdc "src/primer25k/nestang.sdc"
     set_option -output_base_name nestang_${dev}_${controller}
 } else {
@@ -139,14 +141,12 @@ add_file -type verilog "src/t65/T65_ALU.v"
 add_file -type verilog "src/t65/T65_MCode.v"
 add_file -type verilog "src/t65/T65_Pack.v"
 add_file -type verilog "src/uart_tx_V2.v"
-add_file -type verilog "src/usb_hid_host.v"
-add_file -type verilog "src/usb_hid_host_rom.v"
 
 set_option -synthesis_tool gowinsynthesis
 set_option -top_module nestang_top
 set_option -verilog_std sysv2017
 set_option -rw_check_on_ram 1
-set_option -place_option 2
+set_option -place_option 3
 set_option -use_mspi_as_gpio 1
 set_option -use_ready_as_gpio 1
 set_option -use_done_as_gpio 1

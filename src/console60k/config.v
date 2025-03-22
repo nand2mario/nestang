@@ -2,6 +2,7 @@
 `define GW_IDE
 `define MEGA60K
 `define PRIMER
+`define CONSOLE
 
 `define CONTROLLER_DS2
 
