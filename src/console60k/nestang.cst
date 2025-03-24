@@ -51,14 +51,14 @@ IO_PORT "ds_mosi2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
 IO_LOC  "ds_cs2"  W20;		// PMOD1_IO1
 IO_PORT "ds_cs2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
 
-// USB1 and USB2
-IO_LOC  "usb1_dp" M15;
+// USB1 and USB2 (usb1 is on the left)
+IO_LOC  "usb1_dp" H13;
 IO_PORT "usb1_dp" IO_TYPE=LVCMOS33;
-IO_LOC  "usb1_dn" M16;
+IO_LOC  "usb1_dn" G13;
 IO_PORT "usb1_dn" IO_TYPE=LVCMOS33;
-IO_LOC  "usb2_dp" H13;
+IO_LOC  "usb2_dp" M15;
 IO_PORT "usb2_dp" IO_TYPE=LVCMOS33;
-IO_LOC  "usb2_dn" G13;
+IO_LOC  "usb2_dn" M16;
 IO_PORT "usb2_dn" IO_TYPE=LVCMOS33;
 
 // LED on pmod0
