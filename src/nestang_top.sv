@@ -420,17 +420,19 @@ usb_hid_host usb_hid_host (
     .usb_dm(usb1_dn), .usb_dp(usb1_dp),
     .game_snes(joy_usb1), .typ(usb_type), .conerr(usb_conerr)
 );
-assign led = ~{joy_usb1[4:0], usb_type, usb_conerr};
 `else
 assign joy_usb1 = 12'b0;
 `endif
 
 `ifdef USB2
+wire usb_conerr2;
+wire [1:0] usb_type2;
 usb_hid_host usb_hid_host2 (
     .usbclk(clk12), .usbrst_n(pll_lock_12),
     .usb_dm(usb2_dn), .usb_dp(usb2_dp),
-    .game_snes(joy_usb2)
+    .game_snes(joy_usb2), .typ(usb_type2), .conerr(usb_conerr2)
 );
+assign led = ~{joy_usb2[1:0], usb_type2, usb_conerr2, usb_type, usb_conerr};
 `else
 assign joy_usb2 = 12'b0;
 `endif

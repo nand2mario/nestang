@@ -142,8 +142,8 @@ always @(posedge usbclk) begin : process_in_data
                 6: if (valid) begin
                     game_sel <= ukpdat[4];
                     game_sta <= ukpdat[5];
-                    game_lb <= ukpdat[1];
-                    game_rb <= ukpdat[0];
+                    game_lb <= ukpdat[0];
+                    game_rb <= ukpdat[1];
                 end
                 endcase
                 // TODO: add any special handling if needed 
