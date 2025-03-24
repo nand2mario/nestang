@@ -47,11 +47,12 @@ wire save;			    // save dat[b] to output register r
 wire [3:0] save_r;      // which register to save to
 wire [3:0] save_b;      // dat[b]
 wire connected;
+reg retry;              // retry because we did not detect a HID device
 
 assign game_snes = {game_rb, game_lb, game_x, game_a, game_r, game_l, game_d, game_u, game_sta, game_sel, game_y, game_b};
 
 ukp ukp(
-    .usbrst_n(usbrst_n), .usbclk(usbclk),
+    .usbrst_n(usbrst_n & ~retry), .usbclk(usbclk),
     .usb_dp(usb_dp), .usb_dm(usb_dm), .usb_oe(),
     .ukprdy(data_rdy), .ukpstb(data_strobe), .ukpdat(ukpdat), .save(save), .save_r(save_r), .save_b(save_b),
     .connected(connected), .conerr(conerr));
@@ -112,24 +113,26 @@ always @(posedge usbclk) begin : process_in_data
                     if (ukpdat[1:0] != 2'b10) begin
                         // for DualShock2 adapter, 2'b10 marks an irrelevant record
                         valid <= 1;
-                        game_l <= 0; game_r <= 0; game_u <= 0; game_d <= 0;
+                        // game_l <= 0; game_r <= 0; game_u <= 0; game_d <= 0;
                     end else
                         valid <= 0;
                     if (ukpdat==8'h00) {game_l, game_r} <= 2'b10;
+                    if (ukpdat==8'h7f) {game_l, game_r} <= 2'b00;
                     if (ukpdat==8'hff) {game_l, game_r} <= 2'b01;
                 end
                 1: begin
                     if (ukpdat==8'h00) {game_u, game_d} <= 2'b10;
+                    if (ukpdat==8'h7f) {game_u, game_d} <= 2'b00;
                     if (ukpdat==8'hff) {game_u, game_d} <= 2'b01;
                 end
-                3: if (valid) begin 
-                    if (ukpdat[7:6]==2'b00) {game_l, game_r} <= 2'b10;
-                    if (ukpdat[7:6]==2'b11) {game_l, game_r} <= 2'b01;
-                end
-                4: if (valid) begin 
-                    if (ukpdat[7:6]==2'b00) {game_u, game_d} <= 2'b10;
-                    if (ukpdat[7:6]==2'b11) {game_u, game_d} <= 2'b01;
-                end
+                // 3: if (valid) begin 
+                //     if (ukpdat[7:6]==2'b00) {game_l, game_r} <= 2'b10;
+                //     if (ukpdat[7:6]==2'b11) {game_l, game_r} <= 2'b01;
+                // end
+                // 4: if (valid) begin 
+                //     if (ukpdat[7:6]==2'b00) {game_u, game_d} <= 2'b10;
+                //     if (ukpdat[7:6]==2'b11) {game_u, game_d} <= 2'b01;
+                // end
                 5: if (valid) begin
                     game_x <= ukpdat[4];
                     game_a <= ukpdat[5];
@@ -151,12 +154,19 @@ always @(posedge usbclk) begin : process_in_data
     end
     if(~data_rdy && data_rdy_r && typ != 0)    // falling edge of ukp data ready
         report <= 1;
+    if (conerr) begin                          // clear everything on connection error
+        game_l <= 0; game_r <= 0; game_u <= 0; game_d <= 0;
+        game_a <= 0; game_b <= 0; game_x <= 0; game_y <= 0;
+        game_sel <= 0; game_sta <= 0;
+        game_lb <= 0; game_rb <= 0;
+    end
 end
 
 reg save_delayed;
 reg connected_r;
 always @(posedge usbclk) begin : response_recognition
     save_delayed <= save;
+    retry <= 0;
     if (save) begin
         regs[save_r] <= dat[save_b];
     end else if (save_delayed && ~save && save_r == 6) begin     
@@ -167,7 +177,7 @@ always @(posedge usbclk) begin : response_recognition
             else
                 typ <= 3;       // gamepad
         end else
-            typ <= 0;                   
+            retry <= 1;  // not a HID device, wait a while (200ms) and retry
     end
     connected_r <= connected;
     if (~connected & connected_r) typ <= 0;   // clear device type on disconnect
@@ -242,6 +252,7 @@ module ukp(
         if(~usbrst_n) begin 
             pc <= 0; connected <= 0; cond <= 0; inst_ready <= 0; state <= S_OPCODE; timing <= 0; 
             mbit <= 0; bitadr <= 0; nak <= 1; ug <= 0;
+            save <= 0;
         end else begin
             dpi <= usb_dp; dmi <= usb_dm;
             save <= 0;		// ensure pulse

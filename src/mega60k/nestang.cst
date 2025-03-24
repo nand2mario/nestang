@@ -27,18 +27,18 @@ IO_LOC "tmds_d_n[2]" J17;
 IO_PORT "tmds_d_n[2]" PULL_MODE=NONE IO_TYPE=LVCMOS33D;
 
 // SDCard on board
-IO_LOC "sd_clk" V15;
-IO_PORT "sd_clk" PULL_MODE=NONE IO_TYPE=LVCMOS33; 
-IO_LOC "sd_cmd" Y16;        // MOSI
-IO_PORT "sd_cmd" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "sd_dat0" AA15;       // MISO or SD card DO, needs pull-up
-IO_PORT "sd_dat0" PULL_MODE=UP IO_TYPE=LVCMOS33;
-IO_LOC "sd_dat1" AB15;       // 1
-IO_PORT "sd_dat1" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "sd_dat2" W14;       // 1
-IO_PORT "sd_dat2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "sd_dat3" W15;       // 1
-IO_PORT "sd_dat3" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+// IO_LOC "sd_clk" V15;
+// IO_PORT "sd_clk" PULL_MODE=NONE IO_TYPE=LVCMOS33; 
+// IO_LOC "sd_cmd" Y16;        // MOSI
+// IO_PORT "sd_cmd" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+// IO_LOC "sd_dat0" AA15;       // MISO or SD card DO, needs pull-up
+// IO_PORT "sd_dat0" PULL_MODE=UP IO_TYPE=LVCMOS33;
+// IO_LOC "sd_dat1" AB15;       // 1
+// IO_PORT "sd_dat1" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+// IO_LOC "sd_dat2" W14;       // 1
+// IO_PORT "sd_dat2" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+// IO_LOC "sd_dat3" W15;       // 1
+// IO_PORT "sd_dat3" PULL_MODE=NONE IO_TYPE=LVCMOS33;
 
 // UART through USB-C port
 IO_LOC "UART_RXD" V14;
@@ -47,18 +47,18 @@ IO_PORT "UART_RXD" IO_TYPE=LVCMOS33;
 IO_PORT "UART_TXD" IO_TYPE=LVCMOS33;
 
 // 128Mbit NOR Flash (MSPI pins)
-IO_LOC "flash_spi_cs_n" T19;
-IO_PORT "flash_spi_cs_n" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "flash_spi_wp_n" P21;
-IO_PORT "flash_spi_wp_n" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "flash_spi_hold_n" R21;      // NC/SIO3 ?
-IO_PORT "flash_spi_hold_n" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "flash_spi_mosi" P22;
-IO_PORT "flash_spi_mosi" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "flash_spi_miso" R22;
-IO_PORT "flash_spi_miso" PULL_MODE=NONE IO_TYPE=LVCMOS33;
-IO_LOC "flash_spi_clk" L12;
-IO_PORT "flash_spi_clk" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+// IO_LOC "flash_spi_cs_n" T19;
+// IO_PORT "flash_spi_cs_n" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+// IO_LOC "flash_spi_wp_n" P21;
+// IO_PORT "flash_spi_wp_n" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+// IO_LOC "flash_spi_hold_n" R21;      // NC/SIO3 ?
+// IO_PORT "flash_spi_hold_n" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+// IO_LOC "flash_spi_mosi" P22;
+// IO_PORT "flash_spi_mosi" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+// IO_LOC "flash_spi_miso" R22;
+// IO_PORT "flash_spi_miso" PULL_MODE=NONE IO_TYPE=LVCMOS33;
+// IO_LOC "flash_spi_clk" L12;
+// IO_PORT "flash_spi_clk" PULL_MODE=NONE IO_TYPE=LVCMOS33;
 
 // Joystick 1 on pmod0
 IO_LOC  "ds_clk" R18;

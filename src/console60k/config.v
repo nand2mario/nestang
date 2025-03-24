@@ -4,6 +4,9 @@
 `define PRIMER
 `define CONSOLE
 
+`define USB1
+`define USB2
+
 `define CONTROLLER_DS2
 
 package configPackage;  

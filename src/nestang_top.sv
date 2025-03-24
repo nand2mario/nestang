@@ -18,9 +18,6 @@ module nestang_top (
     input UART_RXD,
     output UART_TXD,
 
-    // LEDs
-    output [7:0] led,
-
     // SDRAM - Tang SDRAM pmod 1.2 for primer 25k, on-chip 32-bit 8MB SDRAM for nano 20k
     output O_sdram_clk,
     output O_sdram_cke,
@@ -33,21 +30,13 @@ module nestang_top (
     output [1:0] O_sdram_ba,        // two banks
     output [SDRAM_DATA_WIDTH/8-1:0] O_sdram_dqm,  
 
-    // MicroSD
-    output sd_clk,
-    inout  sd_cmd,      // MOSI
-    input  sd_dat0,     // MISO
-    output sd_dat1,     // 1
-    output sd_dat2,     // 1
-    output sd_dat3,     // 1
-
-    // SPI flash
-    output flash_spi_cs_n,          // chip select
-    input flash_spi_miso,           // master in slave out
-    output flash_spi_mosi,          // mster out slave in
-    output flash_spi_clk,           // spi clock
-    output flash_spi_wp_n,          // write protect
-    output flash_spi_hold_n,        // hold operations
+`ifdef NANO
+    // LEDs
+    output [1:0] led,
+`else
+    // LEDs
+    output [7:0] led,
+`endif
 
 `ifdef CONTROLLER_SNES
     // snes controllers
@@ -71,11 +60,15 @@ module nestang_top (
     output ds_cs2,
 `endif
 
+`ifdef USB1
     // USB1 and USB2
     inout usb1_dp,
     inout usb1_dn,
+`endif
+`ifdef USB2
     inout usb2_dp,
     inout usb2_dn,
+`endif
 
     // HDMI TX
     output       tmds_clk_n,
@@ -416,7 +409,7 @@ controller_ds2 joy2_ds2 (
 );
 `endif
 
-`ifdef CONSOLE
+`ifdef USB1
 wire clk12;
 wire pll_lock_12;
 wire usb_conerr;
@@ -427,20 +420,19 @@ usb_hid_host usb_hid_host (
     .usb_dm(usb1_dn), .usb_dp(usb1_dp),
     .game_snes(joy_usb1), .typ(usb_type), .conerr(usb_conerr)
 );
+assign led = ~{joy_usb1[4:0], usb_type, usb_conerr};
+`else
+assign joy_usb1 = 12'b0;
+`endif
+
+`ifdef USB2
 usb_hid_host usb_hid_host2 (
     .usbclk(clk12), .usbrst_n(pll_lock_12),
     .usb_dm(usb2_dn), .usb_dp(usb2_dp),
     .game_snes(joy_usb2)
 );
-
-assign led = ~{joy_usb1[4:0], usb_type, usb_conerr};
-
 `else
-assign joy_usb1 = 12'b0;
 assign joy_usb2 = 12'b0;
-
-assign led = ~{6'b0, joy1[1], joy1[0]};
-
 `endif
 
 // Autofire for NES A (right) and B (left) buttons

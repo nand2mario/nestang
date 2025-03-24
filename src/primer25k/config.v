@@ -1,6 +1,7 @@
 `define RES_720P
 `define GW_IDE
 `define PRIMER
+`define USB1
 
 `define CONTROLLER_DS2
 
