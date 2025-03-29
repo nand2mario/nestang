@@ -37,6 +37,12 @@ echo.
 %GWSH% build.tcl console60k ds2
 if %errorlevel% neq 0 exit /b %errorlevel%
 
+echo.
+echo ============ Building console138k with ds2 controller ===============
+echo.
+%GWSH% build.tcl console138k ds2
+if %errorlevel% neq 0 exit /b %errorlevel%
+
 dir impl\pnr\*.fs
 
 echo "All done."
