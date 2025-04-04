@@ -65,7 +65,8 @@ if {$dev eq "nano20k"} {
         add_file -type cst "src/boards/mega138k_snescontroller.cst"
     } elseif {$controller eq "ds2"} {
         add_file src/boards/mega138k.v
-        add_file -type cst "src/boards/mega138k.cst"
+        # pin-to-pin compatible with mega60k
+        add_file -type cst "src/boards/mega60k.cst"
     } else {
         error "Unknown controller $controller"
     }
