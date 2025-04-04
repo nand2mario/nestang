@@ -1,6 +1,6 @@
 if {$argc == 0} {
     puts "Usage: $argv0 <device> <controller>"
-    puts "          device: nano20k, primer25k, mega60k"
+    puts "          device: nano20k, primer25k, mega60k, mega138k, console60k, console138k"
     puts "      controller: snes, ds2"
     puts "Note: nano20k supports both controllers simultaneously, so build with just: gw_sh build.tcl nano20k"
     exit 1
@@ -10,7 +10,7 @@ set dev [lindex $argv 0]
 if {$argc == 2} {
     set controller [lindex $argv 1]
 } else {
-    set controller ""
+    set controller "ds2"
 }
 
 # process $dev and $controller
@@ -30,7 +30,7 @@ if {$dev eq "nano20k"} {
         add_file -type cst "src/boards/primer25k_snescontroller.cst"
     } elseif {$controller eq "ds2"} {
         add_file src/boards/primer25k.v
-        add_file -type cst "src/primer25k/nestang.cst"
+        add_file -type cst "src/boards/primer25k.cst"
     } else {
         error "Unknown controller $controller"
     }

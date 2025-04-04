@@ -1,7 +1,8 @@
 `define RES_720P
 `define GW_IDE
-`define NANO
 
+`define PLL_R
+`define LED2
 `define CONTROLLER_SNES
 `define CONTROLLER_DS2
 

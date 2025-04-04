@@ -30,7 +30,7 @@ module nestang_top (
     output [1:0] O_sdram_ba,        // two banks
     output [SDRAM_DATA_WIDTH/8-1:0] O_sdram_dqm,  
 
-`ifdef NANO
+`ifdef LED2
     // LEDs
     output [1:0] led,
 `else
@@ -201,15 +201,15 @@ end
 
 `ifndef VERILATOR
 
-`ifdef PRIMER
-// sysclk 50Mhz
-gowin_pll_27 pll_27 (.clkin(sys_clk), .clkout0(clk27));      // Primer25K: PLL to generate 27Mhz from 50Mhz
-gowin_pll_nes pll_nes (.clkin(sys_clk), .clkout0(clk), .clkout1(fclk), .clkout2(O_sdram_clk));
-`else
-// sys_clk 27Mhz
+`ifdef PLL_R
+// Nano uses rPLL and 27Mhz crystal
 assign clk27 = sys_clk;       // Nano20K: native 27Mhz system clock
 gowin_pll_nes pll_nes(.clkin(sys_clk), .clkoutd3(clk), .clkout(fclk), .clkoutp(O_sdram_clk));
-`endif  // PRIMER
+`else
+// All other boards uses 50Mhz crystal
+gowin_pll_27 pll_27 (.clkin(sys_clk), .clkout0(clk27));      // Primer25K: PLL to generate 27Mhz from 50Mhz
+gowin_pll_nes pll_nes (.clkin(sys_clk), .clkout0(clk), .clkout1(fclk), .clkout2(O_sdram_clk));
+`endif
 
 gowin_pll_hdmi pll_hdmi (
     .clkin(clk27),
