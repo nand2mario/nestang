@@ -5,13 +5,13 @@
     <Version>5</Version>
     <Device name="GW5AT-60B" pn="GW5AT-LV60PG484AC1/I0">gw5at60b-002</Device>
     <FileList>
+        <File path="src/console60k/config.v" type="file.verilog" enable="1"/>
         <File path="src/iosys/iosys_bl616.v" type="file.verilog" enable="1"/>
         <File path="src/EEPROM_24C0x.sv" type="file.verilog" enable="1"/>
         <File path="src/apu.v" type="file.verilog" enable="1"/>
         <File path="src/autofire.v" type="file.verilog" enable="1"/>
         <File path="src/cart.sv" type="file.verilog" enable="1"/>
         <File path="src/compat.v" type="file.verilog" enable="1"/>
-        <File path="src/console60k/config.v" type="file.verilog" enable="1"/>
         <File path="src/controller_ds2.sv" type="file.verilog" enable="1"/>
         <File path="src/controller_snes.v" type="file.verilog" enable="1"/>
         <File path="src/dpram.v" type="file.verilog" enable="1"/>
