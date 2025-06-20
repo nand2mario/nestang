@@ -1,7 +1,7 @@
 
 ## Version history for NESTang - an NES emulator for Tang Primer 20K
 
-v0.11, 2/06/20024
+v0.11, 2/06/2024
 - Add a "Select core" menu item to switch between snestang and nestang cores. To enable it, just put the .bin core files in the /cores directory.
 
 v0.10, 23/05/2024
