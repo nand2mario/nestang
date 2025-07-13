@@ -1,0 +1,42 @@
+[tasks]
+sdram_init
+sdram_refresh
+sdram_rw
+sdram
+
+[options]
+# sdram_init
+sdram_init:         mode prove
+sdram_init:         depth 25
+# sdram_refresh
+sdram_refresh:      mode prove
+sdram_refresh:      depth 25     
+# sdram_rw
+sdram_rw:           mode prove
+sdram_rw:           depth 25
+# sdram
+sdram:              mode prove
+sdram:              depth 25
+
+[engines]
+sdram_init:         smtbmc
+sdram_refresh:      smtbmc
+sdram_rw:           smtbmc
+sdram:              smtbmc
+
+[script]
+# sdram_init
+sdram_init: read_verilog -DF_INIT_FSM -formal sdram_nes.v
+sdram_init: prep -top sdram_init_fsm
+# sdram_refresh
+sdram_refresh: read_verilog -DF_REFRESH_FSM -formal sdram_nes.v
+sdram_refresh: prep -top sdram_refresh_fsm
+# sdram_rw
+sdram_rw: read_verilog -DF_RW_FSM -formal sdram_nes.v
+sdram_rw: prep -top sdram_rw_fsm
+# sdram
+sdram: read_verilog -DF_SDRAM -formal sdram_nes.v
+sdram: prep -top sdram_nes
+
+[files]
+sdram_nes.v
