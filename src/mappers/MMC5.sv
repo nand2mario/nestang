@@ -82,7 +82,6 @@ reg [7:0] multiplier_1;
 reg [7:0] multiplier_2;
 wire [15:0] multiply_result = multiplier_1 * multiplier_2;
 
-// nand2mario FIXME: this uses registers instead of BRAM on 1.9.10_03
 reg [7:0] expansion_ram[0:1023] /* synthesis syn_ramstyle="block_ram" */ ; // Block RAM, otherwise we need to time multiplex..
 reg [7:0] last_read_ram;
 reg [7:0] last_read_exattr;
@@ -98,6 +97,17 @@ wire ppu_sprite16 = ppuflags[1];
 //reg ppu_sprite16;
 wire [8:0] ppu_cycle = ppuflags[10:2];
 wire [8:0] ppu_scanline = ppuflags[19:11];
+
+// expansion_ram write conditions
+wire write_cond_1 = (ppu_ce && !ppu_in_frame && !extended_ram_mode[1] && chr_write && (mirrbits == 2) && chr_ain[13]);
+wire write_cond_2 = (ce && prg_write && prg_ain[15:10] == 6'b010111); // $5C00-$5FFF
+wire [9:0] expansion_ram_waddr = write_cond_1 ? chr_ain[9:0] : prg_ain[9:0];
+wire [7:0] expansion_ram_din = write_cond_1 ? chr_din : ((extended_ram_mode[1] || ppu_in_frame) ? prg_din : 8'd0);
+// extended_ram_mode:
+// Mode 0/1 - Not readable (returns open bus), can only be written while the PPU is rendering (otherwise, 0 is written)
+// Mode 2 - Readable and writable
+// Mode 3 - Read-only
+wire expansion_ram_we = ((extended_ram_mode != 3) && (write_cond_1 || write_cond_2));
 
 // Handle IO register writes
 always @(posedge clk) begin
@@ -161,15 +171,9 @@ always @(posedge clk) begin
 			chr_last <= 0;
 	end
 
-	// Mode 0/1 - Not readable (returns open bus), can only be written while the PPU is rendering (otherwise, 0 is written)
-	// Mode 2 - Readable and writable
-	// Mode 3 - Read-only
-	if (extended_ram_mode != 3) begin
-		if (ppu_ce && !ppu_in_frame && !extended_ram_mode[1] && chr_write && (mirrbits == 2) && chr_ain[13])
-			expansion_ram[chr_ain[9:0]] <= chr_din;
-		else if (ce && prg_write && prg_ain[15:10] == 6'b010111) // $5C00-$5FFF
-			expansion_ram[prg_ain[9:0]] <= (extended_ram_mode[1] || ppu_in_frame) ? prg_din : 8'd0;
-	end
+    if (expansion_ram_we) begin
+        expansion_ram[expansion_ram_waddr] <= expansion_ram_din;
+    end
 
 	if (~enable) begin
 		prg_bank_3 <= 7'h7F;
