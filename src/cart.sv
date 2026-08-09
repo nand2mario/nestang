@@ -321,8 +321,6 @@ MMC4 mmc4(
 // Games  : Castlevania III, Just Breed                                        //
 //*****************************************************************************//
 
-// nand2mario 2/2025: somehow this causes routing failures. disable for now
-/*
 MMC5 mmc5(
 	.clk        (clk),
 	.ce         (ce),
@@ -353,7 +351,6 @@ MMC5 mmc5(
 	.ppu_ce     (ppu_ce),
 	.ppuflags   (ppuflags)
 );
-*/
 
 //*****************************************************************************//
 // Name   : CPROM                                                              //
